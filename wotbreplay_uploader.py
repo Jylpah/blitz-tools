@@ -18,30 +18,6 @@ WIurl='https://wotinspector.com/api/replay/upload?'
 WG_appID  = '81381d3f45fa4aa75b78a7198eb216ad'
 wg = None
 
-# TANKS = None
-# MAPS ={
-# 	'amigosville' 	: 'Falls Creek',
-# 	'canal'			: 'Canal',
-# 	'canyon' 		: 'Canyon',
-# 	'desert_train' 	: 'Desert Sands',
-# 	'erlenberg'		: 'Middleburg',
-# 	'fort'			: 'Fort Despair',
-# 	'grossberg'		: 'Dynasty\'s Pearl',
-# 	'faust'			: 'Faust',
-# 	'himmelsdorf' 	: 'Himmelsdorf',
-# 	'italy'			: 'Vineyeards',
-# 	'karelia'		: 'Rockfield',
-# 	'milbase' 		: 'Yamato Harbor',
-# 	'mountain'		: 'Black Goldville',
-# 	'port'			: 'Port Bay',
-# 	'medvedkovo' 	: 'Dead Rail',
-# 	'pliego'		: 'Castilla',
-# 	'rock'			: 'Mayan Ruins',
-# 	'rudniki'		: 'Mines',
-# 	'savanna'		: 'Oasis Palms',
-# 	'skit'			: 'Naval Frontier'
-# 	}
-
 async def main(argv):
 	global VERBOSE, DEBUG, wg
 
