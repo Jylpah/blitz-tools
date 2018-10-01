@@ -10,8 +10,10 @@ WG_ID = USE_YOUR_OWN_WG_ID
 
 DEBUG = False
 VERBOSE = False
-MAX_RETRIES = 3
 SLEEP = 2
+MAX_RETRIES = 3
+REPLAY_N = 0
+WIurl='https://wotinspector.com/api/replay/upload?'
 
 TANKS = None
 MAPS ={
@@ -36,13 +38,6 @@ MAPS ={
 	'savanna'		: 'Oasis Palms',
 	'skit'			: 'Naval Frontier'
 	}
-
-REPLAY_N = 0
-
-#WIurl='https://wotinspector.com/api/replay/upload?&details=full&uploaded_by='
-WIurl='https://wotinspector.com/api/replay/upload?'
-# additional option: 'private=1' to keep the replay way from public listing at WoTinspector.com/replays 
-
 
 async def main(argv):
 	global VERBOSE, DEBUG, TANKS
@@ -69,14 +64,16 @@ async def main(argv):
 			TANKS = json.load(f)
 
 	try:
-		queue  = asyncio.Queue(maxsize=10)	
+		queue  = asyncio.Queue()	
 		
 		tasks = []
+		# Make replay Queue
 		tasks.append(asyncio.create_task(mkReplayQ(queue, args.files, args.title)))
-		# mkReplayQ(queue, args.files, args.title)
+		# Start tasks to process the Queue
 		for i in range(args.N_tasks):
 			tasks.append(asyncio.create_task(replayWorker(queue, i, args.accountID, args.private)))
 			debug('Task ' + str(i) + ' started')
+		
 		debug('Waiting for the replay scanner to finish')
 		await asyncio.wait([tasks[0]])
 		debug('Scanner finished. Waiting for workers to finish queue')
@@ -87,12 +84,6 @@ async def main(argv):
 		debug('Waiting for workers to cancel')
 		await asyncio.gather(*tasks, return_exceptions=True)
 		verbose(str(REPLAY_N) + ' replays uploaded')
-		# tanklist = []
-		# for tanklist_tmp in await asyncio.gather(*tasks):
-		# 	tanklist.extend(tanklist_tmp)
-			
-		# with open(args.file, 'w+') as outfile:
-		# 	tankopedia = {}
 		
 	except KeyboardInterrupt:
 		print('Ctrl-c pressed ...')
@@ -114,26 +105,26 @@ async def mkReplayQ(queue : asyncio.Queue, files : list, title : str):
 				break
 			else:
 				if (p_replayfile.match(line) != None):
-					await queue.put(mkQueueItem(line, title))
+					await queue.put(await mkQueueItem(line, title))
 	else:
 		# debug('Reading files from the command line: ')
 		# debug(', '.join(files))
 		for fn in files:
 			# debug(fn)
 			if os.path.isfile(fn) and (p_replayfile.match(fn) != None):
-				await queue.put(mkQueueItem(fn, title))
+				await queue.put(await mkQueueItem(fn, title))
 			elif os.path.isdir(fn):
 				with os.scandir(fn) as dirEntry:
 					for entry in dirEntry:
 						if entry.is_file() and (p_replayfile.match(entry.name) != None): 
 							debug(entry.name)
-							await queue.put(mkQueueItem(entry.path, title))
+							await queue.put(await mkQueueItem(entry.path, title))
 			debug('File added to queue: ' + fn)
 	debug('Finished')
 	return None
 
 
-def mkQueueItem(filename : str, title : str) -> list:
+async def mkQueueItem(filename : str, title : str) -> list:
 	"""Make an item to replay queue"""
 	global REPLAY_N
 	REPLAY_N +=1
@@ -210,7 +201,6 @@ def getTitle(replayfile: str, title: str, i : int) -> str:
 		try:
 			filename = os.path.basename(replayfile)	
 			# debug(filename)
-			#p = re.compile('(\\d{4})(\\d{2})(\\d{2})_(\\d{2})(\\d{2})_(.+)_(.+?)(?:-\\d)\\.wotbreplay')
 			p = re.compile('\\d{8}_\\d{4}_(.+)_(' + '|'.join(MAPS.keys()) + ')(?:-\\d)?\\.wotbreplay$')
 			m = p.match(filename)
 			if (m != None):
@@ -227,20 +217,11 @@ def getTitle(replayfile: str, title: str, i : int) -> str:
 				# debug('No match')
 				title = re.sub('\\.wotbreplay$', '', filename)
 		except Exception as err:
-			debug(err)
+			error(err)
 	else:
-		title.replace('NN', str(i))
-	
+		title.replace('NN', str(i))	
 	# debug(title)
 	return title 
-
-
-
-# with open(filename,'r') as f:
-# 	payload = {'file' : (filename, base64.b64encode(f.read())) }
-# 	r = requests.post(url, data=payload)
-# 	print(r.json())
-
 
 
 def verbose(msg = ""):
@@ -271,4 +252,5 @@ def error(msg = ""):
 
 ### main()
 if __name__ == "__main__":
-   asyncio.run(main(sys.argv[1:]))
+   # use debug=True to better debug the code	
+   asyncio.run(main(sys.argv[1:]), debug=False)
