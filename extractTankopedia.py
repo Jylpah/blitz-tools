@@ -2,7 +2,8 @@
 
 # Extract tankopedia data in WG API JSON format from Blitz app files (Android APK unzipped)
 
-import sys, argparse, json, os, inspect, aiohttp, asyncio, aiofiles, re, logging, time, xmltodict
+import sys, argparse, json, os, inspect, aiohttp, asyncio, aiofiles, re, logging, time, xmltodict, collections
+
 
 logging.getLogger("asyncio").setLevel(logging.DEBUG)
 
@@ -53,7 +54,7 @@ async def main(argv):
         tankopedia['meta'] = { "count":  len(tanklist) }
         tankopedia['data'], tankopedia['userStr'] = await convertTankNames(tanklist, tank_strs)
         #debug(tankopedia)
-        await outfile.write(json.dumps(tankopedia, ensure_ascii=False, indent=4, sort_keys=True))
+        await outfile.write(json.dumps(tankopedia, ensure_ascii=False, indent=4, sort_keys=False))
     
     if args.file_maps != None:
         async with aiofiles.open(args.file_maps, 'w', encoding="utf8") as outfile:
@@ -88,7 +89,6 @@ async def extractTanks(blitzAppBase : str, nation: str):
             sys.exit(2)
     return tanks
 
-
 async def readUserStrs(blitzAppBase : str) -> dict:
     """Read user strings to convert map and tank names"""
     tank_strs = {}
@@ -119,16 +119,24 @@ async def convertTankNames(tanklist : list, tank_strs: dict) -> dict:
     """Convert tank names for Tankopedia"""
     tankopedia = {}
     userStrs = {}
+    tank_ids = []
     try:
         for tank in tanklist:
             tank['name'] = tank_strs[tank['userStr']]
             userStrs[tank['userStr'].split(':')[1]] = tank['name']
             tank.pop('userStr', None)
             tankopedia[str(tank['tank_id'])] = tank
+            tank_ids.append(tank['tank_id'])   # for sorting...
+
+        tank_ids.sort()
+        tankopedia_sorted = collections.OrderedDict()
+        for tank_id in tank_ids:
+            tankopedia_sorted[str(tank_id)] = tankopedia[str(tank_id)]
+
     except Exception as err:
         error(err)
         sys.exit(1)
-    return tankopedia, userStrs
+    return tankopedia_sorted, userStrs
 
 async def getTankID(nation: str, tankID : int) -> int:
     return (tankID << 8) + (NATION_ID[nation] << 4) + 1 
