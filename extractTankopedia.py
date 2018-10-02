@@ -27,6 +27,7 @@ async def main(argv):
     parser = argparse.ArgumentParser(description='Extract Tankopedia data from Blitz game files')
     parser.add_argument('blitzAppBase', type=str,  metavar="BLITZAPP_FOLDER", default=".", help='Base dir of the Blitz App files')
     parser.add_argument('file', type=str, metavar="FILE", help='Write Tankopedia to file')
+    parser.add_argument('-fm', '--file-maps', dest='file_maps', type=str, default=None, help='File to write map names')
     parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
     parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
         
@@ -44,14 +45,19 @@ async def main(argv):
     for tanklist_tmp in await asyncio.gather(*tasks):
         tanklist.extend(tanklist_tmp)
     
+    tank_strs, map_strs = await readUserStrs(args.blitzAppBase)
+
     async with aiofiles.open(args.file, 'w', encoding="utf8") as outfile:
         tankopedia = {}
         tankopedia['status'] = 'ok'
         tankopedia['meta'] = { "count":  len(tanklist) }
-        (tankopedia['data'], tankopedia['userStr']) = await convertTankName(args.blitzAppBase, tanklist)
-
-        #print(tankopedia)
+        tankopedia['data'], tankopedia['userStr'] = await convertTankNames(tanklist, tank_strs)
+        #debug(tankopedia)
         await outfile.write(json.dumps(tankopedia, ensure_ascii=False, indent=4, sort_keys=True))
+    
+    if args.file_maps != None:
+        async with aiofiles.open(args.file_maps, 'w', encoding="utf8") as outfile:
+            await outfile.write(json.dumps(map_strs, ensure_ascii=False, indent=4, sort_keys=True))
 
     return None
     
@@ -82,31 +88,47 @@ async def extractTanks(blitzAppBase : str, nation: str):
             sys.exit(2)
     return tanks
 
-async def convertTankName(blitzAppBase : str , tanklist : list) -> dict:
-    """Convert list.xml UserStrings to tank names for Tankopedia"""
-    strings = {}   
+
+async def readUserStrs(blitzAppBase : str) -> dict:
+    """Read user strings to convert map and tank names"""
+    tank_strs = {}
+    map_strs = {}
     filename = blitzAppBase + BLITZAPP_STRINGS
     debug('Opening file: ' + filename + ' for reading UserStrings')
     try:
         async with aiofiles.open(filename, 'r', encoding="utf8") as f:
-            str2find = '_vehicles:'
-            p = re.compile('"(.+?)": "(.+)"')
+            p_tank = re.compile('^"(#\\w+?_vehicles:.+?)": "(.+)"$')
+            p_map = re.compile('^"#maps:(.+?):.+?: "(.+?)"$')
+            
             async for l in f:
-                if l.find(str2find) > -1:
-                    m = p.match(l)
-                    strings[m.group(1)] = m.group(2)
-
-        tankdict = {}
-        userStrs = {}
-        for tank in tanklist:
-            tank['name'] = strings[tank['userStr']]
-            userStrs[tank['userStr'].split(':')[1]] = tank['name']
-            tank.pop('userStr', None)
-            tankdict[str(tank['tank_id'])] = tank
+                m = p_tank.match(l)
+                if m != None: 
+                    tank_strs[m.group(1)] = m.group(2)
+                
+                m = p_map.match(l)
+                if m != None:
+                    map_strs[m.group(1)] = m.group(2)   
+    
     except Exception as err:
         error(err)
         sys.exit(1)
-    return tankdict, userStrs
+
+    return tank_strs, map_strs
+    
+async def convertTankNames(tanklist : list, tank_strs: dict) -> dict:
+    """Convert tank names for Tankopedia"""
+    tankopedia = {}
+    userStrs = {}
+    try:
+        for tank in tanklist:
+            tank['name'] = tank_strs[tank['userStr']]
+            userStrs[tank['userStr'].split(':')[1]] = tank['name']
+            tank.pop('userStr', None)
+            tankopedia[str(tank['tank_id'])] = tank
+    except Exception as err:
+        error(err)
+        sys.exit(1)
+    return tankopedia, userStrs
 
 async def getTankID(nation: str, tankID : int) -> int:
     return (tankID << 8) + (NATION_ID[nation] << 4) + 1 
