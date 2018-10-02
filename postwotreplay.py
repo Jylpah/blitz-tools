@@ -4,10 +4,9 @@ import json, requests, sys, base64
 
 filename = str(sys.argv[1])
 
+#Change this to your own WG id. Find it here: https://api.wotblitz.eu/wotb/account/list/?account_id%2Cnickname
 # WG account id of the uploader:
-uploader_account_ID = USE_YOUR_OWN_WG_ID
-# # Find it here: https://api.wotblitz.eu/wotb/account/list/?account_id%2Cnickname
-# You may need to create an WG Application ID. It is super easy and free. Just login https://developers.wargaming.net/
+uploader_account_ID = 0    
 
 # edit this or use arg.parse() to add proper suppod for commandline arguments 
 title="Some title"
