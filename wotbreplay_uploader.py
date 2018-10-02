@@ -7,16 +7,18 @@ logging.getLogger("asyncio").setLevel(logging.DEBUG)
 
 # WG account id of the uploader: 
 # # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
-WG_ID = None
+WG_ID = 2008897346
 
 DEBUG = False
 VERBOSE = False
 SLEEP = 2
 MAX_RETRIES = 3
 REPLAY_N = 0
+SKIPPED_N = 0
 WIurl='https://wotinspector.com/api/replay/upload?'
 WG_appID  = '81381d3f45fa4aa75b78a7198eb216ad'
 wg = None
+
 
 async def main(argv):
 	global VERBOSE, DEBUG, wg
@@ -64,7 +66,7 @@ async def main(argv):
 			task.cancel()
 		debug('Waiting for workers to cancel')
 		await asyncio.gather(*tasks, return_exceptions=True)
-		verbose(str(REPLAY_N) + ' replays uploaded')
+		verbose(str(REPLAY_N) + ' replays: ' + str(REPLAY_N - SKIPPED_N) + ' uploaded, ' + str(SKIPPED_N) + ' skipped')
 				
 	except KeyboardInterrupt:
 		print('Ctrl-c pressed ...')
@@ -84,7 +86,7 @@ async def mkReplayQ(queue : asyncio.Queue, files : list, title : str):
 		stdin, _ = await aioconsole.get_standard_streams()
 		#stdin = sys.stdin
 		while True:
-			line = stdin.readline()
+			line = await stdin.readline()
 			if not line: 
 				break
 			else:
@@ -116,6 +118,9 @@ async def mkQueueItem(filename : str, title : str) -> list:
 
 
 async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, priv = False):
+	"""Async Worker to process the replay queue"""
+	global SKIPPED_N
+
 	async with aiohttp.ClientSession() as session:
 		while True:
 			item = await queue.get()
@@ -123,6 +128,21 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 			# debug(filename)
 			N = item[1]
 			title = item[2]
+			replay_json_fn = filename +  '.json'
+
+			try:
+				if os.path.exists(replay_json_fn) and os.path.isfile(replay_json_fn):
+					async with aiofiles.open(replay_json_fn) as fp:
+						replay_json = json.loads(await fp.read())
+						if replay_json['status'] == 'ok':
+							verbose('Replay[' + str(N) + ']: ' + title + ' has already been posted. Skipping.' )
+							queue.task_done()
+							SKIPPED_N += 1
+							continue
+			except Exception as err:
+				error(err)
+				sys.exit(1)
+
 			# debug('Opening file [' + str(N) +']: ' + filename)
 			async with aiofiles.open(filename,'rb') as fp:
 				# debug('File opened: ' + filename)
@@ -153,7 +173,7 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 								else:
 									debug('Response data read')
 									verbose('Replay[' + str(N) + ']: ' + title + ' posted')
-								await storeReplayJSON(filename,json_resp)												
+								await storeReplayJSON(replay_json_fn,json_resp)												
 								break
 							else:
 								debug('Replay[' + str(N)+ ']: Got HTTP/' + str(resp.status) + ' Retrying... ' + str(retry))
@@ -167,8 +187,7 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 	return None
 
 
-async def storeReplayJSON(filename: str, json_data : dict):
-	filename = filename + '.json'
+async def storeReplayJSON(filename: str, json_data : dict):	
 	try: 
 		async with aiofiles.open(filename, 'w', encoding='utf8') as outfile:
 			await outfile.write(json.dumps(json_data, ensure_ascii=False, indent=4))
