@@ -59,7 +59,7 @@ class WG:
         'asia': range(int(2e9),int(4e9))
         }
 
-    def __init__(self, WG_appID: str, tankopedia_fn: str):
+    def __init__(self, WG_appID: str, tankopedia_fn: str, maps_fn = None):
         
         self.WG_appID = WG_appID
         self.tanks = None        
@@ -69,6 +69,14 @@ class WG:
                     self.tanks = json.loads(f.read())
             except Exception as err:
                 self.error('Could not read tankopedia: ' + tankopedia_fn + '\n' + str(err))  
+        
+        if maps_fn != None:
+            try:
+                with open(maps_fn, 'rt', encoding='utf8') as f:
+                    self.maps = json.loads(f.read())
+            except Exception as err:
+                self.error('Could not read maps file: ' + maps_fn + '\n' + str(err))  
+
         self.session = aiohttp.ClientSession()
         # self.session = None   
 
