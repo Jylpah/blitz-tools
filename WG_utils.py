@@ -13,28 +13,38 @@ class WG:
     DEBUG = False
     
     maps = {
-        'amigosville' 	: 'Falls Creek',
-        'canal'			: 'Canal',
-        'canyon' 		: 'Canyon',
-        'desert_train' 	: 'Desert Sands',
-        'erlenberg'		: 'Middleburg',
-        'fort'			: 'Fort Despair',
-        'grossberg'		: 'Dynasty\'s Pearl',
-        'faust'			: 'Faust',
-        'himmelsdorf' 	: 'Himmelsdorf',
-        'italy'			: 'Vineyeards',
-        'karelia'		: 'Rockfield',
-        'milbase' 		: 'Yamato Harbor',
-        'mountain'		: 'Black Goldville',
-        'port'			: 'Port Bay',
-        'medvedkovo' 	: 'Dead Rail',
-        'pliego'		: 'Castilla',
-        'rock'			: 'Mayan Ruins',
-        'rudniki'		: 'Mines',
-        'savanna'		: 'Oasis Palms',
-        'skit'			: 'Naval Frontier'
+        "Random": "Random map",
+        "amigosville": "Falls Creek",
+        "asia": "Lost Temple",
+        "canal": "Canal",
+        "canyon": "Canyon",
+        "desert_train": "Desert Sands",
+        "erlenberg": "Middleburg",
+        "faust": "Faust",
+        "fort": "Macragge",
+        "grossberg": "Dynasty's Pearl",
+        "himmelsdorf": "Himmelsdorf",
+        "italy": "Vineyards",
+        "karelia": "Rockfield",
+        "karieri": "Copperfield",
+        "lake": "Mirage",
+        "lumber": "Alpenstadt",
+        "malinovka": "Winter Malinovka",
+        "medvedkovo": "Dead Rail",
+        "milbase": "Yamato Harbor",
+        "mountain": "Black Goldville",
+        "north": "North",
+        "ordeal": "Trial by Fire",
+        "pliego": "Castilla",
+        "port": "Port Bay",
+        "rock": "Mayan Ruins",
+        "rudniki": "Mines",
+        "savanna": "Oasis Palms",
+        "skit": "Naval Frontier",
+        "test": "World of Ducks",
+        "tutorial": "Proving Grounds"
     }
-                
+              
     URL_WG_server = {
         'eu' : 'https://api.wotblitz.eu/wotb/',
         'ru' : 'https://api.wotblitz.ru/wotb/',
@@ -298,5 +308,3 @@ class WG:
         except Exception as err:
             print('ERROR: Account ID not valid or server not given: ' + nick + ' ' + str(err))
             return None
-       
-
