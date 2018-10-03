@@ -7,7 +7,7 @@ logging.getLogger("asyncio").setLevel(logging.DEBUG)
 
 # WG account id of the uploader: 
 # # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
-WG_ID = None
+WG_ID = 0
 
 DEBUG = False
 VERBOSE = False
