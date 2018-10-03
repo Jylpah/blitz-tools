@@ -14,7 +14,6 @@ BLITZAPP_VEHICLE_FILE='/list.xml'
 VERBOSE = False
 DEBUG = False
 
-
 wg = WG()
 NATION_ID = {}
 for i in range(len(wg.nations)): 
