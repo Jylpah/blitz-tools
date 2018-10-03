@@ -1,9 +1,9 @@
-#!/usr/bin/python3.7    
+#!/usr/bin/python3.7
 
 # Extract tankopedia data in WG API JSON format from Blitz app files (Android APK unzipped)
 
 import sys, argparse, json, os, inspect, aiohttp, asyncio, aiofiles, re, logging, time, xmltodict, collections
-
+from blitzutils import WG
 
 logging.getLogger("asyncio").setLevel(logging.DEBUG)
 
@@ -14,12 +14,11 @@ BLITZAPP_VEHICLE_FILE='/list.xml'
 VERBOSE = False
 DEBUG = False
 
-NATIONS = [ 'ussr', 'germany', 'usa', 'china', 'france', 'uk', 'japan', 'other']
-NATION_ID = {}
-for i in range(len(NATIONS)): 
-    NATION_ID[NATIONS[i]] = i 
 
-TANK_TYPE = [ 'lightTank', 'mediumTank', 'heavyTank', 'AT-SPG' ]
+wg = WG()
+NATION_ID = {}
+for i in range(len(wg.nations)): 
+    NATION_ID[wg.nations[i]] = i 
 
 ## main() -------------------------------------------------------------
 async def main(argv):
@@ -39,7 +38,7 @@ async def main(argv):
     if DEBUG: VERBOSE = True
 
     tasks = []
-    for nation in NATIONS:
+    for nation in wg.nations:
         tasks.append(asyncio.create_task(extractTanks(args.blitzAppBase, nation)))
 
     tanklist = []
@@ -143,7 +142,7 @@ async def getTankID(nation: str, tankID : int) -> int:
 
 async def getTankType(tagstr : str):
     tags = tagstr.split(' ')
-    for t_type in TANK_TYPE:
+    for t_type in wg.tank_type:
         if tags[0] == t_type:
             return t_type
     return None

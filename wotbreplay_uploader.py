@@ -1,7 +1,7 @@
 #!/usr/bin/python3.7
 
 import json, argparse, inspect, sys, os, base64, aiohttp, urllib, asyncio, aiofiles, aioconsole, logging, re
-from WG_utils import WG
+from blitzutils import WG
 
 logging.getLogger("asyncio").setLevel(logging.DEBUG)
 
@@ -45,6 +45,9 @@ async def main(argv):
 	if args.account != None:
 		args.accountID = await wg.getAccountID(args.account)
 		debug('WG  account_id: ' + str(args.accountID))
+
+	if args.accountID == None: 
+		args.accountID = 0
 
 	try:
 		queue  = asyncio.Queue()	
