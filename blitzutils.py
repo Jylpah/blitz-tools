@@ -133,8 +133,24 @@ class WG:
     }
 
     nations = [ 'ussr', 'germany', 'usa', 'china', 'france', 'uk', 'japan', 'other']    
+    nation_id = {
+        'ussr'      : 0,
+        'germany'   : 1, 
+        'usa'       : 2, 
+        'china'     : 3,
+        'france'    : 4,
+        'uk'        : 5,
+        'japan'     : 6,
+        'other'     : 7
+    }
 
     tank_type = [ 'lightTank', 'mediumTank', 'heavyTank', 'AT-SPG' ]
+    tank_type_id = {
+        'lightTank'     : 0,
+        'mediumTank'    : 1,
+        'heavyTank'     : 2,
+        'AT-SPG'        : 3
+        }
 
     URL_WG_server = {
         'eu' : 'https://api.wotblitz.eu/wotb/',
@@ -167,9 +183,13 @@ class WG:
                     self.maps = json.loads(f.read())
             except Exception as err:
                 error('Could not read maps file: ' + maps_fn + '\n' + str(err))  
+        
+        if self.WG_appID != None:
+            self.session = aiohttp.ClientSession()
+        else:
+            self.session = None
 
-        self.session = aiohttp.ClientSession()
-        # self.session = None   
+        
 
     ## Class methods  ------------------------------
 

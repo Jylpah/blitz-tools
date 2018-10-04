@@ -1,6 +1,7 @@
 #!/usr/bin/python3.7
 
 import json, argparse, inspect, sys, os, base64, aiohttp, urllib, asyncio, aiofiles, aioconsole, logging, re
+import blitzutils as bu
 from blitzutils import WG
 
 logging.getLogger("asyncio").setLevel(logging.DEBUG)
@@ -21,7 +22,7 @@ wg = None
 
 
 async def main(argv):
-	global VERBOSE, DEBUG, wg
+	global wg
 
 	parser = argparse.ArgumentParser(description='Post replays(s) to WoTinspector.com and retrieve battle data')
 	parser.add_argument('--output', default='single', choices=['file', 'files', 'db'] , help='Select output mode: single/multiple files or database')
@@ -30,21 +31,22 @@ async def main(argv):
 	parser.add_argument('-t','--title', type=str, default=None, help='Title for replays. Use NN for continous numbering. Default is filename-based numbering')
 	parser.add_argument('-p', '--private', dest="private", action='store_true', default=False, help='Set replays private on WoTinspector.com')
 	parser.add_argument('--tasks', dest='N_tasks', type=int, default=10, help='Number of worker threads')
-	parser.add_argument('--tankopedia', type=str, default=None, help='Open Tankopedia')
+	parser.add_argument('--tankopedia', type=str, default=None, help='JSON file to read Tankopedia from')
+	parser.add_argument('--mapfile', type=str, default=None, help='JSON file to read Blitz map names from')
 	parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 	parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
 	parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files to read. Use \'-\' for STDIN"')
 	args = parser.parse_args()
 
-	VERBOSE = args.verbose
-	DEBUG = args.debug
-	if DEBUG: VERBOSE = True
-	
-	wg = WG(WG_appID, args.tankopedia)
+	print(args.files)
+	bu.setVerbose(args.verbose)
+	bu.setDebug(args.debug)
+    	
+	wg = WG(WG_appID, args.tankopedia, args.mapfile)
 
 	if args.account != None:
 		args.accountID = await wg.getAccountID(args.account)
-		debug('WG  account_id: ' + str(args.accountID))
+		bu.debug('WG  account_id: ' + str(args.accountID))
 
 	if args.accountID == None: 
 		args.accountID = 0
@@ -58,18 +60,18 @@ async def main(argv):
 		# Start tasks to process the Queue
 		for i in range(args.N_tasks):
 			tasks.append(asyncio.create_task(replayWorker(queue, i, args.accountID, args.private)))
-			debug('Task ' + str(i) + ' started')
+			bu.debug('Task ' + str(i) + ' started')
 		
-		debug('Waiting for the replay scanner to finish')
+		bu.debug('Waiting for the replay scanner to finish')
 		await asyncio.wait([tasks[0]])
-		debug('Scanner finished. Waiting for workers to finish queue')
+		bu.debug('Scanner finished. Waiting for workers to finish queue')
 		await queue.join()
-		debug('Cancelling workers')
+		bu.debug('Cancelling workers')
 		for task in tasks:
 			task.cancel()
-		debug('Waiting for workers to cancel')
+		bu.debug('Waiting for workers to cancel')
 		await asyncio.gather(*tasks, return_exceptions=True)
-		verbose(str(REPLAY_N) + ' replays: ' + str(REPLAY_N - SKIPPED_N) + ' uploaded, ' + str(SKIPPED_N) + ' skipped')
+		bu.verbose(str(REPLAY_N) + ' replays: ' + str(REPLAY_N - SKIPPED_N) + ' uploaded, ' + str(SKIPPED_N) + ' skipped')
 				
 	except KeyboardInterrupt:
 		print('Ctrl-c pressed ...')
@@ -85,31 +87,27 @@ async def mkReplayQ(queue : asyncio.Queue, files : list, title : str):
 	"""Create queue of replays to post"""
 	p_replayfile = re.compile('.*\\.wotbreplay$')
 	if files[0] == '-':
-		debug('reading replay file list from STDIN')
+		bu.debug('reading replay file list from STDIN')
 		stdin, _ = await aioconsole.get_standard_streams()
-		#stdin = sys.stdin
 		while True:
-			line = await stdin.readline()
+			line = (await stdin.readline()).decode('utf-8').rstrip()
 			if not line: 
 				break
 			else:
 				if (p_replayfile.match(line) != None):
 					await queue.put(await mkQueueItem(line, title))
 	else:
-		# debug('Reading files from the command line: ')
-		# debug(', '.join(files))
 		for fn in files:
-			# debug(fn)
 			if os.path.isfile(fn) and (p_replayfile.match(fn) != None):
 				await queue.put(await mkQueueItem(fn, title))
 			elif os.path.isdir(fn):
 				with os.scandir(fn) as dirEntry:
 					for entry in dirEntry:
 						if entry.is_file() and (p_replayfile.match(entry.name) != None): 
-							debug(entry.name)
+							bu.debug(entry.name)
 							await queue.put(await mkQueueItem(entry.path, title))
-			debug('File added to queue: ' + fn)
-	debug('Finished')
+			bu.debug('File added to queue: ' + fn)
+	bu.debug('Finished')
 	return None
 
 
@@ -118,7 +116,6 @@ async def mkQueueItem(filename : str, title : str) -> list:
 	global REPLAY_N
 	REPLAY_N +=1
 	return [filename, REPLAY_N, getTitle(filename, title, REPLAY_N)]
-
 
 async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, priv = False):
 	"""Async Worker to process the replay queue"""
@@ -138,12 +135,12 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 					async with aiofiles.open(replay_json_fn) as fp:
 						replay_json = json.loads(await fp.read())
 						if replay_json['status'] == 'ok':
-							verbose('Replay[' + str(N) + ']: ' + title + ' has already been posted. Skipping.' )
+							bu.verbose('Replay[' + str(N) + ']: ' + title + ' has already been posted. Skipping.' )
 							queue.task_done()
 							SKIPPED_N += 1
 							continue
 			except Exception as err:
-				error(err)
+				bu.error(err)
 				sys.exit(1)
 
 			# debug('Opening file [' + str(N) +']: ' + filename)
@@ -158,37 +155,32 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 					}
 				url = WIurl + urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
 				headers ={'Content-type':  'application/x-www-form-urlencoded'}
-				# debug('Reading the payload')
 				payload = { 'file' : (filename, base64.b64encode(await fp.read())) }
-				# debug('Payload read')
-				# debug('URL: ' + url)
 				for retry in range(MAX_RETRIES):
-					# verbose('Worker ' + str(workerID) + ': Posting replay[' + str(N) +']:  ' + title + ' Try #: ' + str(retry+ 1) + '/' + str(MAX_RETRIES) )
-					verbose('Posting replay[' + str(N) +']:  ' + title + ' Try #: ' + str(retry+ 1) + '/' + str(MAX_RETRIES) )
+					bu.verbose('Posting replay[' + str(N) +']:  ' + title + ' Try #: ' + str(retry+ 1) + '/' + str(MAX_RETRIES) )
 					try:
 						async with session.post(url, headers=headers, data=payload) as resp:
-							debug('Replay #' + str(N) + ' HTTP response: '+ str(resp.status))
+							bu.debug('Replay #' + str(N) + ' HTTP response: '+ str(resp.status))
 							if resp.status == 200:								
-								debug('HTTP POST 200 = Success. Reading response data')
+								bu.debug('HTTP POST 200 = Success. Reading response data')
 								json_resp = await resp.json()
 								if json_resp['status'] == 'error':
-									error(json_resp['error']['message'] + ' : Replay[' + str(N) + ']' + title)
+									bu.error(json_resp['error']['message'] + ' : Replay[' + str(N) + ']' + title)
 								else:
-									debug('Response data read')
-									verbose('Replay[' + str(N) + ']: ' + title + ' posted')
+									bu.debug('Response data read')
+									bu.verbose('Replay[' + str(N) + ']: ' + title + ' posted')
 								await storeReplayJSON(replay_json_fn,json_resp)												
 								break
 							else:
-								debug('Replay[' + str(N)+ ']: Got HTTP/' + str(resp.status) + ' Retrying... ' + str(retry))
+								bu.debug('Replay[' + str(N)+ ']: Got HTTP/' + str(resp.status) + ' Retrying... ' + str(retry))
 								await asyncio.sleep(SLEEP)								
 					except Exception as err:
-						error(str(err))
+						bu.error(str(err))
 						await asyncio.sleep(SLEEP)	
-			debug('Marking task ' + str(N) + ' done')
+			bu.debug('Marking task ' + str(N) + ' done')
 			queue.task_done()	
 
 	return None
-
 
 async def storeReplayJSON(filename: str, json_data : dict):	
 	try: 
@@ -196,10 +188,9 @@ async def storeReplayJSON(filename: str, json_data : dict):
 			await outfile.write(json.dumps(json_data, ensure_ascii=False, indent=4))
 			return True
 	except Exception as err:
-		error(str(err))
+		bu.error(str(err))
 		return False
 	return False
-
 
 def getTitle(replayfile: str, title: str, i : int) -> str:
 	global wg
@@ -212,52 +203,21 @@ def getTitle(replayfile: str, title: str, i : int) -> str:
 			p = re.compile('\\d{8}_\\d{4}_(.+)_(' + '|'.join(map_usrStrs) + ')(?:-\\d)?\\.wotbreplay$')
 			m = p.match(filename)
 			if (m != None):
-				# debug('Match')
 				if wg.tanks != None:
 					tank = wg.tanks['userStr'][m.group(1)]
-					# debug('Tank from Tankopedia:' + tank)
 				else:
 					tank = m.group(1)
-					# debug(tank)
 				blitz_map = wg.maps[m.group(2)]
 				title = tank + ' @ ' + blitz_map
 			else:
-				# debug('No match')
 				title = re.sub('\\.wotbreplay$', '', filename)
 		except Exception as err:
-			error(err)
+			bu.error(err)
 	else:
 		title.replace('NN', str(i))	
-	# debug(title)
 	return title 
 
 
-def verbose(msg = ""):
-    """Print a message"""
-    if VERBOSE:
-        print(msg)
-    return None
-
-
-def debug(msg = ""):
-    """print a conditional debug message"""
-    if DEBUG: 
-        curframe = inspect.currentframe()
-        calframe = inspect.getouterframes(curframe, 2)
-        caller = calframe[1][3]
-        print('DEBUG: ' + caller + '(): ' + msg)
-    return None
-
-
-def error(msg = ""):
-    """Print an error message"""
-    curframe = inspect.currentframe()
-    calframe = inspect.getouterframes(curframe, 2)
-    caller = calframe[1][3]
-    print('ERROR: ' + caller + '(): ' + msg)
-    
-    return None
-
-### main()
+### main() -------------------------------------------
 if __name__ == "__main__":
    asyncio.run(main(sys.argv[1:]), debug=False)
