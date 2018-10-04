@@ -32,10 +32,7 @@ def setVerbose(verbose: bool):
 def verbose(msg = ""):
     """Print a message"""
     if VERBOSE:
-        curframe = inspect.currentframe()
-        calframe = inspect.getouterframes(curframe, 2)
-        caller = calframe[1][3]
-        print(caller + '(): ' + msg)
+        print(msg)
     return None
 
 def debug(msg = ""):
@@ -170,20 +167,24 @@ class WG:
         
         self.WG_appID = WG_appID
         self.tanks = None        
-        if tankopedia_fn != None:
-            try:
-                with open(tankopedia_fn, 'rt', encoding='utf8') as f:
-                    self.tanks = json.loads(f.read())
-            except Exception as err:
-                error('Could not read tankopedia: ' + tankopedia_fn + '\n' + str(err))  
-        
-        if maps_fn != None:
-            try:
-                with open(maps_fn, 'rt', encoding='utf8') as f:
-                    self.maps = json.loads(f.read())
-            except Exception as err:
-                error('Could not read maps file: ' + maps_fn + '\n' + str(err))  
-        
+        if (tankopedia_fn != None):
+            if os.path.exists(tankopedia_fn) and os.path.isfile(tankopedia_fn):
+                try:
+                    with open(tankopedia_fn, 'rt', encoding='utf8') as f:
+                        self.tanks = json.loads(f.read())
+                except Exception as err:
+                    error('Could not read tankopedia: ' + tankopedia_fn + '\n' + str(err))  
+            else:
+                verbose('Could not find Tankopedia file: ' + tankopedia_fn)    
+        if (maps_fn != None):
+            if os.path.exists(maps_fn) and os.path.isfile(maps_fn):
+                try:
+                    with open(maps_fn, 'rt', encoding='utf8') as f:
+                        self.maps = json.loads(f.read())
+                except Exception as err:
+                    error('Could not read maps file: ' + maps_fn + '\n' + str(err))  
+            else:
+                verbose('Could not find maps file: ' + maps_fn)    
         if self.WG_appID != None:
             self.session = aiohttp.ClientSession()
         else:
