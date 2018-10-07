@@ -3,7 +3,6 @@
 # Script Analyze WoT Blitz replays
 
 import sys, argparse, json, os, inspect, aiohttp, asyncio, aiofiles, aioconsole, re, logging, time, xmltodict, collections
-from beautifultable import BeautifulTable
 import blitzutils as bu
 from blitzutils import WG
 
