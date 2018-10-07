@@ -98,7 +98,7 @@ async def readUserStrs(blitzAppBase : str) -> dict:
                     tank_strs[m.group(1)] = m.group(2)
                 
                 m = p_map.match(l)
-                if m != None:
+                if m != None and m.group(2) != 'Macragge':                    
                     map_strs[m.group(1)] = m.group(2)   
     
     except Exception as err:
