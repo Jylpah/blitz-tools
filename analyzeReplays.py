@@ -58,7 +58,7 @@ result_ratios = {
 
 result_categories = {
 	'total'				: [ 'TOTAL', 'Total' ],
-	'battle_result'		: [ 'Result', ['Win', 'Loss', 'Draw']],
+	'battle_result'		: [ 'Result', [ 'Loss', 'Win', 'Draw']],
 	'battle_type'		: [ 'Battle Type',['Encounter', 'Supremacy']],
 	'battle_tier'		: [ 'Battle Tier', 'value' ],
 	'top_tier'			: [ 'Tier', ['Bottom tier', 'Top tier']],
