@@ -65,8 +65,8 @@ result_categories = {
 	'map_name'			: [ 'Map', 'value']		
 	}
 
-result_cat_header_frmt = '{:_<15s}'
-result_cat_frmt = '{:>15s}'
+result_cat_header_frmt = '{:_<17s}'
+result_cat_frmt = '{:>17s}'
 
 result_fields = {
 	'battles'			: [ 'Battles', 'Number of battles', 8, '{:^8.0f}' ],
