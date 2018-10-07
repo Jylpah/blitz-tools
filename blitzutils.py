@@ -35,6 +35,10 @@ def verbose(msg = ""):
         print(msg)
     return None
 
+def printWaiter(force = False):
+    if VERBOSE  or force:
+        print('.', end='', flush=True)
+
 def debug(msg = ""):
     """print a conditional debug message"""
     if DEBUG: 
@@ -76,25 +80,32 @@ async def getUrlJSON(session: aiohttp.ClientSession, url: str, chkJSONfunc = Non
                         debug('HTTP request OK')
                         json_resp = await resp.json()       
                         if (chkJSONfunc == None) or chkJSONfunc(json_resp):
-                            debug("Received valid JSON")
+                            debug("Received valid JSON: " + str(json_resp))
                             return json_resp
                         else:
-                            debug('Received JSON error')                            
+                            debug('Received JSON error.')                            
                     if retry == MAX_RETRIES:                        
-                        raise aiohttp.ClientError('Request failed: ' + str(resp.status) )
+                        raise aiohttp.ClientError('Request failed: ' + str(resp.status) + ' JSON Response: ' + str(json_resp) )
                     verbose('Retrying URL [' + str(retry) + ']: ' + url )
                     await asyncio.sleep(SLEEP)
 
-        except Exception as err:
+        except aiohttp.ClientError as err:
             error("Could not retrieve URL: " + url)
             error(str(err))
+        except asyncio.CancelledError as err:
+            error('Queue gets cancelled while still working.')
+        
+        except Exception as err:
+            error('Unexpected Exception: ' + str(err))
         return None
 
 class WG:
 
     URL_WG_clanInfo         = 'clans/info/?application_id='
     URL_WG_playerTankList   = 'tanks/stats/?fields=tank_id%2Clast_battle_time&application_id='
+    URL_WG_playerTankStats  = 'tanks/stats/?application_id='
     URL_WG_accountID        = 'account/list/?fields=account_id%2Cnickname&application_id='
+    URL_WG_playerStats      = 'account/info/?application_id='
   
     maps = {
         "Random": "Random map",
@@ -187,8 +198,11 @@ class WG:
                 verbose('Could not find maps file: ' + maps_fn)    
         if self.WG_appID != None:
             self.session = aiohttp.ClientSession()
+            debug('WG aiohttp session initiated')
         else:
             self.session = None
+            debug('WG aiohttp session NOT initiated')
+
 
         
 
@@ -245,9 +259,11 @@ class WG:
             else:
                 error_msg = str(json_resp['error']['code']) + ' : ' + json_resp['error']['message']
                 raise ValueError('Received JSON error: ' + error_msg)    
+        except KeyError as err:
+            error('Key :' + str(err) + ' not found')
         except Exception as err:
             error(str(err))
-            return False
+        return False
 
     @classmethod
     def chkJSONcontent(cls, json_obj, check = None) -> bool:
@@ -279,6 +295,8 @@ class WG:
             accountID = playerInfo[0]['account_id']
             if int(accountID) > 0:
                 return True
+        except KeyError as err:
+            error('Key :' + str(err) + ' not found')
         except:
             debug("JSON check failed")
         return False
@@ -289,16 +307,40 @@ class WG:
         try:
             if int(tankInfo[0]['tank_id']) > 0:
                 return True
+        except KeyError as err:
+            error('Key :' + str(err) + ' not found')
         except:
             debug("JSON check failed")
         return False
     
     @classmethod
-    def chkJSONtankStats(cls, tankInfo: dict) -> bool:
+    def chkJSONtankStats(cls, playerTankStat: dict) -> bool:
         """"Check String for being a valid Tank JSON file"""
         try:
-            if int(tankInfo['account_ids'][0]) > 0:
-                return True
+            if playerTankStat['status'] != 'ok': 
+                return False
+            for acc in playerTankStat['data']:
+                if playerTankStat['data'][acc] == None:
+                    return False 
+            return True
+        except KeyError as err:
+            error('Key :' + str(err) + ' not found')
+        except:
+            debug("JSON check failed")
+        return False
+
+    @classmethod    
+    def chkJSONplayerStats(cls, playerStat: dict) -> bool:
+        """"Check String for being a valid Tank JSON file"""
+        try:
+            if playerStat['status'] != 'ok': 
+                return False
+            for acc in playerStat['data']:
+                if playerStat['data'][acc] == None:
+                    return False 
+            return True
+        except KeyError as err:
+            error('Key :' + str(err) + ' not found')
         except:
             debug("JSON check failed")
         return False
@@ -328,13 +370,22 @@ class WG:
                 error('Could not read tankopedia: ' + tankopedia_fn + '\n' + str(err))           
         return False        
      
-    def getUrlClanInfo(self, server: str, clanID: int):
+    def getUrlClanInfo(self, server: str, clanID: int) -> str:
         return self.URL_WG_server[server] + self.URL_WG_clanInfo + self.WG_appID + '&clan_id=' + str(clanID)
 
-    def getUrlPlayerTankList(self, accountID: int):
+    def getUrlPlayerTankList(self, accountID: int) -> str:
         server = self.getServer(accountID)
         return self.URL_WG_server[server] + self.URL_WG_playerTankList + self.WG_appID + '&account_id=' + str(accountID)
     
+    def getUrlPlayerTankStats(self, accountID, tankID, fields) -> str: 
+        server = self.getServer(accountID)
+        url = self.URL_WG_server[server] + self.URL_WG_playerTankStats + self.WG_appID + '&account_id=' + str(accountID) + '&tank_id=' + str(tankID)
+        return url + '&fields=' + '%2C'.join(fields)
+
+    def getUrlPlayerStats(self, accountID,  fields) -> str: 
+        server = self.getServer(accountID)
+        return self.URL_WG_server[server] + self.URL_WG_playerStats + self.WG_appID + '&account_id=' + str(accountID) + '&fields=' + '%2C'.join(fields)
+
     def getUrlAccountID(self, nickname, server) -> int:
         try:
             return self.URL_WG_server[server] + self.URL_WG_accountID + self.WG_appID + '&search=' + urllib.parse.quote(nickname)
@@ -360,6 +411,50 @@ class WG:
         except Exception as err:
             error(str(err))
             return None
+    
+    async def getPlayerTankStats(self, accountID: int, tankID : int, fields: list) -> dict:
+        """Get player's stats (WR, # of battles) in a tank"""
+        # debug('Started')        
+        if self.session == None:
+            error('Session must be initialized first')
+            sys.exit(1)
+        try:
+            debug('AccountID: ' + str(accountID) + ' TankID: ' + str(tankID))
+            url = self.getUrlPlayerTankStats(accountID, tankID, fields)
+            json_data = await getUrlJSON(self.session, url, self.chkJSONtankStats)
+            if json_data != None:
+                debug('JSON Response received: ' + str(json_data))
+                return json_data['data'][str(accountID)][0]
+        except Exception as err:
+            error(err)
+        return None
+
+    async def getPlayerStats(self, accountID: int, fields: list) -> dict:
+        """Get player's global stats """
+        # debug('Started')        
+        if self.session == None:
+            error('Session must be initialized first')
+            sys.exit(1)
+        try:
+            debug('AccountID: ' + str(accountID) + ' Fields: ' + ', '.join(fields))
+            url = self.getUrlPlayerStats(accountID, fields)
+            json_data = await getUrlJSON(self.session, url, self.chkJSONplayerStats)
+            if json_data != None:
+                debug('JSON Response received: ' + str(json_data))                
+                return json_data['data'][str(accountID)]
+        except Exception as err:
+            error(err)
+        return None
+
+    def getTankData(self, tank_id: int, field: str):
+        if self.tanks == None:
+            return None
+        try:
+            return self.tanks['data'][str(tank_id)][field]
+        except KeyError as err:
+            error('Key not found: ' + str(err))
+        return None
+        
 
 class BlitzStars:
 
