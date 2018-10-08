@@ -361,28 +361,26 @@ def calcTeamStats(result_list: list, player_stats  : dict) -> list:
 	stat_types = player_stats[list(player_stats.keys())[0]].keys()
 	for result in result_list:
 		try:
-			n_allies = len(result['allies'])
+			n_allies = collections.defaultdict(defaultvalueZero)
 			allies_stats = collections.defaultdict(defaultvalueZero)
 			for ally in result['allies']:
 				for stat in stat_types:
-					if player_stats[ally][stat] == None:
-						n_allies -= 1
-					else:
+					if player_stats[ally][stat] != None:
 						allies_stats[stat] += player_stats[ally][stat]
+						n_allies[stat] += 1
+			
 			for stat in stat_types:
-				result['allies_' + str(stat)] = allies_stats[stat] / n_allies
+				result['allies_' + str(stat)] = allies_stats[stat] / n_allies[stat]
 
-			n_enemies = len(result['enemies'])
+			n_enemies = collections.defaultdict(defaultvalueZero)
 			enemies_stats = collections.defaultdict(defaultvalueZero)
 			for enemy in result['enemies']:
 				for stat in stat_types:
-					if player_stats[enemy][stat] == None:
-						n_enemies -= 1
-					else:
+					if player_stats[enemy][stat] != None:
 						enemies_stats[stat] += player_stats[enemy][stat]
+						n_enemies[stat] += 1
 			for stat in stat_types:
-				result['enemies_' + str(stat)] = enemies_stats[stat] / n_enemies
-
+				result['enemies_' + str(stat)] = enemies_stats[stat] / n_enemies[stat]
 
 			return_list.append(result)
 		except KeyError as err:
