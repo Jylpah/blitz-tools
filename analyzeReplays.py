@@ -19,6 +19,7 @@ replay_summary_flds = [
 	'battle_type',
 	'map_name',
 	'battle_duration',
+	'battle_start_timestamp',
 	'protagonist',
 	'title'
 ]
@@ -179,7 +180,6 @@ class BattleRecord():
 	
 	def printResults(self):
 		print(' : '.join(self.getResults()))
-
 
 class BattleRecordCategory():
 	def __init__(self, cat_name : str):
