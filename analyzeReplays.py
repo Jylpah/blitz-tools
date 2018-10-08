@@ -19,7 +19,8 @@ replay_summary_flds = [
 	'battle_type',
 	'map_name',
 	'battle_duration',
-	'protagonist'
+	'protagonist',
+	'title'
 ]
 
 replay_details_flds = [
@@ -62,7 +63,8 @@ result_categories = {
 	'battle_type'		: [ 'Battle Type',['Encounter', 'Supremacy']],
 	'battle_tier'		: [ 'Battle Tier', 'value' ],
 	'top_tier'			: [ 'Tier', ['Bottom tier', 'Top tier']],
-	'map_name'			: [ 'Map', 'value']		
+	'tank_name'			: [ 'Tank', 'value' ],
+	'map_name'			: [ 'Map', 'value' ]
 	}
 
 result_cat_header_frmt = '{:_<17s}'
@@ -307,19 +309,29 @@ async def main(argv):
 
 def processStats(results: dict, args : argparse.Namespace):
 
+	url = args.url
+	urls = collections.OrderedDict()
 	categories = {}
 	for cat in result_categories.keys():
 		categories[cat] = BattleRecordCategory(cat)
 
+	max_title_len = 0
 	for result in results:
 		for cat in result_categories.keys():
 			categories[cat].recordResult(result)
+		if url:
+			max_title_len = max(max_title_len, len(result['title']))
+			urls[result['title']] = result['url']
 
 	for cat in result_categories.keys():
 		for sub_cat in categories[cat].getSubCategories():
 			categories[cat].category[sub_cat].calcResults()
 		print('')
 		categories[cat].printResults()
+	if url:
+		print('\nURLs to Battle replays:\n')
+		for title in urls.keys():
+			print(('{:' + str(3 + max_title_len) + '}').format(title) + ' : ' + urls[title])
 
 	return None
 
@@ -532,8 +544,6 @@ async def readReplayJSON(replay_json: dict, args : argparse.Namespace) -> dict:
 
 		if url: 
 			result['url'] = replay_json['data']['view_url']
-		else:
-			result['url'] = None
 
 		for key in replay_summary_flds:
 			result[key] = replay_json['data']['summary'][key]
@@ -560,6 +570,7 @@ async def readReplayJSON(replay_json: dict, args : argparse.Namespace) -> dict:
 				tmp['account_id'] 	= account_id
 				tmp['tank_id'] 		= player['vehicle_descr']
 				tmp['tank_tier'] 	= player_tank_tier
+				tmp['tank_name']	= wg.getTankData(tmp['tank_id'], 'name')
 				
 				for key in tmp.keys():
 					result[key] = tmp[key]				
