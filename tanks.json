@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 367
+        "count": 370
     },
     "data": {
         "1": {
@@ -884,6 +884,14 @@
             "type": "heavyTank",
             "name": "Churchill VII"
         },
+        "4721": {
+            "tank_id": 4721,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Gravedigger"
+        },
         "4881": {
             "tank_id": 4881,
             "nation": "germany",
@@ -915,6 +923,14 @@
             "is_premium": false,
             "type": "lightTank",
             "name": "Valentine"
+        },
+        "4977": {
+            "tank_id": 4977,
+            "nation": "other",
+            "tier": 5,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Scavenger"
         },
         "5121": {
             "tank_id": 5121,
@@ -2082,7 +2098,7 @@
             "tier": 7,
             "is_premium": true,
             "type": "lightTank",
-            "name": "AMX 13 57 GF"
+            "name": "AMX 13 57"
         },
         "16641": {
             "tank_id": 16641,
@@ -2203,6 +2219,14 @@
             "is_premium": false,
             "type": "lightTank",
             "name": "Spähpanzer SP I C"
+        },
+        "18977": {
+            "tank_id": 18977,
+            "nation": "usa",
+            "tier": 10,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "T95E6"
         },
         "19217": {
             "tank_id": 19217,
@@ -2948,6 +2972,7 @@
         "A102_T28_concept": "T28 Concept",
         "A104_M4A3E8A": "M4A3E8 Fury",
         "A77_T6M": "T6E1",
+        "A95_T95E6": "T95E6",
         "AMX38": "AMX 38",
         "AMX40": "AMX 40",
         "AMX50_Foch": "AMX 50 Foch",
@@ -3017,7 +3042,7 @@
         "ELC_AMX": "AMX ELC bis",
         "F19_Lorraine40t": "Lorraine 40 t",
         "F68_AMX_Chasseur_de_char_46": "AMX Chasseur de chars",
-        "F69_AMX_13_57GF": "AMX 13 57 GF",
+        "F69_AMX_13_57GF": "AMX 13 57",
         "F71_AMX_30_prototype": "AMX 30 1er prototype",
         "F72_AMX_30": "AMX 30 B",
         "F73_M4A1_Revalorise": "M4A1 Revalorisé",
@@ -3162,6 +3187,8 @@
         "Oth10_WarDuck": "WarDuck",
         "Oth11_T-55A": "T 55A",
         "Oth12_Sega_Hafen": "Hafen",
+        "Oth14_MdM_AshKnight": "Gravedigger",
+        "Oth15_RustCrab": "Scavenger",
         "Panther_II": "Panther II",
         "Panther_M10": "Panther/M10",
         "PanzerJager_I": "Panzerjäger I",
