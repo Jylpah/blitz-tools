@@ -15,3 +15,5 @@ Python scripts to analyze WoT Blitz replays and stats:
 ### Data
 * [tanks.json](tanks.json): Tankopedia in WG JSON format extracted from the Blitz app files with [extractTankopedia.py]](extractTankopedia.py]). Contains only limited information required by the scripts. Blitz version 5.3. 
 * [maps.json](maps.json): Blitz map names extracted from the Blitz app files with [extractTankopedia.py]](extractTankopedia.py]). Blitz version 5.3.
+
+You can reach me via email: Jylpah@gmail.com or [Discord](https://discordapp.com/): Jylpah#4662. Happy tanking and stats analysis!
