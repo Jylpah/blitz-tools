@@ -266,7 +266,7 @@ async def main(argv):
 	bu.setDebug(args.debug)
 	wg = WG(WG_appID, args.tankfile, args.mapfile)
 
-	if (args.accountID == None) and (args.account != None):
+	if args.account != None:
 		args.accountID = await wg.getAccountID(args.account)
 		bu.debug('WG  account_id: ' + str(args.accountID))
 
@@ -510,7 +510,7 @@ async def replayReader(queue: asyncio.Queue, readerID: int, args : argparse.Name
 						bu.debug('Marking task ' + str(replayID) + ' done')
 						
 			except Exception as err:
-				bu.error(err)
+				bu.error(str(err))
 			queue.task_done()
 	except asyncio.CancelledError:		
 		return results, playerstanks
