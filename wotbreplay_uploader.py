@@ -100,6 +100,8 @@ async def mkReplayQ(queue : asyncio.Queue, files : list, title : str):
 					await queue.put(await mkQueueItem(line, title))
 	else:
 		for fn in files:
+			if fn.endswith(os.sep):
+				fn = fn[:-1]  
 			if os.path.isfile(fn) and (p_replayfile.match(fn) != None):
 				await queue.put(await mkQueueItem(fn, title))
 			elif os.path.isdir(fn):
