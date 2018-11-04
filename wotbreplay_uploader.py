@@ -105,9 +105,13 @@ async def mkReplayQ(queue : asyncio.Queue, files : list, title : str):
 			elif os.path.isdir(fn):
 				with os.scandir(fn) as dirEntry:
 					for entry in dirEntry:
-						if entry.is_file() and (p_replayfile.match(entry.name) != None): 
-							bu.debug(entry.name)
-							await queue.put(await mkQueueItem(entry.path, title))
+						try:
+							bu.debug('Found: ' + entry.name)
+							if entry.is_file() and (p_replayfile.match(entry.name) != None): 
+								bu.debug(entry.name)
+								await queue.put(await mkQueueItem(entry.path, title))
+						except Exception as err:
+							bu.error(str(err))
 			bu.debug('File added to queue: ' + fn)
 	bu.debug('Finished')
 	return None
@@ -198,16 +202,24 @@ def getTitle(replayfile: str, title: str, i : int) -> str:
 	if title == None:
 		try:
 			filename = os.path.basename(replayfile)	
-			# debug(filename)
+			bu.debug(filename)
 			map_usrStrs = wg.getMapUserStrs()
 			p = re.compile('\\d{8}_\\d{4}_(.+)_(' + '|'.join(map_usrStrs) + ')(?:-\\d)?\\.wotbreplay$')
 			m = p.match(filename)
 			if (m != None):
 				if wg.tanks != None:
-					tank = wg.tanks['userStr'][m.group(1)]
+					tank = m.group(1)
+					if tank in wg.tanks['userStr']:
+						tank = wg.tanks['userStr'][tank]
+					else:
+						bu.error('Tank code: "' + tank + '" not found from Tankopedia (tanks.json)')
 				else:
 					tank = m.group(1)
-				blitz_map = wg.maps[m.group(2)]
+				blitz_map = m.group(2)
+				if blitz_map in wg.maps:
+					blitz_map = wg.maps[blitz_map]
+				else:
+					bu.error('Mapcode: "' + blitz_map + '" not found from map database (maps.json)')
 				title = tank + ' @ ' + blitz_map
 			else:
 				title = re.sub('\\.wotbreplay$', '', filename)
