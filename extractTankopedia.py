@@ -62,7 +62,7 @@ async def extractTanks(blitzAppBase : str, nation: str):
         print('ERROR: cannot open ' + list_xml_file)
         return None
     bu.debug('Opening file: ' + list_xml_file + ' (Nation: ' + nation + ')')
-    async with aiofiles.open(list_xml_file, 'r') as f:
+    async with aiofiles.open(list_xml_file, 'r', encoding="utf8") as f:
         try: 
             tankList = xmltodict.parse(await f.read())
             for data in tankList['root'].keys():
