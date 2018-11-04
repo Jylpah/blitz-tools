@@ -259,7 +259,7 @@ async def main(argv):
 	parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
 	parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 	parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
-	parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files to read. Use \'-\' for STDIN"')
+	parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files to read. Use \'-\' for STDIN')
 	
 	args = parser.parse_args()
 	bu.setVerbose(args.verbose)
