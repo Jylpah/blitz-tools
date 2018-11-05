@@ -1,8 +1,10 @@
 #!/usr/bin/python3.7
 
-import json, argparse, inspect, sys, os, base64, aiohttp, urllib, asyncio, aiofiles, aioconsole, logging, re
+import json, argparse, inspect, sys, os, base64, aiohttp, urllib, asyncio, aiofiles, aioconsole
+import logging, re, concurrent.futures
 import blitzutils as bu
 from blitzutils import WG
+from blitzutils import WoTinspector
 
 logging.getLogger("asyncio").setLevel(logging.DEBUG)
 
@@ -19,10 +21,11 @@ SKIPPED_N = 0
 WIurl='https://wotinspector.com/api/replay/upload?'
 WG_appID  = '81381d3f45fa4aa75b78a7198eb216ad'
 wg = None
+wi = None
 
 
 async def main(argv):
-	global wg
+	global wg, wi
 
 	parser = argparse.ArgumentParser(description='Post replays(s) to WoTinspector.com and retrieve battle data')
 	parser.add_argument('--output', default='single', choices=['file', 'files', 'db'] , help='Select output mode: single/multiple files or database')
@@ -45,6 +48,7 @@ async def main(argv):
 		bu.setVerbose(False)    	
 
 	wg = WG(WG_appID, args.tankopedia, args.mapfile)
+	wi = WoTinspector()
 
 	if args.account != None:
 		args.accountID = await wg.getAccountID(args.account)
@@ -81,6 +85,7 @@ async def main(argv):
 	finally:
 		## Need to close the aiohttp.session since Python destructors do not support async methods... 
 		await wg.session.close()
+		await wi.close()
 
 	return None
 
@@ -104,6 +109,7 @@ async def mkReplayQ(queue : asyncio.Queue, files : list, title : str):
 				fn = fn[:-1]  
 			if os.path.isfile(fn) and (p_replayfile.match(fn) != None):
 				await queue.put(await mkQueueItem(fn, title))
+				bu.debug('File added to queue: ' + fn)
 			elif os.path.isdir(fn):
 				with os.scandir(fn) as dirEntry:
 					for entry in dirEntry:
@@ -112,9 +118,12 @@ async def mkReplayQ(queue : asyncio.Queue, files : list, title : str):
 							if entry.is_file() and (p_replayfile.match(entry.name) != None): 
 								bu.debug(entry.name)
 								await queue.put(await mkQueueItem(entry.path, title))
+								bu.debug('File added to queue: ' + entry.path)
 						except Exception as err:
 							bu.error(str(err))
-			bu.debug('File added to queue: ' + fn)
+			else:
+				bu.error('File not found: ' + fn)
+			
 	bu.debug('Finished')
 	return None
 
@@ -128,75 +137,48 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 	"""Async Worker to process the replay queue"""
 	global SKIPPED_N
 
-	async with aiohttp.ClientSession() as session:
-		while True:
-			item = await queue.get()
-			filename = item[0]
-			N = item[1]
-			title = item[2]
-			replay_json_fn = filename +  '.json'
+	while True:
+		item = await queue.get()
+		filename = item[0]
+		N = item[1]
+		title = item[2]
 
-			try:
-				if os.path.exists(replay_json_fn) and os.path.isfile(replay_json_fn):
-					async with aiofiles.open(replay_json_fn) as fp:
-						replay_json = json.loads(await fp.read())
-						if replay_json['status'] == 'ok':
-							bu.verbose('Replay[' + str(N) + ']: ' + title + ' has already been posted. Skipping.' )
-							queue.task_done()
-							SKIPPED_N += 1
-							continue
-			except Exception as err:
-				bu.error(err)
-				sys.exit(1)
+		replay_json_fn = filename +  '.json'
+		msg_str = 'Replay[' + str(N) + ']: '
 
-			# debug('Opening file [' + str(N) +']: ' + filename)
+		#bu.debug(msg_str + replay_json_fn)
+		try:
+			#if os.path.exists(replay_json_fn) and os.path.isfile(replay_json_fn):
+			if os.path.isfile(replay_json_fn):
+				async with aiofiles.open(replay_json_fn) as fp:
+					replay_json = json.loads(await fp.read())
+					#if replay_json['status'] == 'ok':
+					if wi.chkJSONreplay(replay_json):
+						bu.verbose(msg_str + title + ' has already been posted. Skipping.' )
+						SKIPPED_N += 1
+						queue.task_done()						
+						continue
+		except concurrent.futures.CancelledError as err:
+			raise err
+		except Exception as err:
+			bu.error(msg_str + 'Unexpected error: ' + str(type(err)) + ' : '+ str(err))
+		try:
+			#bu.debug('Opening file [' + str(N) +']: ' + filename)
 			async with aiofiles.open(filename,'rb') as fp:
-				# debug('File opened: ' + filename)
 				filename = os.path.basename(filename)
-				params = { 
-					'title'			: title, 
-					'private' 		: (1 if priv else 0),
-					'uploaded_by'	: account_id,
-					'details'		: 'full'
-					}
-				url = WIurl + urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
-				headers ={'Content-type':  'application/x-www-form-urlencoded'}
-				payload = { 'file' : (filename, base64.b64encode(await fp.read())) }
-				for retry in range(MAX_RETRIES):
-					bu.verbose('Posting replay[' + str(N) +']:  ' + title + ' Try #: ' + str(retry+ 1) + '/' + str(MAX_RETRIES) )
-					try:
-						async with session.post(url, headers=headers, data=payload) as resp:
-							bu.debug('Replay #' + str(N) + ' HTTP response: '+ str(resp.status))
-							if resp.status == 200:								
-								bu.debug('HTTP POST 200 = Success. Reading response data')
-								json_resp = await resp.json()
-								if json_resp['status'] == 'error':
-									bu.error(json_resp['error']['message'] + ' : Replay[' + str(N) + ']' + title)
-								else:
-									bu.debug('Response data read')
-									bu.verbose('Replay[' + str(N) + ']: ' + title + ' posted')
-								await storeReplayJSON(replay_json_fn,json_resp)												
-								break
-							else:
-								bu.debug('Replay[' + str(N)+ ']: Got HTTP/' + str(resp.status) + ' Retrying... ' + str(retry))
-								await asyncio.sleep(SLEEP)								
-					except Exception as err:
-						bu.error(str(err))
-						await asyncio.sleep(SLEEP)	
-			bu.debug('Marking task ' + str(N) + ' done')
-			queue.task_done()	
+				bu.debug(msg_str + 'File:  ' + filename)
+				json_resp = await wi.postReplay(await fp.read(), filename, account_id, title, priv, N)
+				if json_resp != None:
+					if (await bu.saveJSON(replay_json_fn,json_resp)):
+						bu.debug(msg_str + 'Replay saved OK: ' + filename )
+					else:
+						bu.error(msg_str + 'Error saving replay: ' + filename)
+		except Exception as err:
+			bu.error(msg_str + 'Unexpected Exception: ' + str(type(err)) + ' : ' + str(err) )
+		bu.debug(msg_str + 'Marking task done')
+		queue.task_done()	
 
 	return None
-
-async def storeReplayJSON(filename: str, json_data : dict):	
-	try: 
-		async with aiofiles.open(filename, 'w', encoding='utf8') as outfile:
-			await outfile.write(json.dumps(json_data, ensure_ascii=False, indent=4))
-			return True
-	except Exception as err:
-		bu.error(str(err))
-		return False
-	return False
 
 def getTitle(replayfile: str, title: str, i : int) -> str:
 	global wg

@@ -5,12 +5,13 @@
 import sys, argparse, json, os, inspect, aiohttp, asyncio, aiofiles, aioconsole, re, logging, time, xmltodict, collections
 import blitzutils as bu
 from blitzutils import WG
-
+from blitzutils import WoTinspector
 
 logging.getLogger("asyncio").setLevel(logging.DEBUG)
 
 WG_appID  = '81381d3f45fa4aa75b78a7198eb216ad'
 wg = None
+wi = None
 REPLAY_N = 0
 STAT_TANK_BATTLE_MIN = 100
 
@@ -19,7 +20,6 @@ replay_summary_flds = [
 	'battle_type',
 	'map_name',
 	'battle_duration',
-	'battle_start_timestamp',
 	'protagonist',
 	'title'
 ]
@@ -245,13 +245,13 @@ class BattleRecordCategory():
 ## main() -------------------------------------------------------------
 
 async def main(argv):
-	global wg
+	global wg, wi
 	
 	TASK_N = 7
-	WG_ID = 2008897346
+
 	parser = argparse.ArgumentParser(description='ANalyze Blitz replay JSONs from WoTinspector.com')
 	parser.add_argument('--output', default='plain', choices=['json', 'plain', 'db'], help='Select output mode: JSON, plain text or database')
-	parser.add_argument('-id', dest='accountID', type=int, default=WG_ID, help='WG account_id to analyze')
+	parser.add_argument('-id', dest='accountID', type=int, default=None, help='WG account_id to analyze')
 	parser.add_argument('-a', '--account', dest='account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 	parser.add_argument('-u', '--url', dest= 'url', action='store_true', default=False, help='Print replay URLs')
 	parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
@@ -259,12 +259,13 @@ async def main(argv):
 	parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
 	parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 	parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
-	parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files to read. Use \'-\' for STDIN')
+	parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files to read. Use \'-\' for STDIN"')
 	
 	args = parser.parse_args()
 	bu.setVerbose(args.verbose)
 	bu.setDebug(args.debug)
 	wg = WG(WG_appID, args.tankfile, args.mapfile)
+	wi = WoTinspector()
 
 	if args.account != None:
 		args.accountID = await wg.getAccountID(args.account)
@@ -272,8 +273,6 @@ async def main(argv):
 
 	try:
 		replayQ  = asyncio.Queue()	
-
-		#resultsQ = asyncio.Queue()
 		
 		reader_tasks = []
 		# Make replay Queue
@@ -304,7 +303,8 @@ async def main(argv):
 
 	finally:
 		## Need to close the aiohttp.session since Python destructors do not support async methods... 
-		await wg.session.close()
+		await wg.close()
+		await wi.close()
 	return None
 
 def processStats(results: dict, args : argparse.Namespace):
@@ -407,9 +407,10 @@ async def statWorker(queue : asyncio.Queue, workerID: int) -> list:
 				# bu.debug('[' +str(workerID) + '] AccountID: ' + acc + ' TankID: '  + tank)
 				playerTankStat = await wg.getPlayerTankStats(account_id, tank_id, ['all.battles', 'all.wins'])
 				# bu.debug('[' +str(workerID) + '] ' + str(playerTankStat))
+				
 				playerStat = await wg.getPlayerStats(account_id,  ['statistics.all.battles', 'statistics.all.wins'])
 				# bu.debug('[' +str(workerID) + '] ' + str(playerStat))
-			
+				
 				stats[item] = {}
 				if (playerTankStat == None) or (playerStat == None):
 					stats[item]['win_rate'] = None
@@ -417,10 +418,10 @@ async def statWorker(queue : asyncio.Queue, workerID: int) -> list:
 				else:
 					playerTankStat = playerTankStat['all']
 					playerStat = playerStat['statistics']['all']
-
+					
 					battles = playerStat['battles']
 					stats[item]['battles'] = battles
-
+					
 					battles_in_tank = playerTankStat['battles']
 					if battles_in_tank >= STAT_TANK_BATTLE_MIN:
 						stats[item]['win_rate'] =  min(playerTankStat['wins'] / battles_in_tank,1)  # To cope with broken stats in WG DB
@@ -430,7 +431,7 @@ async def statWorker(queue : asyncio.Queue, workerID: int) -> list:
 			except KeyError as err:
 				bu.error('[' +str(workerID) + '] Key :' + str(err) + ' not found')
 			except Exception as err:
-				bu.error('[' +str(workerID) + '] ' + str(err))
+				bu.error('[' +str(workerID) + '] ' + str(type(err)) + ' : '+ str(err))
 			queue.task_done()
 
 	except asyncio.CancelledError:
@@ -454,6 +455,8 @@ async def mkReplayQ(queue : asyncio.Queue, files : list):
 					await queue.put(await mkReaderQitem(line))
 	else:
 		for fn in files:
+			if fn.endswith(os.sep):
+				fn = fn[:-1]  
 			if os.path.isfile(fn) and (p_replayfile.match(fn) != None):
 				await queue.put(await mkReaderQitem(fn))
 			elif os.path.isdir(fn):
@@ -485,29 +488,27 @@ async def replayReader(queue: asyncio.Queue, readerID: int, args : argparse.Name
 			replayID = item[1]
 
 			try:
-				if os.path.exists(filename) and os.path.isfile(filename):
-					async with aiofiles.open(filename) as fp:
-						replay_json = json.loads(await fp.read())
-						if replay_json['status'] != 'ok':
-							bu.verbose('Replay[' + str(replayID) + ']: ' + filename + ' is invalid. Skipping.' )
-							#SKIPPED_N += 1
-							queue.task_done()
-							continue
+				replay_json = await bu.readJSON(filename, wi.chkJSONreplay)
+				if replay_json == None:
+					bu.verbose('Replay[' + str(replayID) + ']: ' + filename + ' is invalid. Skipping.' )
+					#SKIPPED_N += 1
+					queue.task_done()
+					continue
 						
-						## Read the replay JSON
-						bu.debug('[' + str(readerID) + '] reading replay: ' + filename)
-						result = await readReplayJSON(replay_json, args)
-						if result == None:
-							bu.error('[' + str(readerID) + '] Error reading replay: ' + filename)
-							queue.task_done()
-							continue
-						
-						if (account_id != None):						
-							playerstanks.update(set(result['allies']))
-							playerstanks.update(set(result['enemies']))	
-						
-						results.append(result)
-						bu.debug('Marking task ' + str(replayID) + ' done')
+				## Read the replay JSON
+				bu.debug('[' + str(readerID) + '] reading replay: ' + filename)
+				result = await readReplayJSON(replay_json, args)
+				if result == None:
+					bu.error('[' + str(readerID) + '] Error reading replay: ' + filename)
+					queue.task_done()
+					continue
+				
+				if (account_id != None):						
+					playerstanks.update(set(result['allies']))
+					playerstanks.update(set(result['enemies']))	
+				
+				results.append(result)
+				bu.debug('Marking task ' + str(replayID) + ' done')
 						
 			except Exception as err:
 				bu.error(str(err))
@@ -542,19 +543,22 @@ async def readReplayJSON(replay_json: dict, args : argparse.Namespace) -> dict:
 
 		if url: 
 			result['url'] = replay_json['data']['view_url']
-
+		#bu.debug('1')
 		for key in replay_summary_flds:
 			result[key] = replay_json['data']['summary'][key]
-
+		result['battle_start_timestamp'] = int(replay_json['data']['summary']['battle_start_timestamp'])
+		#bu.debug('2')
 		result['allies'] = set()
 		result['enemies'] = set()
 
 		btl_duration = 0
 		btl_tier = 0
 		for player in replay_json['data']['summary']['details']:
+			#bu.debug('3')
 			btl_duration = max(btl_duration, player['time_alive'])
 			player_tank_tier = wg.getTankData(player['vehicle_descr'], 'tier')
 			btl_tier = max(btl_tier, player_tank_tier)
+			#bu.debug('4')
 			if player['dbid'] == account_id:
 				tmp = {}
 				for key in replay_details_flds:
@@ -565,6 +569,7 @@ async def readReplayJSON(replay_json: dict, args : argparse.Namespace) -> dict:
 				else:
 					tmp['survived'] 	= 1
 					tmp['destroyed'] 	= 0
+				
 				tmp['account_id'] 	= account_id
 				tmp['tank_id'] 		= player['vehicle_descr']
 				tmp['tank_tier'] 	= player_tank_tier
@@ -575,8 +580,11 @@ async def readReplayJSON(replay_json: dict, args : argparse.Namespace) -> dict:
 
 			elif player['dbid'] in replay_json['data']['summary']['allies']: 
 				result['allies'].add(':'.join([ str(player['dbid']), str(player['vehicle_descr'])]))
+				#result['allies'].add([ player['dbid'], player['vehicle_descr'], int(replay_json['data']['summary']['battle_start_timestamp']) ])
 			else:
 				result['enemies'].add(':'.join([ str(player['dbid']), str(player['vehicle_descr'])]))
+				#result['enemies'].add([ player['dbid'], player['vehicle_descr'], int(replay_json['data']['summary']['battle_start_timestamp']) ])
+		#bu.debug('6')
 		result['time_alive%'] = result['time_alive'] / btl_duration  
 		result['battle_tier'] = btl_tier
 		result['top_tier'] = 1 if (result['tank_tier'] == btl_tier) else 0
@@ -587,7 +595,7 @@ async def readReplayJSON(replay_json: dict, args : argparse.Namespace) -> dict:
 	except KeyError as err:
 		bu.error('Key :' + str(err) + ' not found')
 	except Exception as err:
-		bu.error(err)
+		bu.error(str(type(err)) + ' : ' +  str(err))
 	return None
 
 ### main()
