@@ -50,6 +50,12 @@ def verbose(msg = ""):
         print(msg)
     return None
 
+def verbose_std(msg = ""):
+    """Print a message"""
+    if not SILENT:
+        print(msg)
+    return None
+	
 def printWaiter(force = False):
     if not SILENT  or force:
         print('.', end='', flush=True)
