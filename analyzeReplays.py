@@ -455,8 +455,8 @@ async def mkReplayQ(queue : asyncio.Queue, files : list):
 					await queue.put(await mkReaderQitem(line))
 	else:
 		for fn in files:
-			if fn.endswith(os.sep):
-				fn = fn[:-1]  
+			if fn.endswith('"'):
+				fn = fn[:-1] 
 			if os.path.isfile(fn) and (p_replayfile.match(fn) != None):
 				await queue.put(await mkReaderQitem(fn))
 			elif os.path.isdir(fn):
