@@ -55,13 +55,13 @@ def verbose_std(msg = ""):
     if not SILENT:
         print(msg)
     return None
-	
+
 def printWaiter(force = False):
-    if not SILENT  or force:
+    if not DEBUG and (not SILENT  or force):
         print('.', end='', flush=True)
     
 def printNewline(force = False):
-    if not SILENT  or force:
+    if not DEBUG and (not SILENT  or force):
         print('', flush=True)
 
 def debug(msg = ""):
@@ -80,7 +80,6 @@ def error(msg = ""):
     caller = calframe[1][3]
     print('ERROR: ' + caller + '(): ' + msg)
     return None
-    
 def NOW() -> int:
     return int(time.time())
 
@@ -113,24 +112,26 @@ async def readJSON(filename: str, chkJSONfunc = None):
         error('Unexpected error when reading file: ' + filename + ' : ' + str(type(err)) + ' : '+ str(err))
     return None
 
-async def getUrlJSON(session: aiohttp.ClientSession, url: str, chkJSONfunc = None, max_retries = MAX_RETRIES) -> dict:
+async def getUrlJSON(session: aiohttp.ClientSession, url: str, chkJSONfunc = None, max_tries = MAX_RETRIES) -> dict:
         """Retrieve (GET) an URL and return JSON object"""
         try:
             debug(url)
             ## To avoid excessive use of servers            
-            for retry in range(1,max_retries+1):
+            for retry in range(1,max_tries+1):
                 async with session.get(url) as resp:
                     if resp.status == 200:
                         debug('HTTP request OK')
                         json_resp = await resp.json()       
                         if (chkJSONfunc == None) or chkJSONfunc(json_resp):
-                            #debug("Received valid JSON: " + str(json_resp))
+                            # debug("Received valid JSON: " + str(json_resp))
                             return json_resp
                         else:
-                            debug('Received JSON error. URL: ' + url)                            
-                    if retry == max_retries:                        
+                            debug('Received JSON error. URL: ' + url)
+                            # Sometimes WG API returns JSON error even a retry gives valid JSON
+                            # return None                            
+                    if retry == max_tries:                        
                         raise aiohttp.ClientError('Request failed: ' + str(resp.status) + ' JSON Response: ' + str(json_resp) )
-                    verbose('Retrying URL [' + str(retry) + '/' +  str(max_retries) + ']: ' + url )
+                    verbose('Retrying URL [' + str(retry) + '/' +  str(max_tries) + ']: ' + url )
                     await asyncio.sleep(SLEEP)
 
         except aiohttp.ClientError as err:
@@ -171,7 +172,6 @@ class WG:
     URL_WG_playerTankStats  = 'tanks/stats/?application_id='
     URL_WG_accountID        = 'account/list/?fields=account_id%2Cnickname&application_id='
     URL_WG_playerStats      = 'account/info/?application_id='
-    
     SQLITE_STATS_CACHE      = '.stats_cache.db'  
 
     sql_create_player_stats_tbl = """CREATE TABLE IF NOT EXISTS player_stats (
@@ -295,7 +295,7 @@ class WG:
         self.statsQ = None
         self.statCacheTask = None
         #if os.path.isfile(self.SQLITE_STATS_CACHE):
-        if False:
+        if False: 		 
             try:
                 self.cache = aiosqlite.connect('SQLITE_STATS_CACHE')
                 self.cache.execute(self.sql_create_player_stats_tbl) 
@@ -318,6 +318,7 @@ class WG:
 
 
     ## Class methods  ------------------------------
+
 
     @classmethod
     def getServer(cls, accountID: int) -> str:
@@ -448,7 +449,7 @@ class WG:
                     debug('JSON tank list check OK')
                     return True
         except Exception as err:
-            error('JSON check FAILED: ' + str(type(err)) + ' : '+  str(err) + ' : ' + str(json_resp) )            
+            error('JSON check FAILED: ' + str(type(err)) + ' : '+  str(err) + ' : ' + str(json_resp) )
         return False
 
     ## Methods --------------------------------------------------
@@ -477,7 +478,7 @@ class WG:
             field_str =  '%2C' + '%2C'.join(fields)
         else:
             field_str = ''
-        return url + '&fields=tank_id' + field_str
+        return url + '&fields=tank_id' + field_str												  
 
     def getUrlPlayerStats(self, accountID,  fields) -> str: 
         server = self.getServer(accountID)
@@ -528,8 +529,8 @@ class WG:
 
     async def getPlayerStats(self, accountID: int, fields: list, battle_time = None) -> dict:
         """Get player's global stats """
-        # debug('Started')      
-        fields_missing  = fields  
+        # debug('Started')
+        fields_missing  = fields
         cached_stats = None
         if self.cache != None:
             cached_stats, fields_missing = await self.getCachedPlayerStats(accountID, fields)
@@ -545,7 +546,7 @@ class WG:
                 if json_data != None:
                     debug('JSON Response received: ' + str(json_data))
                     stats = json_data['data'][str(accountID)]
-                    if self.statsQ != None: 
+                    if self.statsQ != None:
                         self.statsQ.put([accountID, 'player', stats])
                     return self.mergePlayerStats(stats, cached_stats)
             except Exception as err:
@@ -587,7 +588,7 @@ class WG:
 
     def mergePlayerStats(self, stats1: dict, stats2: dict) -> dict:
         try:
-            if stats2 == None: return stats1
+            if stats2 == None: return stats1								
             for keyA in stats2:
                 if keyA not in stats1:
                     stats1[keyA] = stats2[keyA]
@@ -637,10 +638,18 @@ class WoTinspector:
         if self.session != None:
             await self.session.close()        
 
-    async def getReplayInfo(self, replay_id: str):
-        return await getUrlJSON(self.session, self.URL_WI + self.URL_REPLAY_INFO + replay_id, self.chkJSONreplay, 0)
+    async def getReplayJSON(self, replay_id: str):
+        json_resp = await getUrlJSON(self.session, self.URL_WI + self.URL_REPLAY_INFO + replay_id, None)
+        try:
+            if self.chkJSONreplay(json_resp):
+                return json_resp
+            else:
+                return None
+        except Exception as err:
+            error('Unexpected Exception: ' + str(type(err)) + ' : ' + str(err) )
+            return None
 
-    async def postReplay(self,  data, filename = 'Replay', account_id = 0, title = 'Replay', priv = True, N = None):
+    async def postReplay(self,  data, filename = 'Replay', account_id = 0, title = 'Replay', priv = False, N = None):
         try:
             N = N if N != None else self.REPLAY_N
             msg_str = 'Replay[' + str(N) + ']: '
@@ -651,7 +660,7 @@ class WoTinspector:
             replay_id = hash.hexdigest()
 
             ##  Testing if the replay has already been posted
-            json_resp = await self.getReplayInfo(replay_id)
+            json_resp = await self.getReplayJSON(replay_id)
             if json_resp != None:
                 debug(msg_str + 'Already uploaded: ' + title)
                 return json_resp
@@ -663,6 +672,7 @@ class WoTinspector:
                 'details'		: 'full',
                 'key'           : replay_id
             }            
+
 
             url = self.URL_WI + self.URL_REPLAY_UL + urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
             #debug('URL: ' + url)

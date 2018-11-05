@@ -158,7 +158,7 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 						SKIPPED_N += 1
 						queue.task_done()						
 						continue
-		except concurrent.futures.CancelledError as err:
+		except asyncio.CancelledError as err:
 			raise err
 		except Exception as err:
 			bu.error(msg_str + 'Unexpected error: ' + str(type(err)) + ' : '+ str(err))
