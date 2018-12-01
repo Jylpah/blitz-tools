@@ -298,7 +298,7 @@ async def main(argv):
 
 		player_stats = await processTankStats(playerstanks, TASK_N)
 		bu.verbose('')
-		results = calcTeamStats(results, player_stats)
+		results = calcTeamStats(results, player_stats, args.accountID)
 		processStats(results, args)	
 
 	finally:
@@ -356,7 +356,7 @@ async def processTankStats(playerstanks, N_workers: int) -> dict:
 	
 	return player_stats
 
-def calcTeamStats(result_list: list, player_stats  : dict) -> list:
+def calcTeamStats(result_list: list, player_stats  : dict, account_id: int) -> list:
 	return_list = []
 	stat_types = player_stats[list(player_stats.keys())[0]].keys()
 	for result in result_list:
@@ -364,6 +364,8 @@ def calcTeamStats(result_list: list, player_stats  : dict) -> list:
 			n_allies = collections.defaultdict(defaultvalueZero)
 			allies_stats = collections.defaultdict(defaultvalueZero)
 			for ally in result['allies']:
+				if (account_id != None) and (ally == account_id): 
+					continue
 				for stat in stat_types:
 					if player_stats[ally][stat] != None:
 						allies_stats[stat] += player_stats[ally][stat]
