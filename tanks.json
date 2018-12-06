@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 380
+        "count": 382
     },
     "data": {
         "1": {
@@ -2308,6 +2308,14 @@
             "type": "mediumTank",
             "name": "Loza's M4-A2 Sherman"
         },
+        "19969": {
+            "tank_id": 19969,
+            "nation": "ussr",
+            "tier": 10,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "T-22 medium"
+        },
         "19985": {
             "tank_id": 19985,
             "nation": "germany",
@@ -2339,6 +2347,14 @@
             "is_premium": false,
             "type": "heavyTank",
             "name": "Mäuschen"
+        },
+        "21009": {
+            "tank_id": 21009,
+            "nation": "germany",
+            "tier": 8,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Panzer 58"
         },
         "51201": {
             "tank_id": 51201,
@@ -3140,6 +3156,7 @@
         "G114_Rheinmetall_Scorpion": "Rheinmetall Skorpion G",
         "G115_VK10001P": "VK 100.01 (P)",
         "G118_VK4503": "VK 45.03",
+        "G119_Pz58_Mutz": "Panzer 58",
         "G120_M41_90": "leKpz M 41 90 mm",
         "G121_Grille_15_L63": "Grille 15",
         "G20_Marder_II": "Marder II",
@@ -3260,7 +3277,6 @@
         "Maus": "Maus",
         "NC27": "Renault Otsu",
         "Nashorn": "Nashorn",
-		"Object252": "IS-6",
         "Object263": "Object 263",
         "Object268": "Object 268",
         "Object_140": "Object 140",
@@ -3308,6 +3324,7 @@
         "R113_Object_730": "IS-5 (Object 730)",
         "R115_IS-3_auto": "IS-3 Defender",
         "R116_ISU122C_Berlin": "ISU-122S",
+        "R120_T22SR": "T-22 medium",
         "R127_T44_100_P": "T-44-100",
         "R140_M4A2_Loza": "Loza's M4-A2 Sherman",
         "R43_T-70_57": "T-70/57",
@@ -3381,7 +3398,6 @@
         "T32": "T32",
         "T34_hvy": "T34",
         "T34_hvy_Freedom": "T34 Independence",
-		"A94_T37": "T37",
         "T37": "T37",
         "T40": "T40",
         "T49": "T67",
@@ -3411,6 +3427,8 @@
         "Valentine_LL": "Valentine II",
         "Van_Helsing": "Helsing H0",
         "WZ-135G_FT": "WZ 135G FT Blaze",
-        "Waffentrager_IV": "Waffenträger auf Pz. IV"
+        "Waffentrager_IV": "Waffenträger auf Pz. IV",
+		"Object252": "IS-6",
+		"A94_T37": "T37"
     }
 }
