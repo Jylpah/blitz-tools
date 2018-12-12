@@ -233,7 +233,7 @@ class BattleRecordCategory():
 		try:
 			results = []
 			# results.append(self.getHeaders())			
-			for cat in self.category.keys():
+			for cat in sorted(self.category.keys()):
 				row = [ result_cat_frmt.format(cat)  ]
 				row.extend(self.category[cat].getResults())
 				results.append(row)
