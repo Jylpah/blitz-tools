@@ -59,13 +59,13 @@ result_ratios = {
 }
 
 result_categories = {
-	'total'				: [ 'TOTAL', 'Total' ],
+	'total'				: [ 'TOTAL', 'total' ],
 	'battle_result'		: [ 'Result', [ 'Loss', 'Win', 'Draw']],
 	'battle_type'		: [ 'Battle Type',['Encounter', 'Supremacy']],
-	'battle_tier'		: [ 'Battle Tier', 'value' ],
+	'tank_tier'			: [ 'Tank Tier', 'number' ],
 	'top_tier'			: [ 'Tier', ['Bottom tier', 'Top tier']],
-	'tank_name'			: [ 'Tank', 'value' ],
-	'map_name'			: [ 'Map', 'value' ]
+	'tank_name'			: [ 'Tank', 'string' ],
+	'map_name'			: [ 'Map', 'string' ]
 	}
 
 result_cat_header_frmt = '{:_<17s}'
@@ -185,16 +185,26 @@ class BattleRecordCategory():
 	def __init__(self, cat_name : str):
 		self.category_name = cat_name
 		self.category = collections.defaultdict(defaultvalueBtlRec)
+		if result_categories[self.category_name][1] == 'string':
+			self.type = 'string'
+		elif result_categories[self.category_name][1] == 'number':
+			self.type = 'number'
+		elif result_categories[self.category_name][1] == 'total':
+			self.type = 'total'
+		else:
+			self.type = 'category'
 	
 	def getSubCategories(self):
 		return self.category.keys()
 
 	def recordResult(self, result: dict):
 		try:
-			if self.category_name == 'total':
+			if self.type == 'total':
 				cat = 'Total'
-			elif result_categories[self.category_name][1] == 'value':
+			elif self.type == 'number':
 				cat = str(result[self.category_name])
+			elif self.type == 'string':
+				cat = result[self.category_name]
 			else:
 				cat = result_categories[self.category_name][1][result[self.category_name]]
 			self.category[cat].recordResult(result)
@@ -233,10 +243,17 @@ class BattleRecordCategory():
 		try:
 			results = []
 			# results.append(self.getHeaders())			
-			for cat in sorted(self.category.keys()):
-				row = [ result_cat_frmt.format(cat)  ]
-				row.extend(self.category[cat].getResults())
-				results.append(row)
+			if self.type == 'number':
+				for cat in sorted( [ int(s) for s in self.category.keys() ] ):
+					cat = str(cat) 
+					row = [ result_cat_frmt.format(cat) ]
+					row.extend(self.category[cat].getResults())
+					results.append(row)
+			else:
+				for cat in sorted(self.category.keys() , key=str.casefold):
+					row = [ result_cat_frmt.format(cat) ]
+					row.extend(self.category[cat].getResults())
+					results.append(row)
 			return results
 		except KeyError as err:
 			bu.error('Key ' + str(err) + ' not found') 
