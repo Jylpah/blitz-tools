@@ -73,16 +73,16 @@ result_cat_frmt = '{:>17s}'
 
 result_fields = {
 	'battles'			: [ 'Battles', 'Number of battles', 8, '{:^8.0f}' ],
-	'win'				: [ 'WR', 'Win rate', 			6, '{:6.1%}' ],
-	'damage_made'		: [ 'DPB', 'Average Damage', 	5, '{:5.0f}' ],
-	'DR'				: [ 'DR', 'Damage Ratio', 		5, '{:5.1f}' ],
-	'KDR'				: [ 'KDR', 'Kills / Death', 	4, '{:4.1f}' ],
+	'win'				: [ 'WR', 'Win rate', 				6, '{:6.1%}' ],
+	'damage_made'		: [ 'DPB', 'Average Damage', 		5, '{:5.0f}' ],
+	'DR'				: [ 'DR', 'Damage Ratio', 			5, '{:5.1f}' ],
+	'KDR'				: [ 'KDR', 'Kills / Death', 		4, '{:4.1f}' ],
 	'enemies_spotted'	: [ 'Spot', 'Enemies spotted per battle', 		4, '{:4.1f}' ],
 	'hit_rate'			: [ 'Hit rate', 'Shots hit / all shots made', 	8, '{:8.1%}' ],
 	'pen_rate'			: [ 'Pen rate', 'Shots pen / shots hit', 		8, '{:8.1%}' ],
-	'survived'			: [ 'Surv%', 'Survival rate', 						6, '{:6.1%}' ],
+	'survived'			: [ 'Surv%', 'Survival rate', 					6, '{:6.1%}' ],
 	'time_alive%'		: [ 'T alive%', 'Percentage of time being alive in a battle', 8, '{:8.0%}' ], 
-	'top_tier'			: [ 'Top tier', 'Share of games as top tier', 	8, '{:8.0%}' ],
+	'top_tier'			: [ 'Top tier', 'Share of games as top tier', 					8, '{:8.0%}' ],
 	'allies_win_rate'	: [ 'Allies WR', 'Average WR of allies: WR in the tank played counted if more than ' + str(STAT_TANK_BATTLE_MIN) + ' in the tank', 9, '{:9.2%}' ],
 	'enemies_win_rate'	: [ 'Enemies WR', 'Average WR of enemies: WR in the tank played counted if more than ' + str(STAT_TANK_BATTLE_MIN) + ' in the tank', 10, '{:10.2%}' ],
 	'allies_battles'	: [ 'Allies Btls', 'Average number battles of the allies', 		11, '{:11.0f}' ],
@@ -381,8 +381,7 @@ def calcTeamStats(result_list: list, player_stats  : dict, account_id: int) -> l
 			n_allies = collections.defaultdict(defaultvalueZero)
 			allies_stats = collections.defaultdict(defaultvalueZero)
 			for ally in result['allies']:
-				if (account_id != None) and (ally == account_id): 
-					continue
+				# Player itself is not in 'allies': see readReplayJSON()
 				for stat in stat_types:
 					if player_stats[ally][stat] != None:
 						allies_stats[stat] += player_stats[ally][stat]
@@ -415,11 +414,14 @@ async def statWorker(queue : asyncio.Queue, workerID: int) -> list:
 	stats = {}
 
 	try:
+		i = 0
 		while True:
 			# item = await queue.get_nowait()
 			item = await queue.get()
 			try:
-				bu.printWaiter()
+				i = (i+1) % 10
+				if i == 0 : 
+					bu.printWaiter()
 				acc, tank = item.split(':')			
 				account_id = int(acc)
 				tank_id = int(tank)
