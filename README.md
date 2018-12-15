@@ -11,7 +11,7 @@ Python scripts to analyze WoT Blitz replays and stats. All the scripts require [
 * [extractTankopedia.py](extractTankopedia.py): Extract Blitz data directly from the Blitz app files. You need to download the Blitz App APK package and unzip it to a folder. Requires [Python 3.7](https://www.python.org/downloads/) or higher.
 
 ### Utils
-* [WG_utils.py](WG_utils.py): A utils class for various Wargaming API related to functions. Other scripts use this, so you need to place it to the same folder with the other scripts
+* [blitzutils.py](blitzutils.py): A utils class for various Blitz related to functions. *Other scripts use this*, so you need to place it to the same folder with the other scripts
 
 ### Data
 * [tanks.json](tanks.json): Tankopedia in WG JSON format extracted from the Blitz app files with [extractTankopedia.py]](extractTankopedia.py]). Contains only limited information required by the scripts. Blitz version 5.3. 
