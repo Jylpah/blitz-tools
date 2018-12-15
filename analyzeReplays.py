@@ -619,5 +619,4 @@ async def readReplayJSON(replay_json: dict, args : argparse.Namespace) -> dict:
 
 ### main()
 if __name__ == "__main__":
-   asyncio.run(main(sys.argv[1:]), debug=True)
-   #asyncio.run(main(sys.argv[1:]))
+   asyncio.run(main(sys.argv[1:]), debug=False)
