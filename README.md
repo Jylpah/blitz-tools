@@ -1,9 +1,10 @@
 # blitz-tools
-Python scripts to analyze WoT Blitz replays and stats:
+Python scripts to analyze WoT Blitz replays and stats. All the scripts require [Python 3.7](https://www.python.org/downloads/) or higher.
 
 ### Replays
-* [wotbreplay_uploader.py](wotbreplay_uploader.py): An asynchronous replay uploader. Requires [Python 3.7](https://www.python.org/downloads/) or higher.
+* [wotbreplay_uploader.py](wotbreplay_uploader.py): An asynchronous replay uploader. 
 * [postwotreplay.py](postwotreplay.py): A simple WoT Replay uploader. Prints the received JSON from https://wotinspector.com
+* [analyzeReplays.py](analyzeReplays.py): A tool to calculate statistics of a set of replays. Upload the replays first with [wotbreplay_uploader.py](wotbreplay_uploader.py) and then calculate the statistics. 
 
 ### Tank data
 * [getTankopedia.py](getTankopedia.py): Get the lastest tankopedia data from wotinspector.com. The script fetches only a limited set of data. You may edit to your needs. 
