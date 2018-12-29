@@ -449,7 +449,7 @@ class WG:
                     debug('JSON tank list check OK')
                     return True
         except Exception as err:
-            error('JSON check FAILED: ' + str(type(err)) + ' : '+  str(err) + ' : ' + str(json_resp) )
+            debug('JSON check FAILED: ' + str(type(err)) + ' : '+  str(err) + ' : ' + str(json_resp) )
         return False
 
     ## Methods --------------------------------------------------
