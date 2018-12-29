@@ -130,12 +130,8 @@ async def getUrlJSON(session: aiohttp.ClientSession, url: str, chkJSONfunc = Non
                             # Sometimes WG API returns JSON error even a retry gives valid JSON
                             # return None                            
                     if retry == max_tries:                        
-                        if json_resp != None:
-                            str_json = str(json_resp)
-                        else:
-                            str_json = 'None'
-                        raise aiohttp.ClientError('Request failed: ' + str(resp.status) + ' JSON Response: ' + str_json )
-                    debug('Retrying URL [' + str(retry) + '/' +  str(max_tries) + ']: ' + url )
+                        raise aiohttp.ClientError('Request failed: ' + str(resp.status) + ' JSON Response: ' + str(json_resp) )
+                    verbose('Retrying URL [' + str(retry) + '/' +  str(max_tries) + ']: ' + url )
                     await asyncio.sleep(SLEEP)
 
         except aiohttp.ClientError as err:
@@ -379,7 +375,7 @@ class WG:
             if json_resp['status'] == 'ok':
                 return True
             elif json_resp['status'] == 'error':
-                #error(str(json_resp['error']['code']) + ' : ' + json_resp['error']['message'] )
+                error(str(json_resp['error']['code']) + ' : ' + json_resp['error']['message'] )
                 return False
             else:
                 debug('Unknown status-code: ' + json_resp['status'])
@@ -447,12 +443,13 @@ class WG:
     def chkJSONtankList(cls, json_resp: dict) -> bool:
         """"Check String for being a valid Tank list JSON file"""
         try:
-            accountID = next(iter(json_resp['data']))
-            if (json_resp['data'][accountID] != None) and (int(json_resp['data'][accountID][0]['tank_id']) > 0):
-                debug('JSON tank list check OK')
-                return True
+            if cls.chkJSONstatus(json_resp): 
+                accountID = next(iter(json_resp['data']))
+                if int(json_resp['data'][accountID][0]['tank_id']) > 0:
+                    debug('JSON tank list check OK')
+                    return True
         except Exception as err:
-            error('JSON check FAILED: ' + str(type(err)) + ' : ' +  str(err) + ' : ' + str(json_resp) )
+            debug('JSON check FAILED: ' + str(type(err)) + ' : '+  str(err) + ' : ' + str(json_resp) )
         return False
 
     ## Methods --------------------------------------------------
@@ -626,11 +623,11 @@ class WG:
         return None
 
 class WoTinspector:
-    URL_WI = 'https://replays.wotinspector.com'
-    URL_REPLAYS     = URL_WI + '/en/sort/ut/page/'
-    URL_REPLAY_DL   = URL_WI + '/en/download/'  
-    URL_REPLAY_UL   = 'https://api.wotinspector.com/replay/upload?'
-    URL_REPLAY_INFO = 'https://api.wotinspector.com/replay/upload?details=full&key='
+    URL_WI = 'https://wotinspector.com'
+    URL_REPLAYS     = URL_WI + '/en/replays/sort/ut/page/'
+    URL_REPLAY_DL   = '/en/replays/download/'  
+    URL_REPLAY_UL   = '/api/replay/upload?'
+    URL_REPLAY_INFO = '/api/replay/upload?details=full&key='
 
     REPLAY_N = 1
 
@@ -642,7 +639,7 @@ class WoTinspector:
             await self.session.close()        
 
     async def getReplayJSON(self, replay_id: str):
-        json_resp = await getUrlJSON(self.session, self.URL_REPLAY_INFO + replay_id, None)
+        json_resp = await getUrlJSON(self.session, self.URL_WI + self.URL_REPLAY_INFO + replay_id, None)
         try:
             if self.chkJSONreplay(json_resp):
                 return json_resp
@@ -677,7 +674,7 @@ class WoTinspector:
             }            
 
 
-            url = self.URL_REPLAY_UL + urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
+            url = self.URL_WI + self.URL_REPLAY_UL + urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
             #debug('URL: ' + url)
             headers ={'Content-type':  'application/x-www-form-urlencoded'}
             payload = { 'file' : (filename, base64.b64encode(data)) }
