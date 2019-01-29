@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 382
+        "count": 385
     },
     "data": {
         "1": {
@@ -18,7 +18,7 @@
             "tier": 5,
             "is_premium": false,
             "type": "mediumTank",
-            "name": "Pz.Kpfw. IV"
+            "name": "Pz.Kpfw. IV Ausf. G"
         },
         "33": {
             "tank_id": 33,
@@ -322,7 +322,7 @@
             "tier": 4,
             "is_premium": true,
             "type": "mediumTank",
-            "name": "T-28"
+            "name": "T-28 mod. 1940"
         },
         "1553": {
             "tank_id": 1553,
@@ -922,7 +922,7 @@
             "tier": 4,
             "is_premium": true,
             "type": "lightTank",
-            "name": "Valentine"
+            "name": "Valentine Mk. IX"
         },
         "4977": {
             "tank_id": 4977,
@@ -1954,7 +1954,7 @@
             "tier": 10,
             "is_premium": false,
             "type": "mediumTank",
-            "name": "M48A1 Patton"
+            "name": "M48 Patton"
         },
         "14145": {
             "tank_id": 14145,
@@ -3059,6 +3059,30 @@
             "is_premium": true,
             "type": "mediumTank",
             "name": "Type 3 Chi-Nu Kai"
+        },
+        "5233": {
+            "tank_id": 5233,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Smasher"
+        },
+        "7217": {
+            "tank_id": 7217,
+            "nation": "china",
+            "tier": 8,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "WZ-112-2"
+        },
+        "19233": {
+            "tank_id": 19233,
+            "nation": "usa",
+            "tier": 8,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Chrysler K"
         }
     },
     "userStr": {
@@ -3163,7 +3187,7 @@
         "GAZ-74b": "SU-85B",
         "GB01_Medium_Mark_I": "Vickers Medium Mk. I",
         "GB03_Cruiser_Mk_I": "Cruiser Mk. I",
-        "GB04_Valentine": "Valentine",
+        "GB04_Valentine": "Valentine Mk. IX",
         "GB05_Vickers_Medium_Mk_II": "Vickers Medium Mk. II",
         "GB06_Vickers_Medium_Mk_III": "Vickers Medium Mk. III",
         "GB07_Matilda": "Matilda",
@@ -3260,7 +3284,7 @@
         "M3_Stuart_LL": "M3 Light",
         "M41_Bulldog": "M41 Walker Bulldog",
         "M46_Patton": "M46 Patton",
-        "M48A1": "M48A1 Patton",
+        "M48A1": "M48 Patton",
         "M4A2E4": "M4A2E4 Sherman",
         "M4A3E8_Sherman": "M4A3E8 Sherman",
         "M4_Sherman": "M4 Sherman",
@@ -3302,7 +3326,7 @@
         "PzIII_IV": "Pz.Kpfw. III/IV",
         "PzII_J": "Pz.Kpfw. II Ausf. J",
         "PzII_Luchs": "Pz.Kpfw. II Luchs",
-        "PzIV": "Pz.Kpfw. IV",
+        "PzIV": "Pz.Kpfw. IV Ausf. G",
         "PzIV_Hydro": "Pz.Kpfw. IV hydrostat.",
         "PzIV_schmalturm": "Pz.Kpfw. IV Schmalturm",
         "PzV": "Panther I",
@@ -3365,7 +3389,7 @@
         "T-15": "T-15",
         "T-25": "T-25",
         "T-26": "T-26",
-        "T-28": "T-28",
+        "T-28": "T-28 mod. 1940",
         "T-34": "T-34",
         "T-34-85": "T-34-85",
         "T-34-85_Rudy": "T-34-85 Rudy",
@@ -3428,7 +3452,10 @@
         "Van_Helsing": "Helsing H0",
         "WZ-135G_FT": "WZ 135G FT Blaze",
         "Waffentrager_IV": "Waffenträger auf Pz. IV",
-		"Object252": "IS-6",
-		"A94_T37": "T37"
+        "Object252": "IS-6",
+        "A94_T37": "T37",
+        "A115_Chrysler_K": "Chrysler K",
+        "Ch_WZ-112v2": "WZ-112-2",
+        "Oth16_KV_TG": "Smasher"
     }
 }
