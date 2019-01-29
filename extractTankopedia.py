@@ -41,16 +41,42 @@ async def main(argv):
     
     tank_strs, map_strs = await readUserStrs(args.blitzAppBase)
 
+    json_data = None
+    userStrs = {}
+    tanks = {}
+    if os.path.exists(args.tanks):
+        try:
+            async with aiofiles.open(args.tanks) as infile:
+                json_data = json.loads(await infile.read())
+                userStrs = json_data['userStr']
+                tanks = json_data['data']
+        except Exception as err:
+            bu.error('Unexpected error when reading file: ' + args.tanks + ' : ' + str(err))
+
     async with aiofiles.open(args.tanks, 'w', encoding="utf8") as outfile:
+        new_tanks, new_userStrs = await convertTankNames(tanklist, tank_strs)
+        # merge old and new tankopedia
+        tanks.update(new_tanks)
+        userStrs.update(new_userStrs) 
         tankopedia = collections.OrderedDict()
         tankopedia['status'] = 'ok'
-        tankopedia['meta'] = { "count":  len(tanklist) }
-        tankopedia['data'], tankopedia['userStr'] = await convertTankNames(tanklist, tank_strs)
+        tankopedia['meta'] = { "count":  len(tanks) }
+        tankopedia['data'] = tanks
+        tankopedia['userStr'] = userStrs
         await outfile.write(json.dumps(tankopedia, ensure_ascii=False, indent=4, sort_keys=False))
     
     if args.maps != None:
+        maps = {}
+        if os.path.exists(args.maps):
+            try:
+                async with aiofiles.open(args.maps) as infile:
+                    maps = json.loads(await infile.read())
+            except Exception as err:
+                bu.error('Unexpected error when reading file: ' + args.maps + ' : ' + str(err))
+        # merge old and new map data
+        maps.update(map_strs)
         async with aiofiles.open(args.maps, 'w', encoding="utf8") as outfile:
-            await outfile.write(json.dumps(map_strs, ensure_ascii=False, indent=4, sort_keys=True))
+            await outfile.write(json.dumps(maps, ensure_ascii=False, indent=4, sort_keys=True))
 
     return None
     
