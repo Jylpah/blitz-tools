@@ -19,10 +19,14 @@ Python scripts to analyze WoT Blitz replays and stats. All the scripts require [
 
 ### Quick instructions
 
-1. Install [Python 3.7](https://www.python.org/downloads/)
+1. Install [Python 3.7](https://www.python.org/downloads/) on to your computer/laptop
 1. Download all the files including the [maps.json](maps.json) and [tanks.json](tanks.json) files
-1. Upload your replays. Run _python.exe .\wotbreplay_uploader.py --help_ (Windows) or _./wotbreplay_uploader.py --help_ (Linux)
-1. Analyze replays.  Run _python.exe .\analyzeReplays.py --help_ (Windows) or _./analyzeReplays.py --help_ (Linux)
+1. Install the required Python modules: aiohttp, aioconsole, aiofiles, beautifulsoup4, lxml, xmltodict
+
+```python -m pip install aiohttp aioconsole aiofiles beautifulsoup4 lxml xmltodict```
+
+4. Upload your replays. Run _python.exe .\wotbreplay_uploader.py --help_ (Windows) or _./wotbreplay_uploader.py --help_ (Linux)
+5. Analyze replays.  Run _python.exe .\analyzeReplays.py --help_ (Windows) or _./analyzeReplays.py --help_ (Linux)
 
 
 You can reach me via email: Jylpah@gmail.com or [Discord](https://discordapp.com/): Jylpah#4662. Happy tanking and stats analysis!
