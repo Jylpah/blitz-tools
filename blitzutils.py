@@ -269,7 +269,7 @@ class WG:
         
         self.WG_appID = WG_appID
         self.tanks = None      
-          
+
         if (tankopedia_fn != None):
             if os.path.exists(tankopedia_fn) and os.path.isfile(tankopedia_fn):
                 try:
@@ -283,7 +283,7 @@ class WG:
             if os.path.exists(maps_fn) and os.path.isfile(maps_fn):
                 try:
                     with open(maps_fn, 'rt', encoding='utf8') as f:
-                        self.maps = json.loads(f.read())
+                        WG.maps = json.loads(f.read())
                 except Exception as err:
                     error('Could not read maps file: ' + maps_fn + '\n' + str(err))  
             else:
@@ -335,6 +335,12 @@ class WG:
             if accountID < 5e8:
                 return 'ru'
             return 'eu'
+        return None
+
+    @classmethod
+    def updateMaps(cls, mapdata: dict):
+        """Update maps data"""
+        cls.maps = mapdata
         return None
 
     @classmethod
