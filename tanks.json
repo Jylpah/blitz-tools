@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 385
+        "count": 392
     },
     "data": {
         "1": {
@@ -1168,7 +1168,7 @@
             "tank_id": 6449,
             "nation": "china",
             "tier": 10,
-            "is_premium": true,
+            "is_premium": false,
             "type": "AT-SPG",
             "name": "WZ-113G FT"
         },
@@ -3083,6 +3083,62 @@
             "is_premium": true,
             "type": "heavyTank",
             "name": "Chrysler K"
+        },
+        "7473": {
+            "tank_id": 7473,
+            "nation": "china",
+            "tier": 7,
+            "is_premium": false,
+            "type": "AT-SPG",
+            "name": "T-34-2G FT"
+        },
+        "7729": {
+            "tank_id": 7729,
+            "nation": "china",
+            "tier": 6,
+            "is_premium": false,
+            "type": "AT-SPG",
+            "name": "WZ-131G FT"
+        },
+        "7985": {
+            "tank_id": 7985,
+            "nation": "china",
+            "tier": 8,
+            "is_premium": false,
+            "type": "AT-SPG",
+            "name": "WZ-111-1G FT"
+        },
+        "8241": {
+            "tank_id": 8241,
+            "nation": "china",
+            "tier": 9,
+            "is_premium": false,
+            "type": "AT-SPG",
+            "name": "WZ-111G FT"
+        },
+        "17745": {
+            "tank_id": 17745,
+            "nation": "uk",
+            "tier": 10,
+            "is_premium": true,
+            "type": "AT-SPG",
+            "name": "FV217 Badger"
+        },
+        "18001": {
+            "tank_id": 18001,
+            "nation": "uk",
+            "tier": 10,
+            "is_premium": true,
+            "type": "AT-SPG",
+            "name": "FV4005"
+        },
+        "19489": {
+            "tank_id": 19489,
+            "nation": "usa",
+            "tier": 8,
+            "is_premium": true,
+            "type": "AT-SPG",
+            "name": "T28 Defender"
         }
     },
     "userStr": {
@@ -3456,6 +3512,13 @@
         "A94_T37": "T37",
         "A115_Chrysler_K": "Chrysler K",
         "Ch_WZ-112v2": "WZ-112-2",
-        "Oth16_KV_TG": "Smasher"
+        "Oth16_KV_TG": "Smasher",
+        "A68_T28D": "T28 Defender",
+        "Ch34_WZ-131G_FT": "WZ-131G FT",
+        "Ch35_T-34-2G_FT": "T-34-2G FT",
+        "Ch36_WZ-111-1G_FT": "WZ-111-1G FT",
+        "Ch37_WZ-111G_FT": "WZ-111G FT",
+        "GB83_4005": "FV4005",
+        "GB92_FV217": "FV217 Badger"
     }
 }
