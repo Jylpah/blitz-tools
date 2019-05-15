@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 392
+        "count": 394
     },
     "data": {
         "1": {
@@ -3139,6 +3139,22 @@
             "is_premium": true,
             "type": "AT-SPG",
             "name": "T28 Defender"
+        },
+        "6257": {
+            "tank_id": 6257,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "M4/FL10"
+        },
+        "20481": {
+            "tank_id": 20481,
+            "nation": "ussr",
+            "tier": 8,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Object 252U"
         }
     },
     "userStr": {
@@ -3519,6 +3535,8 @@
         "Ch36_WZ-111-1G_FT": "WZ-111-1G FT",
         "Ch37_WZ-111G_FT": "WZ-111G FT",
         "GB83_4005": "FV4005",
-        "GB92_FV217": "FV217 Badger"
+        "GB92_FV217": "FV217 Badger",
+        "Oth20_M4FL10": "M4/FL10",
+        "R134_Object_252U": "Object 252U"
     }
 }
