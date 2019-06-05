@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 394
+        "count": 403
     },
     "data": {
         "1": {
@@ -3128,7 +3128,7 @@
             "tank_id": 18001,
             "nation": "uk",
             "tier": 10,
-            "is_premium": true,
+            "is_premium": false,
             "type": "AT-SPG",
             "name": "FV4005"
         },
@@ -3155,6 +3155,78 @@
             "is_premium": true,
             "type": "heavyTank",
             "name": "Object 252U"
+        },
+        "5489": {
+            "tank_id": 5489,
+            "nation": "other",
+            "tier": 5,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Y5 T-34"
+        },
+        "5745": {
+            "tank_id": 5745,
+            "nation": "other",
+            "tier": 6,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Y5 Firefly"
+        },
+        "6001": {
+            "tank_id": 6001,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Y5 ELC bis"
+        },
+        "17233": {
+            "tank_id": 17233,
+            "nation": "uk",
+            "tier": 9,
+            "is_premium": false,
+            "type": "AT-SPG",
+            "name": "FV4004 Conway"
+        },
+        "17489": {
+            "tank_id": 17489,
+            "nation": "uk",
+            "tier": 8,
+            "is_premium": false,
+            "type": "AT-SPG",
+            "name": "Charioteer"
+        },
+        "18257": {
+            "tank_id": 18257,
+            "nation": "uk",
+            "tier": 7,
+            "is_premium": false,
+            "type": "AT-SPG",
+            "name": "Challenger"
+        },
+        "19729": {
+            "tank_id": 19729,
+            "nation": "germany",
+            "tier": 6,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Tiger 131"
+        },
+        "19745": {
+            "tank_id": 19745,
+            "nation": "usa",
+            "tier": 8,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "T26E5"
+        },
+        "21265": {
+            "tank_id": 21265,
+            "nation": "germany",
+            "tier": 8,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "VK 168.01 (P)"
         }
     },
     "userStr": {
@@ -3537,6 +3609,15 @@
         "GB83_4005": "FV4005",
         "GB92_FV217": "FV217 Badger",
         "Oth20_M4FL10": "M4/FL10",
-        "R134_Object_252U": "Object 252U"
+        "R134_Object_252U": "Object 252U",
+        "A117_T26E5": "T26E5",
+        "G136_Tiger_131": "Tiger 131",
+        "G138_VK16801P": "VK 168.01 (P)",
+        "GB41_Challenger": "Challenger",
+        "GB80_Charioteer": "Charioteer",
+        "GB81_FV4004": "FV4004 Conway",
+        "Oth17_BDT-5A": "Y5 T-34",
+        "Oth18_BDT-5B": "Y5 Firefly",
+        "Oth19_BDT-5C": "Y5 ELC bis"
     }
 }
