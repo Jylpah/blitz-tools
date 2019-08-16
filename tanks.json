@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 403
+        "count": 423
     },
     "data": {
         "1": {
@@ -3227,6 +3227,166 @@
             "is_premium": true,
             "type": "heavyTank",
             "name": "VK 168.01 (P)"
+        },
+        "129": {
+            "tank_id": 129,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "AT-SPG",
+            "name": "Vindicator Ultramarines"
+        },
+        "641": {
+            "tank_id": 641,
+            "nation": "other",
+            "tier": 6,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Stridsvagn 74A2"
+        },
+        "897": {
+            "tank_id": 897,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Edelweiss"
+        },
+        "1153": {
+            "tank_id": 1153,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Predator Ultramarines"
+        },
+        "1409": {
+            "tank_id": 1409,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Nameless"
+        },
+        "1665": {
+            "tank_id": 1665,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "AT-SPG",
+            "name": "Helsing H0"
+        },
+        "1921": {
+            "tank_id": 1921,
+            "nation": "other",
+            "tier": 8,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "O-47"
+        },
+        "2177": {
+            "tank_id": 2177,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "AT-SPG",
+            "name": "WZ 135G FT Blaze"
+        },
+        "3713": {
+            "tank_id": 3713,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Lupus"
+        },
+        "3969": {
+            "tank_id": 3969,
+            "nation": "other",
+            "tier": 9,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "T 55A"
+        },
+        "4225": {
+            "tank_id": 4225,
+            "nation": "other",
+            "tier": 1,
+            "is_premium": false,
+            "type": "mediumTank",
+            "name": "WarDuck"
+        },
+        "4481": {
+            "tank_id": 4481,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Hafen"
+        },
+        "4737": {
+            "tank_id": 4737,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Gravedigger"
+        },
+        "4993": {
+            "tank_id": 4993,
+            "nation": "other",
+            "tier": 5,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Scavenger"
+        },
+        "5249": {
+            "tank_id": 5249,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Smasher"
+        },
+        "5505": {
+            "tank_id": 5505,
+            "nation": "other",
+            "tier": 5,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Y5 T-34"
+        },
+        "5761": {
+            "tank_id": 5761,
+            "nation": "other",
+            "tier": 6,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Y5 Firefly"
+        },
+        "6017": {
+            "tank_id": 6017,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Y5 ELC bis"
+        },
+        "6273": {
+            "tank_id": 6273,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "M4/FL10"
+        },
+        "63617": {
+            "tank_id": 63617,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "T6 Dracula"
         }
     },
     "userStr": {

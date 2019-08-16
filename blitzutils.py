@@ -264,7 +264,8 @@ class WG:
         'france'    : 4,
         'uk'        : 5,
         'japan'     : 6,
-        'other'     : 7
+        'european'  : 7,
+        'other'     : 8        
     }
 
     tank_type = [ 'lightTank', 'mediumTank', 'heavyTank', 'AT-SPG' ]
