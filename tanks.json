@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 423
+        "count": 424
     },
     "data": {
         "1": {
@@ -3387,6 +3387,14 @@
             "is_premium": true,
             "type": "mediumTank",
             "name": "T6 Dracula"
+        },
+        "385": {
+            "tank_id": 385,
+            "nation": "european",
+            "tier": 10,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Progetto M40 mod. 65"
         }
     },
     "userStr": {
@@ -3778,6 +3786,7 @@
         "GB81_FV4004": "FV4004 Conway",
         "Oth17_BDT-5A": "Y5 T-34",
         "Oth18_BDT-5B": "Y5 Firefly",
-        "Oth19_BDT-5C": "Y5 ELC bis"
+        "Oth19_BDT-5C": "Y5 ELC bis",
+        "It08_Progetto_M40_mod65": "Progetto M40 mod. 65"
     }
 }

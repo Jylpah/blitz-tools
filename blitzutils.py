@@ -255,7 +255,7 @@ class WG:
 
     tanks = None
 
-    nations = [ 'ussr', 'germany', 'usa', 'china', 'france', 'uk', 'japan', 'other']    
+    nations = [ 'ussr', 'germany', 'usa', 'china', 'france', 'uk', 'japan', 'other', 'european']    
     nation_id = {
         'ussr'      : 0,
         'germany'   : 1, 
@@ -264,8 +264,8 @@ class WG:
         'france'    : 4,
         'uk'        : 5,
         'japan'     : 6,
-        'european'  : 7,
-        'other'     : 8        
+        'other'     : 7,
+        'european'  : 8
     }
 
     tank_type = [ 'lightTank', 'mediumTank', 'heavyTank', 'AT-SPG' ]
