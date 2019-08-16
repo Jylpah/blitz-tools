@@ -2,7 +2,7 @@
 
 # Script Analyze WoT Blitz replays
 
-import sys, argparse, json, os, inspect, aiohttp, asyncio, aiofiles, aioconsole, re, logging, time, xmltodict, collections
+import sys, argparse, json, os, concurrent, inspect, aiohttp, asyncio, aiofiles, aioconsole, re, logging, time, xmltodict, collections
 import blitzutils as bu
 from blitzutils import WG
 from blitzutils import WoTinspector
@@ -13,6 +13,7 @@ WG_appID  = '81381d3f45fa4aa75b78a7198eb216ad'
 wg = None
 wi = None
 REPLAY_N = 0
+REPLAY_I = 0
 STAT_TANK_BATTLE_MIN = 100
 
 replay_summary_flds = [
@@ -65,8 +66,15 @@ result_categories = {
 	'tank_tier'			: [ 'Tank Tier', 'number' ],
 	'top_tier'			: [ 'Tier', ['Bottom tier', 'Top tier']],
 	'tank_name'			: [ 'Tank', 'string' ],
-	'map_name'			: [ 'Map', 'string' ]
+	'map_name'			: [ 'Map', 'string' ],
+	'battle_i'			: [ 'Battle #', 'number']
 	}
+
+result_categories_default = [
+	'total',
+	'battle_result',
+	'tank_tier'
+]
 
 result_cat_header_frmt = '{:_<17s}'
 result_cat_frmt = '{:>17s}'
@@ -270,6 +278,7 @@ async def main(argv):
 	parser.add_argument('--output', default='plain', choices=['json', 'plain', 'db'], help='Select output mode: JSON, plain text or database')
 	parser.add_argument('-id', dest='accountID', type=int, default=None, help='WG account_id to analyze')
 	parser.add_argument('-a', '--account', dest='account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
+	parser.add_argument('-x', '--extended', action='store_true', default=False, help='Print Extended stats')
 	parser.add_argument('-u', '--url', dest= 'url', action='store_true', default=False, help='Print replay URLs')
 	parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
 	parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default is "maps.json"')
@@ -294,19 +303,22 @@ async def main(argv):
 		reader_tasks = []
 		# Make replay Queue
 		scanner_task = asyncio.create_task(mkReplayQ(replayQ, args.files))
-
+		bu.debug('Replay scanner started')
 		# Start tasks to process the Queue
 		for i in range(TASK_N):
 			reader_tasks.append(asyncio.create_task(replayReader(replayQ, i, args)))
-			bu.debug('Task ' + str(i) + ' started')
+			bu.debug('ReplayReader ' + str(i) + ' started')
 
 		bu.debug('Waiting for the replay scanner to finish')
 		await asyncio.wait([scanner_task])
+		
 		bu.debug('Scanner finished. Waiting for replay readers to finish the queue')
 		await replayQ.join()
+		await asyncio.sleep(0.1)
 		bu.debug('Replays read. Cancelling Readers and analyzing results')
 		for task in reader_tasks:
-			task.cancel()	
+			task.cancel()
+			await asyncio.sleep(0.1)	
 		results = []
 		playerstanks = set()
 		for res in await asyncio.gather(*reader_tasks):
@@ -317,7 +329,8 @@ async def main(argv):
 		bu.verbose('')
 		results = calcTeamStats(results, player_stats, args.accountID)
 		processStats(results, args)	
-
+	except Exception as err:
+		bu.error(str(type(err)) + ' : ' +  str(err))
 	finally:
 		## Need to close the aiohttp.session since Python destructors do not support async methods... 
 		await wg.close()
@@ -329,18 +342,23 @@ def processStats(results: dict, args : argparse.Namespace):
 	url = args.url
 	urls = collections.OrderedDict()
 	categories = {}
-	for cat in result_categories.keys():
+	
+	cats = result_categories_default
+	if args.extended:
+		cats = result_categories.keys()
+	
+	for cat in cats:
 		categories[cat] = BattleRecordCategory(cat)
 
 	max_title_len = 0
 	for result in results:
-		for cat in result_categories.keys():
+		for cat in cats:
 			categories[cat].recordResult(result)
 		if url:
 			max_title_len = max(max_title_len, len(result['title']))
 			urls[result['title']] = result['url']
 
-	for cat in result_categories.keys():
+	for cat in cats:
 		for sub_cat in categories[cat].getSubCategories():
 			categories[cat].category[sub_cat].calcResults()
 		print('')
@@ -355,22 +373,26 @@ def processStats(results: dict, args : argparse.Namespace):
 async def processTankStats(playerstanks, N_workers: int) -> dict:
 	## Create queue of player-tank pairs to find stats for
 	statsQ = asyncio.Queue()
-	bu.debug('Create player/tank stats queue')
+	bu.debug('Create player/tank stats queue: ' + str(len(playerstanks)) + ' player/tanks')
 	for playertank in playerstanks:
 		await statsQ.put(playertank)
 	# Process player WR / battle stats
 	stats_tasks = []
 	bu.debug('Starting player/tank stats queue workers')
 	for i in range(N_workers):
+		bu.debug("Starting worker " + str(i))
 		stats_tasks.append(asyncio.create_task(statWorker(statsQ, i)))
 	## let the workers to process	
+	bu.debug('Waiting stats workers to finnish')
 	await statsQ.join()
+	bu.debug('Cancelling stats workers')
 	for task in stats_tasks: 
 		task.cancel()	
 	player_stats = {}
+	bu.debug('Gathering stats worker outputs')
 	for stats in await asyncio.gather(*stats_tasks):
 		player_stats = {**player_stats, **stats}
-	
+	bu.debug('Returning player_stats')
 	return player_stats
 
 def calcTeamStats(result_list: list, player_stats  : dict, account_id: int) -> list:
@@ -412,37 +434,42 @@ async def statWorker(queue : asyncio.Queue, workerID: int) -> list:
 	"""Worker thread to find stats for player / tank pairs"""
 	# global wg
 	stats = {}
-
+	bu.debug("workedID: " + str(workerID) + ' started')
 	try:
 		i = 0
 		while True:
-			# item = await queue.get_nowait()
 			item = await queue.get()
 			try:
 				i = (i+1) % 10
 				if i == 0 : 
 					bu.printWaiter()
+				## Add time stamp here
 				acc, tank = item.split(':')			
 				account_id = int(acc)
 				tank_id = int(tank)
-				# bu.debug('[' +str(workerID) + '] AccountID: ' + acc + ' TankID: '  + tank)
+				bu.debug('[' +str(workerID) + '] AccountID: ' + acc + ' TankID: '  + tank)
 				playerTankStat = await wg.getPlayerTankStats(account_id, tank_id, ['all.battles', 'all.wins'])
-				# bu.debug('[' +str(workerID) + '] ' + str(playerTankStat))
+				bu.debug('[' +str(workerID) + '] ' + str(playerTankStat))
 				
 				playerStat = await wg.getPlayerStats(account_id,  ['statistics.all.battles', 'statistics.all.wins'])
-				# bu.debug('[' +str(workerID) + '] ' + str(playerStat))
+				bu.debug('[' +str(workerID) + '] ' + str(playerStat))
 				
 				stats[item] = {}
-				if (playerTankStat == None) or (playerStat == None):
-					stats[item]['win_rate'] = None
-					stats[item]['battles'] 	= None
+				stats[item]['win_rate'] = None
+				stats[item]['battles'] 	= None
+				if (playerTankStat == None):
+					if (playerStat != None):
+						playerStat = playerStat['statistics']['all']
+						battles = playerStat['battles']
+						stats[item]['battles'] = battles
+						stats[item]['win_rate'] = min(playerStat['wins'] / battles, 1) # To cope with broken stats in WG DB
+
 				else:
 					playerTankStat = playerTankStat['all']
 					playerStat = playerStat['statistics']['all']
 					
 					battles = playerStat['battles']
-					stats[item]['battles'] = battles
-					
+					stats[item]['battles'] = battles					
 					battles_in_tank = playerTankStat['battles']
 					if battles_in_tank >= STAT_TANK_BATTLE_MIN:
 						stats[item]['win_rate'] =  min(playerTankStat['wins'] / battles_in_tank,1)  # To cope with broken stats in WG DB
@@ -455,7 +482,7 @@ async def statWorker(queue : asyncio.Queue, workerID: int) -> list:
 				bu.error('[' +str(workerID) + '] ' + str(type(err)) + ' : '+ str(err))
 			queue.task_done()
 
-	except asyncio.CancelledError:
+	except (asyncio.CancelledError, concurrent.futures._base.CancelledError):
 		bu.debug('Stats queue[' + str(workerID) + '] is empty')
 	except Exception as err:
 		bu.error(str(err))
@@ -476,18 +503,20 @@ async def mkReplayQ(queue : asyncio.Queue, files : list):
 					await queue.put(await mkReaderQitem(line))
 	else:
 		for fn in files:
+			# bu.debug('Filename: ' + fn)
 			if fn.endswith('"'):
 				fn = fn[:-1] 
 			if os.path.isfile(fn) and (p_replayfile.match(fn) != None):
 				await queue.put(await mkReaderQitem(fn))
+				bu.debug('File added to queue: ' + fn)
 			elif os.path.isdir(fn):
 				with os.scandir(fn) as dirEntry:
 					for entry in dirEntry:
 						if entry.is_file() and (p_replayfile.match(entry.name) != None): 
 							bu.debug(entry.name)
 							await queue.put(await mkReaderQitem(entry.path))
-			bu.debug('File added to queue: ' + fn)
-	bu.debug('Finished')
+							bu.debug('File added to queue: ' + entry.path)
+	bu.debug('Finished: ' + str(queue.qsize())  + ' replays to process') 
 	return None
 
 async def mkReaderQitem(filename : str) -> list:
@@ -519,6 +548,7 @@ async def replayReader(queue: asyncio.Queue, readerID: int, args : argparse.Name
 				## Read the replay JSON
 				bu.debug('[' + str(readerID) + '] reading replay: ' + filename)
 				result = await readReplayJSON(replay_json, args)
+				bu.printWaiter()
 				if result == None:
 					bu.error('[' + str(readerID) + '] Error reading replay: ' + filename)
 					queue.task_done()
@@ -534,12 +564,14 @@ async def replayReader(queue: asyncio.Queue, readerID: int, args : argparse.Name
 			except Exception as err:
 				bu.error(str(err))
 			queue.task_done()
-	except asyncio.CancelledError:		
+	except (asyncio.CancelledError, concurrent.futures.CancelledError):		
+		bu.debug('[' + str(readerID) + ']: ' + str(len(results)) + ' replays, ' + str(len(playerstanks)) + ' player/tanks')
 		return results, playerstanks
 	return None
 
 async def readReplayJSON(replay_json: dict, args : argparse.Namespace) -> dict:
 	"""Parse replay JSON dict"""
+	global REPLAY_I
 	account_id = args.accountID
 	url = args.url
 	result = {}
@@ -601,15 +633,17 @@ async def readReplayJSON(replay_json: dict, args : argparse.Namespace) -> dict:
 
 			elif player['dbid'] in replay_json['data']['summary']['allies']: 
 				result['allies'].add(':'.join([ str(player['dbid']), str(player['vehicle_descr'])]))
-				#result['allies'].add([ player['dbid'], player['vehicle_descr'], int(replay_json['data']['summary']['battle_start_timestamp']) ])
+				#result['allies'].add(':'.join([ str(player['dbid']), str(player['vehicle_descr']), str(replay_json['data']['summary']['battle_start_timestamp']) ]))
 			else:
 				result['enemies'].add(':'.join([ str(player['dbid']), str(player['vehicle_descr'])]))
-				#result['enemies'].add([ player['dbid'], player['vehicle_descr'], int(replay_json['data']['summary']['battle_start_timestamp']) ])
+				#result['enemies'].add(':'.join([ str(player['dbid']), str(player['vehicle_descr']), str(replay_json['data']['summary']['battle_start_timestamp']) ]))
 		#bu.debug('6')
 		result['time_alive%'] = result['time_alive'] / btl_duration  
 		result['battle_tier'] = btl_tier
 		result['top_tier'] = 1 if (result['tank_tier'] == btl_tier) else 0
 		result['win'] = 1 if result['battle_result'] == 1 else 0
+		REPLAY_I += 1
+		result['battle_i'] = REPLAY_I
 				
 		bu.debug(str(result))
 		return result
