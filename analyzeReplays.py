@@ -162,7 +162,7 @@ class BattleRecord():
 			self.calcRatios()
 		try:
 			for field in self.avg_fields:
-				self.results[field] = self.results[field] / self.battles
+				self.results[field] = self.results[field] / max(self.battles,1)
 			self.results['battles'] = self.battles
 			self.results_ready = True
 			return True
