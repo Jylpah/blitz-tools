@@ -16,8 +16,9 @@ DEBUG = False
 VERBOSE = False
 SLEEP = 2
 MAX_RETRIES = 3
-REPLAY_N = 0
-SKIPPED_N = 0
+REPLAY_N 	= 0
+SKIPPED_N 	= 0
+ERROR_N 	= 0
 WIurl='https://wotinspector.com/api/replay/upload?'
 WG_appID  = '81381d3f45fa4aa75b78a7198eb216ad'
 wg = None
@@ -33,7 +34,7 @@ async def main(argv):
 	parser.add_argument('-a', '--account', dest='account', type=str, default=None, help='Uploader\'s WG account name. Format: ACCOUNT_NAME@SERVER')
 	parser.add_argument('-t','--title', type=str, default=None, help='Title for replays. Use NN for continous numbering. Default is filename-based numbering')
 	parser.add_argument('-p', '--private', dest="private", action='store_true', default=False, help='Set replays private on WoTinspector.com')
-	parser.add_argument('--tasks', dest='N_tasks', type=int, default=10, help='Number of worker threads')
+	parser.add_argument('--tasks', dest='N_tasks', type=int, default=5, help='Number of worker threads')
 	parser.add_argument('--tankopedia', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default: "tanks.json"')
 	parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default: "maps.json"')
 	parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
@@ -77,7 +78,7 @@ async def main(argv):
 			task.cancel()
 		bu.debug('Waiting for workers to cancel')
 		await asyncio.gather(*tasks, return_exceptions=True)
-		bu.verbose(str(REPLAY_N) + ' replays: ' + str(REPLAY_N - SKIPPED_N) + ' uploaded, ' + str(SKIPPED_N) + ' skipped')
+		bu.verbose(str(REPLAY_N) + ' replays: ' + str(REPLAY_N - SKIPPED_N - ERROR_N) + ' uploaded, ' + str(SKIPPED_N) + ' skipped, ' + str(ERROR_N) + ' errors')
 				
 	except KeyboardInterrupt:
 		print('Ctrl-c pressed ...')
@@ -136,6 +137,7 @@ async def mkQueueItem(filename : str, title : str) -> list:
 async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, priv = False):
 	"""Async Worker to process the replay queue"""
 	global SKIPPED_N
+	global ERROR_N
 
 	while True:
 		item = await queue.get()
@@ -158,6 +160,9 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 						SKIPPED_N += 1
 						queue.task_done()						
 						continue
+					else:
+						os.remove(replay_json_fn)
+						bu.debug("Replay JSON not valid: Deleting " + replay_json_fn)
 		except asyncio.CancelledError as err:
 			raise err
 		except Exception as err:
@@ -173,6 +178,7 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 						bu.debug(msg_str + 'Replay saved OK: ' + filename )
 					else:
 						bu.error(msg_str + 'Error saving replay: ' + filename)
+						ERROR_N += 1
 		except Exception as err:
 			bu.error(msg_str + 'Unexpected Exception: ' + str(type(err)) + ' : ' + str(err) )
 		bu.debug(msg_str + 'Marking task done')
@@ -188,7 +194,12 @@ def getTitle(replayfile: str, title: str, i : int) -> str:
 			filename = os.path.basename(replayfile)	
 			bu.debug(filename)
 			map_usrStrs = wg.getMapUserStrs()
-			p = re.compile('\\d{8}_\\d{4}_(.+)_(' + '|'.join(map_usrStrs) + ')(?:-\\d)?\\.wotbreplay$')
+			tank_userStrs = wg.getTankUserStrs()
+			
+			#p = re.compile('\\d{8}_\\d{4}_(.+)_(' + '|'.join(map_usrStrs) + ')(?:-\\d)?\\.wotbreplay$')
+			# update 6.2 changed the file name format
+			p = re.compile('\\d{8}_\\d{4}_.+?(' + '|'.join(tank_userStrs) + ')_(' + '|'.join(map_usrStrs) + ')(?:-\\d)?\\.wotbreplay$')
+			
 			m = p.match(filename)
 			if (m != None):
 				if wg.tanks != None:

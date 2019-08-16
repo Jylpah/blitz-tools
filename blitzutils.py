@@ -5,7 +5,7 @@ import asyncio, aiofiles, aiohttp, aiosqlite, lxml
 from bs4 import BeautifulSoup
 
 MAX_RETRIES= 3
-SLEEP = 2
+SLEEP = 3
 DEBUG = False
 VERBOSE = False
 SILENT = False
@@ -59,10 +59,12 @@ def verbose_std(msg = ""):
 def printWaiter(force = False):
     if not DEBUG and (not SILENT  or force):
         print('.', end='', flush=True)
+
     
 def printNewline(force = False):
     if not DEBUG and (not SILENT  or force):
         print('', flush=True)
+
 
 def debug(msg = ""):
     """print a conditional debug message"""
@@ -73,6 +75,7 @@ def debug(msg = ""):
         print('DEBUG: ' + caller + '(): ' + msg)
     return None
 
+
 def error(msg = ""):
     """Print an error message"""
     curframe = inspect.currentframe()
@@ -80,8 +83,26 @@ def error(msg = ""):
     caller = calframe[1][3]
     print('ERROR: ' + caller + '(): ' + msg)
     return None
+
 def NOW() -> int:
     return int(time.time())
+
+
+async def readPlainList(filename: str) -> list():
+    """Read file to a list and return list of integers in the input file"""
+    
+    input_list = []
+    try:
+        async with aiofiles.open(filename) as fp:
+            async for line in fp:
+                try:
+                    input_list.append(int(line))
+                except (ValueError, TypeError) as err:
+                    pass
+    except Exception as err:
+        error('Unexpected error when reading file: ' + filename + ' : ' + str(type(err)) + ' : '+ str(err))
+    return input_list
+
 
 async def saveJSON(filename: str, json_data: dict, sort_keys = False) -> bool:
     """Save JSON data into file"""
@@ -95,6 +116,7 @@ async def saveJSON(filename: str, json_data: dict, sort_keys = False) -> bool:
     except Exception as err:
         error(str(err))
     return False
+
 
 async def readJSON(filename: str, chkJSONfunc = None):
     try:
@@ -231,6 +253,8 @@ class WG:
         "tutorial": "Proving Grounds"
     }
 
+    tanks = None
+
     nations = [ 'ussr', 'germany', 'usa', 'china', 'france', 'uk', 'japan', 'other']    
     nation_id = {
         'ussr'      : 0,
@@ -268,13 +292,13 @@ class WG:
     def __init__(self, WG_appID = None, tankopedia_fn =  None, maps_fn = None):
         
         self.WG_appID = WG_appID
-        self.tanks = None      
 
         if (tankopedia_fn != None):
             if os.path.exists(tankopedia_fn) and os.path.isfile(tankopedia_fn):
                 try:
                     with open(tankopedia_fn, 'rt', encoding='utf8') as f:
-                        self.tanks = json.loads(f.read())
+                        WG.tanks = json.loads(f.read())
+                        debug(str(WG.tanks["meta"]["count"]) + " tanks")
                 except Exception as err:
                     error('Could not read tankopedia: ' + tankopedia_fn + '\n' + str(err))  
             else:
@@ -355,6 +379,10 @@ class WG:
     @classmethod
     def getMapUserStrs(cls) -> str:
         return cls.maps.keys()
+
+    @classmethod
+    def getTankUserStrs(cls) -> str:
+        return cls.tanks["userStr"].keys()
 
     @classmethod
     def chkJSONcontent(cls, json_obj, check = None) -> bool:
@@ -680,8 +708,7 @@ class WoTinspector:
                 'uploaded_by'	: account_id,
                 'details'		: 'full',
                 'key'           : replay_id
-            }            
-
+            } 
 
             url = self.URL_REPLAY_UL + urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
             #debug('URL: ' + url)
@@ -701,19 +728,22 @@ class WoTinspector:
                         json_resp = await resp.json()
                         if json_resp.get('status', None) == None:
                             error(msg_str +' : ' + title + ' : Received invalid JSON')
+                        elif (json_resp['status'] == 'ok'): 
+                            debug('Response data read')
+                            verbose(msg_str + title + ' posted')
+                            return json_resp	
                         elif (json_resp['status'] == 'error'):  
                             error(msg_str + json_resp['error']['message'] + ' : ' + title)
                         else:
-                            debug('Response data read')
-                            verbose(msg_str + title + ' posted')
-                            return json_resp											
+                            error(msg_str + ' Unspecified error: ' + title)											
                     else:
-                        debug(msg_str + 'Got HTTP/' + str(resp.status) + ' Retrying... ' + str(retry))
-                        await asyncio.sleep(SLEEP)								
+                        debug(msg_str + 'Got HTTP/' + str(resp.status))
             except Exception as err:
                 error(str(err))
-                await asyncio.sleep(SLEEP)
-            return None
+            await asyncio.sleep(SLEEP)
+            
+        error(msg_str + ' Could not post replay: ' + title)
+        return None
 
     @classmethod
     def getUrlReplayListing(cls, page : int):
