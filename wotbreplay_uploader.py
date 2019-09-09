@@ -1,12 +1,14 @@
 #!/usr/bin/python3.7
 
 import json, argparse, inspect, sys, os, base64, aiohttp, urllib, asyncio, aiofiles, aioconsole
-import logging, re, concurrent.futures
+import logging, re, concurrent.futures, configparser, motor.motor_asyncio, ssl
 import blitzutils as bu
 from blitzutils import WG
 from blitzutils import WoTinspector
 
 logging.getLogger("asyncio").setLevel(logging.DEBUG)
+
+FILE_CONFIG = 'blitzstats.ini'
 
 # WG account id of the uploader: 
 # # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
@@ -27,6 +29,28 @@ wi = None
 
 async def main(argv):
 	global wg, wi
+
+## Read config
+	# config = configparser.ConfigParser()
+	# config.read(FILE_CONFIG)
+	# configDB 	= config['DATABASE']
+	# DB_SERVER 	= configDB.get('db_server', 'localhost')
+	# DB_PORT 	= configDB.getint('db_port', 27017)
+	# DB_SSL		= configDB.getboolean('db_ssl', False)
+	# DB_CERT_REQ = configDB.getint('db_ssl_req', ssl.CERT_NONE)
+	# DB_AUTH 	= configDB.get('db_auth', 'admin')
+	# DB_NAME 	= configDB.get('db_name', 'BlitzStats')
+	# DB_USER		= configDB.get('db_user', 'mongouser')
+	# DB_PASSWD 	= configDB.get('db_password', "PASSWORD")
+
+	# bu.debug('DB_SERVER: ' + DB_SERVER)
+	# bu.debug('DB_PORT: ' + str(DB_PORT))
+	# bu.debug('DB_SSL: ' + "True" if DB_SSL else "False")
+	# bu.debug('DB_AUTH: ' + DB_AUTH)
+	# bu.debug('DB_NAME: ' + DB_NAME)
+
+	#### Connect to MongoDB (TBD)
+	#client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ)
 
 	parser = argparse.ArgumentParser(description='Post replays(s) to WoTinspector.com and retrieve battle data')
 	parser.add_argument('--output', default='single', choices=['file', 'files', 'db'] , help='Select output mode: single/multiple files or database')
@@ -197,8 +221,8 @@ def getTitle(replayfile: str, title: str, i : int) -> str:
 			tank_userStrs = wg.getTankUserStrs()
 			
 			#p = re.compile('\\d{8}_\\d{4}_(.+)_(' + '|'.join(map_usrStrs) + ')(?:-\\d)?\\.wotbreplay$')
-			# update 6.2 changed the file name format
-			p = re.compile('\\d{8}_\\d{4}_.+?(' + '|'.join(tank_userStrs) + ')_(' + '|'.join(map_usrStrs) + ')(?:-\\d)?\\.wotbreplay$')
+			# update 6.2 changed the file name format. Bug fixed 2019-09-09 Jylpah
+			p = re.compile('\\d{8}_\\d{4}_.*?(' + '|'.join(tank_userStrs) + ')_(' + '|'.join(map_usrStrs) + ')(?:-\\d)?\\.wotbreplay$')
 			
 			m = p.match(filename)
 			if (m != None):
