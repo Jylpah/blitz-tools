@@ -1,0 +1,9 @@
+[DATABASE]
+db_server       = localhost
+db_port         = 27017
+db_auth         = admin
+db_name 	    = BlitzStats
+db_user         = blitzAnalysiz
+db_password   	= PASSWORD
+db_ssl			= True
+db_cert_req		= 2

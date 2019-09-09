@@ -103,6 +103,11 @@ battle_stats_fields = {
 	'Battles'		: 'Battles'
 	}
 
+stats_buckets = {}
+stats_buckets['WR'] = [0, .35, .40, .45, .5, .55, .60, .65, 1]
+stats_buckets['Battles'] = [0, 1e3, 3e3, 5e3, 10e3, 15e3, 25e3, 50e3, 5e9]
+
+
 def defaultvalueZero():
     return 0
 
@@ -279,6 +284,7 @@ async def main(argv):
 	parser.add_argument('-id', dest='accountID', type=int, default=None, help='WG account_id to analyze')
 	parser.add_argument('-a', '--account', dest='account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 	parser.add_argument('-x', '--extended', action='store_true', default=False, help='Print Extended stats')
+	parser.add_argument('-s', '--stats', action='store_true', default=False, help='Print player stats (WR/battles)')
 	parser.add_argument('-u', '--url', dest= 'url', action='store_true', default=False, help='Print replay URLs')
 	parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
 	parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default is "maps.json"')
@@ -329,6 +335,8 @@ async def main(argv):
 		bu.verbose('')
 		results = calcTeamStats(results, player_stats, args.accountID)
 		processStats(results, args)	
+		if args.stats: 
+			processPlayerStats(player_stats)
 	except Exception as err:
 		bu.error(str(type(err)) + ' : ' +  str(err))
 	finally:
@@ -336,6 +344,12 @@ async def main(argv):
 		await wg.close()
 		await wi.close()
 	return None
+
+def processPlayerStats(player_stats: dict):
+	## TBD
+	
+	return None
+
 
 def processStats(results: dict, args : argparse.Namespace):
 
@@ -446,10 +460,7 @@ async def statWorker(queue : asyncio.Queue, workerID: int) -> list:
 				## Add time stamp here
 				acc, tank = item.split(':')			
 				account_id = int(acc)
-				tank_id = int(tank)
 				bu.debug('[' +str(workerID) + '] AccountID: ' + acc + ' TankID: '  + tank)
-				playerTankStat = await wg.getPlayerTankStats(account_id, tank_id, ['all.battles', 'all.wins'])
-				bu.debug('[' +str(workerID) + '] ' + str(playerTankStat))
 				
 				playerStat = await wg.getPlayerStats(account_id,  ['statistics.all.battles', 'statistics.all.wins'])
 				bu.debug('[' +str(workerID) + '] ' + str(playerStat))
@@ -457,25 +468,12 @@ async def statWorker(queue : asyncio.Queue, workerID: int) -> list:
 				stats[item] = {}
 				stats[item]['win_rate'] = None
 				stats[item]['battles'] 	= None
-				if (playerTankStat == None):
-					if (playerStat != None):
-						playerStat = playerStat['statistics']['all']
-						battles = playerStat['battles']
-						stats[item]['battles'] = battles
-						stats[item]['win_rate'] = min(playerStat['wins'] / battles, 1) # To cope with broken stats in WG DB
-
-				else:
-					playerTankStat = playerTankStat['all']
+				if (playerStat != None):
 					playerStat = playerStat['statistics']['all']
-					
 					battles = playerStat['battles']
-					stats[item]['battles'] = battles					
-					battles_in_tank = playerTankStat['battles']
-					if battles_in_tank >= STAT_TANK_BATTLE_MIN:
-						stats[item]['win_rate'] =  min(playerTankStat['wins'] / battles_in_tank,1)  # To cope with broken stats in WG DB
-					else:
-						stats[item]['win_rate'] = min(playerStat['wins'] / battles, 1) # To cope with broken stats in WG DB
-					bu.debug('[' +str(workerID) + '] Player[' + str(account_id) + '], Tank[' + str(tank_id) + '] : WR : ' + str(stats[item]['win_rate']) + ' Battles: ' + str(battles))
+					stats[item]['battles'] = max(battles, 1)
+					stats[item]['win_rate'] = min(playerStat['wins'] / battles, 1) # To cope with broken stats in WG DB
+
 			except KeyError as err:
 				bu.error('[' +str(workerID) + '] Key :' + str(err) + ' not found')
 			except Exception as err:
