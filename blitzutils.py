@@ -44,20 +44,27 @@ def setSilent(silent: bool):
         VERBOSE = False
         DEBUG   = False
 
-def verbose(msg = ""):
+def verbose(msg = "", n = None):
     """Print a message"""
     if VERBOSE:
-        print(msg)
+        if n == None:
+            print(msg)
+        else:
+            print('[' + str(n) + ']: ' + msg)
     return None
 
-def verbose_std(msg = ""):
+def verbose_std(msg = "", n = None):
     """Print a message"""
     if not SILENT:
-        print(msg)
+        if n == None:
+            print(msg)
+        else:
+            print('[' + str(n) + ']: ' + msg)
+            
     return None
 
 def printWaiter(force = False):
-    if not DEBUG and (not SILENT  or force):
+    if not DEBUG and (not SILENT or force):
         print('.', end='', flush=True)
 
     
@@ -66,13 +73,16 @@ def printNewline(force = False):
         print('', flush=True)
 
 
-def debug(msg = ""):
+def debug(msg = "", n = None):
     """print a conditional debug message"""
     if DEBUG: 
         curframe = inspect.currentframe()
         calframe = inspect.getouterframes(curframe, 2)
         caller = calframe[1][3]
-        print('DEBUG: ' + caller + '(): ' + msg)
+        if n == None:
+            print('DEBUG: ' + caller + '(): ' + msg)
+        else:
+            print('DEBUG: ' + caller + '()' + '[' + str(n) + ']: ' + msg)
     return None
 
 
