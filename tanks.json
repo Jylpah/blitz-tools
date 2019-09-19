@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 424
+        "count": 429
     },
     "data": {
         "1": {
@@ -3238,59 +3238,59 @@
         },
         "641": {
             "tank_id": 641,
-            "nation": "other",
-            "tier": 6,
-            "is_premium": true,
+            "nation": "european",
+            "tier": 9,
+            "is_premium": false,
             "type": "mediumTank",
-            "name": "Stridsvagn 74A2"
+            "name": "Prototipo Standard B"
         },
         "897": {
             "tank_id": 897,
-            "nation": "other",
-            "tier": 7,
-            "is_premium": true,
+            "nation": "european",
+            "tier": 8,
+            "is_premium": false,
             "type": "mediumTank",
-            "name": "Edelweiss"
+            "name": "P.44 Pantera"
         },
         "1153": {
             "tank_id": 1153,
-            "nation": "other",
+            "nation": "european",
             "tier": 7,
-            "is_premium": true,
-            "type": "heavyTank",
-            "name": "Predator Ultramarines"
+            "is_premium": false,
+            "type": "mediumTank",
+            "name": "P.43 ter"
         },
         "1409": {
             "tank_id": 1409,
-            "nation": "other",
-            "tier": 7,
-            "is_premium": true,
-            "type": "heavyTank",
-            "name": "Nameless"
+            "nation": "european",
+            "tier": 6,
+            "is_premium": false,
+            "type": "mediumTank",
+            "name": "P.43 bis"
         },
         "1665": {
             "tank_id": 1665,
-            "nation": "other",
-            "tier": 7,
-            "is_premium": true,
-            "type": "AT-SPG",
-            "name": "Helsing H0"
+            "nation": "european",
+            "tier": 4,
+            "is_premium": false,
+            "type": "mediumTank",
+            "name": "Lago"
         },
         "1921": {
             "tank_id": 1921,
-            "nation": "other",
-            "tier": 8,
-            "is_premium": true,
+            "nation": "european",
+            "tier": 5,
+            "is_premium": false,
             "type": "mediumTank",
-            "name": "O-47"
+            "name": "Strv m/42"
         },
         "2177": {
             "tank_id": 2177,
-            "nation": "other",
-            "tier": 7,
-            "is_premium": true,
-            "type": "AT-SPG",
-            "name": "WZ 135G FT Blaze"
+            "nation": "european",
+            "tier": 3,
+            "is_premium": false,
+            "type": "lightTank",
+            "name": "14TP"
         },
         "3713": {
             "tank_id": 3713,
@@ -3392,9 +3392,49 @@
             "tank_id": 385,
             "nation": "european",
             "tier": 10,
-            "is_premium": true,
+            "is_premium": false,
             "type": "mediumTank",
             "name": "Progetto M40 mod. 65"
+        },
+        "2433": {
+            "tank_id": 2433,
+            "nation": "european",
+            "tier": 2,
+            "is_premium": false,
+            "type": "lightTank",
+            "name": "10TP"
+        },
+        "2689": {
+            "tank_id": 2689,
+            "nation": "european",
+            "tier": 1,
+            "is_premium": false,
+            "type": "lightTank",
+            "name": "Vickers Mk. F"
+        },
+        "7025": {
+            "tank_id": 7025,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Vulcan"
+        },
+        "21521": {
+            "tank_id": 21521,
+            "nation": "germany",
+            "tier": 8,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "E 75 TS"
+        },
+        "21777": {
+            "tank_id": 21777,
+            "nation": "germany",
+            "tier": 10,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "VK 90.01 (P)"
         }
     },
     "userStr": {
@@ -3787,6 +3827,18 @@
         "Oth17_BDT-5A": "Y5 T-34",
         "Oth18_BDT-5B": "Y5 Firefly",
         "Oth19_BDT-5C": "Y5 ELC bis",
-        "It08_Progetto_M40_mod65": "Progetto M40 mod. 65"
+        "It08_Progetto_M40_mod65": "Progetto M40 mod. 65",
+        "F01_Vickers_MkF": "Vickers Mk. F",
+        "G_E-75TS": "E 75 TS",
+        "G_VK9001P": "VK 90.01 (P)",
+        "It09_P43_ter": "P.43 ter",
+        "It10_P43_bis": "P.43 bis",
+        "It12_Prototipo_Standard_B": "Prototipo Standard B",
+        "It14_P44_Pantera": "P.44 Pantera",
+        "Oth22_Sega_Vulcan": "Vulcan",
+        "Pl06_10TP": "10TP",
+        "Pl07_14TP": "14TP",
+        "S02_StrvM42": "Strv m/42",
+        "S04_Lago-I": "Lago"
     }
 }
