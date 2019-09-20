@@ -8,11 +8,8 @@ from blitzutils import WoTinspector
 
 logging.getLogger("asyncio").setLevel(logging.DEBUG)
 
-FILE_CONFIG = 'blitzstats.ini'
-
-# WG account id of the uploader: 
-# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
-WG_ID = 0
+FILE_CONFIG 	= 'blitzstats.ini'
+DB_C_REPLAYS   	= 'Replays'
 
 DEBUG = False
 VERBOSE = False
@@ -26,31 +23,40 @@ WG_appID  = '81381d3f45fa4aa75b78a7198eb216ad'
 wg = None
 wi = None
 
-
 async def main(argv):
 	global wg, wi
 
-## Read config
-	# config = configparser.ConfigParser()
-	# config.read(FILE_CONFIG)
-	# configDB 	= config['DATABASE']
-	# DB_SERVER 	= configDB.get('db_server', 'localhost')
-	# DB_PORT 	= configDB.getint('db_port', 27017)
-	# DB_SSL		= configDB.getboolean('db_ssl', False)
-	# DB_CERT_REQ = configDB.getint('db_ssl_req', ssl.CERT_NONE)
-	# DB_AUTH 	= configDB.get('db_auth', 'admin')
-	# DB_NAME 	= configDB.get('db_name', 'BlitzStats')
-	# DB_USER		= configDB.get('db_user', 'mongouser')
-	# DB_PASSWD 	= configDB.get('db_password', "PASSWORD")
+	## Read config
+	config = configparser.ConfigParser()
+	config.read(FILE_CONFIG)
+	configDB 	= config['DATABASE']
+	DB_SERVER 	= configDB.get('db_server', 'localhost')
+	DB_PORT 	= configDB.getint('db_port', 27017)
+	DB_SSL		= configDB.getboolean('db_ssl', False)
+	DB_CERT_REQ = configDB.getint('db_ssl_req', ssl.CERT_NONE)
+	DB_AUTH 	= configDB.get('db_auth', 'admin')
+	DB_NAME 	= configDB.get('db_name', 'BlitzStats')
+	DB_USER		= configDB.get('db_user', 'mongouser')
+	DB_PASSWD 	= configDB.get('db_password', "PASSWORD")
+	
+	bu.debug('DB_SERVER: ' + DB_SERVER)
+	bu.debug('DB_PORT: ' + str(DB_PORT))
+	bu.debug('DB_SSL: ' + "True" if DB_SSL else "False")
+	bu.debug('DB_AUTH: ' + DB_AUTH)
+	bu.debug('DB_NAME: ' + DB_NAME)
 
-	# bu.debug('DB_SERVER: ' + DB_SERVER)
-	# bu.debug('DB_PORT: ' + str(DB_PORT))
-	# bu.debug('DB_SSL: ' + "True" if DB_SSL else "False")
-	# bu.debug('DB_AUTH: ' + DB_AUTH)
-	# bu.debug('DB_NAME: ' + DB_NAME)
+	configGeneral 	= config['GENERAL']
+	# WG account id of the uploader: 
+	# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
+	WG_ID		= configGeneral.getint('wg_id', 0)
 
 	#### Connect to MongoDB (TBD)
-	#client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ)
+	try:
+		client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ)
+		db = client[DB_NAME]
+	except:
+		db = None
+		pass
 
 	parser = argparse.ArgumentParser(description='Post replays(s) to WoTinspector.com and retrieve battle data')
 	parser.add_argument('--output', default='single', choices=['file', 'files', 'db'] , help='Select output mode: single/multiple files or database')
@@ -90,7 +96,7 @@ async def main(argv):
 		tasks.append(asyncio.create_task(mkReplayQ(queue, args.files, args.title)))
 		# Start tasks to process the Queue
 		for i in range(args.N_tasks):
-			tasks.append(asyncio.create_task(replayWorker(queue, i, args.accountID, args.private)))
+			tasks.append(asyncio.create_task(replayWorker(queue, db, i, args.accountID, args.private)))
 			bu.debug('Task ' + str(i) + ' started')
 		
 		bu.debug('Waiting for the replay scanner to finish')
@@ -158,7 +164,7 @@ async def mkQueueItem(filename : str, title : str) -> list:
 	REPLAY_N +=1
 	return [filename, REPLAY_N, getTitle(filename, title, REPLAY_N)]
 
-async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, priv = False):
+async def replayWorker(queue: asyncio.Queue, db: motor.motor_asyncio.AsyncIOMotorDatabase, workerID: int, account_id: int, priv = False):
 	"""Async Worker to process the replay queue"""
 	global SKIPPED_N
 	global ERROR_N
@@ -198,17 +204,36 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 				bu.debug(msg_str + 'File:  ' + filename)
 				json_resp = await wi.postReplay(await fp.read(), filename, account_id, title, priv, N)
 				if json_resp != None:
-					if (await bu.saveJSON(replay_json_fn,json_resp)):
+					if (await bu.saveJSON(replay_json_fn,json_resp)):						
 						bu.debug(msg_str + 'Replay saved OK: ' + filename )
 					else:
 						bu.error(msg_str + 'Error saving replay: ' + filename)
 						ERROR_N += 1
+					await saveReplay2DB(db, json_resp)
 		except Exception as err:
 			bu.error(msg_str + 'Unexpected Exception: ' + str(type(err)) + ' : ' + str(err) )
 		bu.debug(msg_str + 'Marking task done')
 		queue.task_done()	
 
 	return None
+
+
+async def saveReplay2DB(db: motor.motor_asyncio.AsyncIOMotorDatabase, replay: dict) -> bool:
+	"""Save retriever replay JSON into DB (mongo)"""
+	try:
+		if db == None:
+			return False
+		dbc = db[DB_C_REPLAYS]
+		replay_link = replay['data']['download_url'] 
+		replay_id = wi.getReplayID(replay_link)
+		replay['_id'] = replay_id
+		await dbc.insert_one(replay)
+		bu.debug('Replay added to database')
+	except Exception as err:
+		bu.error('Unexpected Exception: ' + str(type(err)) + ' : ' + str(err)) 
+		return False
+	return True
+	
 
 def getTitle(replayfile: str, title: str, i : int) -> str:
 	global wg
