@@ -67,7 +67,15 @@ def printWaiter(force = False):
     if not DEBUG and (not SILENT or force):
         print('.', end='', flush=True)
 
-    
+
+def wait(sec : int):
+    for i in range(0, sec): 
+       i=i   ## to get rid of the warning... 
+       time.sleep(1)
+       printWaiter()
+    print('', flush=True)  
+
+
 def printNewline(force = False):
     if not DEBUG and (not SILENT  or force):
         print('', flush=True)
@@ -86,12 +94,15 @@ def debug(msg = "", n = None):
     return None
 
 
-def error(msg = ""):
+def error(msg = "", n = None):
     """Print an error message"""
     curframe = inspect.currentframe()
     calframe = inspect.getouterframes(curframe, 2)
     caller = calframe[1][3]
-    print('ERROR: ' + caller + '(): ' + msg)
+    if n == None:
+        print('ERROR: ' + caller + '(): ' + msg)
+    else:
+        print('ERROR: ' + caller + '()' + '[' + str(n) + ']: ' + msg)
     return None
 
 def NOW() -> int:
