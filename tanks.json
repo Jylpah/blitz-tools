@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 429
+        "count": 432
     },
     "data": {
         "1": {
@@ -378,7 +378,7 @@
             "tier": 7,
             "is_premium": true,
             "type": "AT-SPG",
-            "name": "Helsing H0"
+            "name": "Helsing"
         },
         "1809": {
             "tank_id": 1809,
@@ -2858,7 +2858,7 @@
             "tier": 7,
             "is_premium": true,
             "type": "mediumTank",
-            "name": "T6 Dracula"
+            "name": "Dracula"
         },
         "63841": {
             "tank_id": 63841,
@@ -3435,6 +3435,30 @@
             "is_premium": true,
             "type": "heavyTank",
             "name": "VK 90.01 (P)"
+        },
+        "2945": {
+            "tank_id": 2945,
+            "nation": "european",
+            "tier": 8,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Progetto M35 mod. 46"
+        },
+        "7281": {
+            "tank_id": 7281,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Lycan"
+        },
+        "7537": {
+            "tank_id": 7537,
+            "nation": "other",
+            "tier": 5,
+            "is_premium": true,
+            "type": "AT-SPG",
+            "name": "Nightmare"
         }
     },
     "userStr": {
@@ -3458,7 +3482,7 @@
         "AMX_AC_Mle1946": "AMX AC mle. 46",
         "AMX_AC_Mle1948": "AMX AC mle. 48",
         "AMX_M4_1945": "AMX M4 mle. 45",
-        "AMX_dracula": "T6 Dracula",
+        "AMX_dracula": "Dracula",
         "ARL_44": "ARL 44",
         "ARL_V39": "ARL V39",
         "AT-1": "AT-1",
@@ -3801,7 +3825,7 @@
         "VK4502P": "VK 45.02 (P) Ausf. B",
         "VK7201": "VK 72.01 (K)",
         "Valentine_LL": "Valentine II",
-        "Van_Helsing": "Helsing H0",
+        "Van_Helsing": "Helsing",
         "WZ-135G_FT": "WZ 135G FT Blaze",
         "Waffentrager_IV": "Waffenträger auf Pz. IV",
         "Object252": "IS-6",
@@ -3839,6 +3863,9 @@
         "Pl06_10TP": "10TP",
         "Pl07_14TP": "14TP",
         "S02_StrvM42": "Strv m/42",
-        "S04_Lago-I": "Lago"
+        "S04_Lago-I": "Lago",
+        "It13_Progetto_M35_mod_46": "Progetto M35 mod. 46",
+        "Oth23_Werewolf": "Lycan",
+        "Oth24_StuH_42HW": "Nightmare"
     }
 }
