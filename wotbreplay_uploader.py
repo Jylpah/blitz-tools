@@ -1,7 +1,7 @@
 #!/usr/bin/python3.7
 
 import json, argparse, inspect, sys, os, base64, aiohttp, urllib, asyncio, aiofiles, aioconsole
-import logging, re, concurrent.futures, configparser, motor.motor_asyncio, ssl
+import logging, re, concurrent.futures, configparser, motor.motor_asyncio, ssl, pymongo
 import blitzutils as bu
 from blitzutils import WG
 from blitzutils import WoTinspector
@@ -38,7 +38,9 @@ async def main(argv):
 	DB_NAME 	= configDB.get('db_name', 'BlitzStats')
 	DB_USER		= configDB.get('db_user', 'mongouser')
 	DB_PASSWD 	= configDB.get('db_password', "PASSWORD")
-	
+	DB_CERT 	= configDB.get('db_ssl_cert_file', None)
+	DB_CA		= configDB.get('db_ssl_ca_file', None)
+
 	bu.debug('DB_SERVER: ' + DB_SERVER)
 	bu.debug('DB_PORT: ' + str(DB_PORT))
 	bu.debug('DB_SSL: ' + "True" if DB_SSL else "False")
@@ -52,7 +54,7 @@ async def main(argv):
 
 	#### Connect to MongoDB (TBD)
 	try:
-		client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ)
+		client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ, ssl_certfile=DB_CERT, tlsCAFile=DB_CA)
 		db = client[DB_NAME]
 	except:
 		db = None
@@ -229,6 +231,9 @@ async def saveReplay2DB(db: motor.motor_asyncio.AsyncIOMotorDatabase, replay: di
 		replay['_id'] = replay_id
 		await dbc.insert_one(replay)
 		bu.debug('Replay added to database')
+	except pymongo.errors.DuplicateKeyError as err:
+		bu.verbose_std('Replay already in the DB: ' + replay['data']['summary']['title'] + ' : _id=' + replay_id)
+		return False	
 	except Exception as err:
 		bu.error('Unexpected Exception: ' + str(type(err)) + ' : ' + str(err)) 
 		return False

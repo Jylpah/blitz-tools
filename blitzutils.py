@@ -210,6 +210,9 @@ def bldDictHierarcy(d : dict, key : str, value) -> dict:
         error(str(err))
     return None
 
+## -----------------------------------------------------------
+#### Class WG 
+## -----------------------------------------------------------
 
 class WG:
 
@@ -275,6 +278,7 @@ class WG:
     }
 
     tanks = None
+    tanks_by_tier = None
 
     nations = [ 'ussr', 'germany', 'usa', 'china', 'france', 'uk', 'japan', 'other', 'european']    
     nation_id = {
@@ -305,10 +309,10 @@ class WG:
         }
 
     accountID_server= {
-        'ru'  : range(0, int(5e8)),
-        'eu'  : range(int(5e8), int(10e8)),
-        'na' : range(int(1e9),int(2e9)),
-        'asia': range(int(2e9),int(4e9))
+        'ru'    : range(0, int(5e8)),
+        'eu'    : range(int(5e8), int(10e8)),
+        'na'    : range(int(1e9),int(2e9)),
+        'asia'  : range(int(2e9),int(4e9))
         }
 
     def __init__(self, WG_appID = None, tankopedia_fn =  None, maps_fn = None):
@@ -518,11 +522,21 @@ class WG:
             try:
                 async with aiofiles.open(tankopedia_fn, 'rt', encoding='utf8') as f:
                     self.tanks = json.loads(await f.read())
+                    self.tanks_by_tier = dict()
+                    for tier in range(1,11):
+                        self.tanks_by_tier[str(tier)]= list()
+                    for tank in self.tanks['data']:
+                        self.tanks_by_tier[str(tank['tier'])].append(tank['tank_id'])
                     return True
             except Exception as err:
                 error('Could not read tankopedia: ' + tankopedia_fn + '\n' + str(err))           
         return False        
      
+
+    async def getTanksByTier(self, tier: int) -> list():
+        """Returns tank_ids by tier"""
+        return self.tanks_by_tier[str(tier)]
+    
     def getUrlClanInfo(self, server: str, clanID: int) -> str:
         return self.URL_WG_server[server] + self.URL_WG_clanInfo + self.WG_appID + '&clan_id=' + str(clanID)
 
@@ -530,7 +544,7 @@ class WG:
         server = self.getServer(accountID)
         return self.URL_WG_server[server] + self.URL_WG_playerTankList + self.WG_appID + '&account_id=' + str(accountID)
     
-    def getUrlPlayerTankStats(self, accountID, tankID, fields) -> str: 
+    def getUrlPlayerTankStats(self, accountID: int, tankID: int, fields: list) -> str: 
         server = self.getServer(accountID)
         url = self.URL_WG_server[server] + self.URL_WG_playerTankStats + self.WG_appID + '&account_id=' + str(accountID) + '&tank_id=' + str(tankID)
         if (fields != None) and (len(fields) > 0):
@@ -538,6 +552,17 @@ class WG:
         else:
             field_str = ''
         return url + '&fields=tank_id' + field_str												  
+
+    def getUrlPlayerTanksStats(self, accountID: int, tankIDs: list, fields: list) -> str: 
+        server = self.getServer(accountID)
+        tank_ids = '%2C'.join(str(x) for x in tankIDs)
+        url = self.URL_WG_server[server] + self.URL_WG_playerTankStats + self.WG_appID + '&account_id=' + str(accountID) + '&tank_id=' + tank_ids
+        if (fields != None) and (len(fields) > 0):
+            field_str =  '%2C' + '%2C'.join(fields)
+        else:
+            field_str = ''
+        return url + '&fields=tank_id' + field_str												  
+
 
     def getUrlPlayerStats(self, accountID,  fields) -> str: 
         server = self.getServer(accountID)
@@ -568,7 +593,24 @@ class WG:
         except Exception as err:
             error(str(err))
             return None
-    
+      
+    async def getPlayerTanksStats(self, accountID: int, tankIDs : list, fields: list) -> dict:
+        """Get player's stats (WR, # of battles) in a tank"""
+        # debug('Started')        
+        if self.session == None:
+            error('Session must be initialized first')
+            sys.exit(1)
+        try:
+            debug('AccountID: ' + str(accountID) + ' TankID: ' + ','.join(tankIDs))
+            url = self.getUrlPlayerTanksStats(accountID, tankIDs, fields)
+            json_data = await getUrlJSON(self.session, url, self.chkJSONtankList)
+            if json_data != None:
+                debug('JSON Response received: ' + str(json_data))
+                return json_data['data'][str(accountID)]
+        except Exception as err:
+            error(err)
+        return None
+
     async def getPlayerTankStats(self, accountID: int, tankID : int, fields: list) -> dict:
         """Get player's stats (WR, # of battles) in a tank"""
         # debug('Started')        
@@ -680,6 +722,10 @@ class WG:
             except Exception as err:
                 error(str(err))
         return None
+
+## -----------------------------------------------------------
+#### Class WoTinspector 
+## -----------------------------------------------------------
 
 class WoTinspector:
     URL_WI = 'https://replays.wotinspector.com'

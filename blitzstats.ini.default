@@ -12,3 +12,5 @@
 #db_password   	= PASSWORD
 #db_ssl			= True
 #db_cert_req		= 2
+#db_ssl_cert_file= cert.pem
+#db_ssl_ca_file  = ca.pem
