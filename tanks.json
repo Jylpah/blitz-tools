@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 432
+        "count": 435
     },
     "data": {
         "1": {
@@ -3459,6 +3459,30 @@
             "is_premium": true,
             "type": "AT-SPG",
             "name": "Nightmare"
+        },
+        "8497": {
+            "tank_id": 8497,
+            "nation": "china",
+            "tier": 10,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "WZ-111 model 5A"
+        },
+        "18513": {
+            "tank_id": 18513,
+            "nation": "uk",
+            "tier": 8,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Chimera"
+        },
+        "20257": {
+            "tank_id": 20257,
+            "nation": "usa",
+            "tier": 10,
+            "is_premium": true,
+            "type": "lightTank",
+            "name": "XM551 Sheridan"
         }
     },
     "userStr": {
@@ -3866,6 +3890,9 @@
         "S04_Lago-I": "Lago",
         "It13_Progetto_M35_mod_46": "Progetto M35 mod. 46",
         "Oth23_Werewolf": "Lycan",
-        "Oth24_StuH_42HW": "Nightmare"
+        "Oth24_StuH_42HW": "Nightmare",
+        "A116_XM551": "XM551 Sheridan",
+        "Ch41_WZ_111_5A": "WZ-111 model 5A",
+        "GB97_Chimera": "Chimera"
     }
 }
