@@ -9,6 +9,8 @@ SLEEP = 3
 DEBUG = False
 VERBOSE = False
 SILENT = False
+WAITER_N = 0
+WAITER_I = 0
 UMASK= os.umask(0)
 os.umask(UMASK)
 
@@ -64,15 +66,27 @@ def verbose_std(msg = "", n = None):
     return None
 
 def printWaiter(force = False):
+    global WAITER_N, WAITER_I
     if not DEBUG and (not SILENT or force):
-        print('.', end='', flush=True)
+        if WAITER_N > 0:
+            WAITER_I = (WAITER_I+1) % WAITER_N
+            if WAITER_I == 0:
+                print('.', end='', flush=True)    
+        else:
+            print('.', end='', flush=True)
+
+def setWaiter(n: int):
+    global WAITER_N 
+    if n > -1:
+        WAITER_N = n        
+    return
 
 
 def wait(sec : int):
     for i in range(0, sec): 
        i=i   ## to get rid of the warning... 
        time.sleep(1)
-       printWaiter()
+       printWaiter(True)
     print('', flush=True)  
 
 
