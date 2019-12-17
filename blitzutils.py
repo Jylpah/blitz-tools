@@ -332,17 +332,9 @@ class WG:
     def __init__(self, WG_appID = None, tankopedia_fn =  None, maps_fn = None):
         
         self.WG_appID = WG_appID
+        self.loadTanks(tankopedia_fn)
+        WG.tanks =self.tanks
 
-        if (tankopedia_fn != None):
-            if os.path.exists(tankopedia_fn) and os.path.isfile(tankopedia_fn):
-                try:
-                    with open(tankopedia_fn, 'rt', encoding='utf8') as f:
-                        WG.tanks = json.loads(f.read())
-                        debug(str(WG.tanks["meta"]["count"]) + " tanks")
-                except Exception as err:
-                    error('Could not read tankopedia: ' + tankopedia_fn + '\n' + str(err))  
-            else:
-                verbose('Could not find Tankopedia file: ' + tankopedia_fn)    
         if (maps_fn != None):
             if os.path.exists(maps_fn) and os.path.isfile(maps_fn):
                 try:
@@ -358,7 +350,8 @@ class WG:
         else:
             self.session = None
             debug('WG aiohttp session NOT initiated')
-
+        
+        # cache TBD
         self.cache = None
         self.statsQ = None
         self.statCacheTask = None
@@ -529,25 +522,28 @@ class WG:
             error('JSON check FAILED: ' + str(type(err)) + ' : ' +  str(err) + ' : ' + str(json_resp) )
         return False
 
+
     ## Methods --------------------------------------------------
-    async def loadTanks(self, tankopedia_fn: str):
+    def loadTanks(self, tankopedia_fn: str):
         """Load tanks from tankopedia JSON"""
-        if tankopedia_fn != None:
-            try:
-                async with aiofiles.open(tankopedia_fn, 'rt', encoding='utf8') as f:
-                    self.tanks = json.loads(await f.read())
-                    self.tanks_by_tier = dict()
-                    for tier in range(1,11):
-                        self.tanks_by_tier[str(tier)]= list()
-                    for tank in self.tanks['data']:
-                        self.tanks_by_tier[str(tank['tier'])].append(tank['tank_id'])
-                    return True
-            except Exception as err:
-                error('Could not read tankopedia: ' + tankopedia_fn + '\n' + str(err))           
-        return False        
+        if tankopedia_fn == None:
+            return False 
+
+        try:
+            with open(tankopedia_fn, 'rt', encoding='utf8') as f:
+                self.tanks = json.loads(f.read())
+                self.tanks_by_tier = dict()
+                for tier in range(1,11):
+                    self.tanks_by_tier[str(tier)] = list()
+                for tank in self.tanks['data'].values():
+                    self.tanks_by_tier[str(tank['tier'])].append(tank['tank_id'])
+                return True
+        except Exception as err:
+            error('Could not read tankopedia: ' + tankopedia_fn + ' : ' + str(err))           
+        return False     
      
 
-    async def getTanksByTier(self, tier: int) -> list():
+    def getTanksByTier(self, tier: int) -> list():
         """Returns tank_ids by tier"""
         return self.tanks_by_tier[str(tier)]
     
@@ -569,7 +565,7 @@ class WG:
 
     def getUrlPlayerTanksStats(self, accountID: int, tankIDs: list, fields: list) -> str: 
         server = self.getServer(accountID)
-        tank_ids = '%2C'.join(str(x) for x in tankIDs)
+        tank_ids = '%2C'.join([ str(x) for x in tankIDs])
         url = self.URL_WG_server[server] + self.URL_WG_playerTankStats + self.WG_appID + '&account_id=' + str(accountID) + '&tank_id=' + tank_ids
         if (fields != None) and (len(fields) > 0):
             field_str =  '%2C' + '%2C'.join(fields)
@@ -615,14 +611,14 @@ class WG:
             error('Session must be initialized first')
             sys.exit(1)
         try:
-            debug('AccountID: ' + str(accountID) + ' TankID: ' + ','.join(tankIDs))
+            debug('AccountID: ' + str(accountID) + ' TankID: ' + ','.join([ str(id) for id in tankIDs]))
             url = self.getUrlPlayerTanksStats(accountID, tankIDs, fields)
             json_data = await getUrlJSON(self.session, url, self.chkJSONtankList)
             if json_data != None:
                 debug('JSON Response received: ' + str(json_data))
                 return json_data['data'][str(accountID)]
         except Exception as err:
-            error(err)
+            error('Type: ' + str(type(err)) + ' : ' + str(err))
         return None
 
     async def getPlayerTankStats(self, accountID: int, tankID : int, fields: list) -> dict:
@@ -724,6 +720,9 @@ class WG:
         except KeyError as err:
             error('Key not found: ' + str(err))
         return None
+        
+    def getTankTier(self, tank_id: int):
+        return self.getTankData(tank_id, 'tier')
 
     async def statsSaver(self): 
         while True:

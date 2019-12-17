@@ -54,14 +54,6 @@ async def main(argv):
 	# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
 	WG_ID		= configGeneral.getint('wg_id', 0)
 
-	#### Connect to MongoDB (TBD)
-	try:
-		client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ, ssl_certfile=DB_CERT, tlsCAFile=DB_CA)
-		db = client[DB_NAME]
-	except:
-		db = None
-		pass
-
 	parser = argparse.ArgumentParser(description='Post replays(s) to WoTinspector.com and retrieve battle data')
 	parser.add_argument('--output', default='single', choices=['file', 'files', 'db'] , help='Select output mode: single/multiple files or database')
 	parser.add_argument('-id', dest='accountID', type=int, default=WG_ID, help='WG account_id')
@@ -71,6 +63,7 @@ async def main(argv):
 	parser.add_argument('--tasks', dest='N_tasks', type=int, default=5, help='Number of worker threads')
 	parser.add_argument('--tankopedia', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default: "tanks.json"')
 	parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default: "maps.json"')
+	parser.add_argument('--db', action='store_true', default=False, help='Use DB - You are unlikely to have it')
 	parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 	parser.add_argument('-v', '--verbose', action='store_true', default=True, help='Verbose mode')
 	parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')	
@@ -84,6 +77,18 @@ async def main(argv):
 
 	wg = WG(WG_appID, args.tankopedia, args.mapfile)
 	wi = WoTinspector()
+
+		#### Connect to MongoDB (TBD)
+	if args.db:
+		try:
+			client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ, ssl_certfile=DB_CERT, tlsCAFile=DB_CA)
+			db = client[DB_NAME]
+		except:
+			db = None
+			pass
+	else:
+		db = None
+
 
 	if args.account != None:
 		args.accountID = await wg.getAccountID(args.account)
@@ -234,7 +239,7 @@ async def saveReplay2DB(db: motor.motor_asyncio.AsyncIOMotorDatabase, replay: di
 		await dbc.insert_one(replay)
 		bu.debug('Replay added to database')
 	except pymongo.errors.DuplicateKeyError as err:
-		bu.verbose_std('Replay already in the DB: ' + replay['data']['summary']['title'] + ' : _id=' + replay_id)
+		bu.verbose_std('Replay already in the DB: ' + replay['data']['summary']['title'] + ' : id=' + replay_id)
 		return False	
 	except Exception as err:
 		bu.error('Unexpected Exception: ' + str(type(err)) + ' : ' + str(err)) 
