@@ -49,6 +49,8 @@ async def get_tankopedia(filename: str):
 
 def main(argv):
     global VERBOSE, DEBUG
+    # set the directory for the script
+    os.chdir(os.path.dirname(sys.argv[0]))
 
     parser = argparse.ArgumentParser(description='Retrieve Tankopedia from WoTinspector.com')
     parser.add_argument('--file', dest="outfile", help='Write Tankopedia to file')

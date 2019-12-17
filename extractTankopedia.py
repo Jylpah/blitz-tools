@@ -17,7 +17,9 @@ wg = None
 ## main() -------------------------------------------------------------
 async def main(argv):
     global wg
-
+    # set the directory for the script
+    os.chdir(os.path.dirname(sys.argv[0]))
+    
     parser = argparse.ArgumentParser(description='Extract Tankopedia data from Blitz game files')
     parser.add_argument('blitzAppBase', type=str,  metavar="BLITZAPP_FOLDER", default=".", help='Base dir of the Blitz App files')
     parser.add_argument('tanks', type=str, default='tanks.json', nargs='?', metavar="TANKS_FILE", help='File to write Tankopedia')

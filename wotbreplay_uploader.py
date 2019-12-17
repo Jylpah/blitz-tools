@@ -25,6 +25,8 @@ wi = None
 
 async def main(argv):
 	global wg, wi
+	# set the directory for the script
+	os.chdir(os.path.dirname(sys.argv[0]))
 
 	## Read config
 	config = configparser.ConfigParser()
