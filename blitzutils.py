@@ -13,7 +13,7 @@ SILENT  = 0
 NORMAL  = 1 
 VERBOSE = 2
 DEBUG   = 3
-_log_level = 1
+_log_level = NORMAL
 
 ## Progress dots
 _progress_N = 100
@@ -38,9 +38,27 @@ def set_silent(silent: bool):
     _log_level = SILENT
 
 
-def set_log_level(level = NORMAL):
+def set_log_level_normal():
     global _log_level
-    _log_level = level
+    _log_level = NORMAL
+
+def set_log_level(silent: bool,verbose: bool, debug: bool):
+    global _log_level
+    _log_level = NORMAL
+    if silent:  _log_level = SILENT
+    if verbose: _log_level = VERBOSE
+    if debug:   _log_level = DEBUG
+
+
+def get_log_level() -> int:
+    return _log_level
+
+
+def get_log_level_str() -> str:
+    for log_level in LOG_LEVELS:
+        if _log_level == LOG_LEVELS[log_level]:
+            return log_level
+    error('Unknown log level: ' + str(_log_level))
 
 
 def verbose(msg = "", id = None):

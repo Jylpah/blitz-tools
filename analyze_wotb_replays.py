@@ -361,12 +361,6 @@ async def main(argv):
 	DB_CERT 	= configDB.get('db_ssl_cert_file', None)
 	DB_CA 		= configDB.get('db_ssl_ca_file', None)
 
-	bu.debug('DB_SERVER: ' + DB_SERVER)
-	bu.debug('DB_PORT: ' + str(DB_PORT))
-	bu.debug('DB_SSL: ' + "True" if DB_SSL else "False")
-	bu.debug('DB_AUTH: ' + DB_AUTH)
-	bu.debug('DB_NAME: ' + DB_NAME)
-
 	TASK_N = 7
 
 	parser = argparse.ArgumentParser(description='Analyze Blitz replay JSONs from WoTinspector.com')
@@ -374,7 +368,7 @@ async def main(argv):
 	parser.add_argument('-id', dest='accountID', type=int, default=None, help='WG account_id to analyze')
 	parser.add_argument('-a', '--account', dest='account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 	parser.add_argument('-x', '--extended', action='store_true', default=False, help='Print Extended stats')
-	parser.add_argument('-s', '--stats', action='store_true', default=False, help='Print player stats (WR/battles)')
+	parser.add_argument('--hist', action='store_true', default=False, help='Print player histograms (WR/battles)')
 	parser.add_argument('--stat_func', default='tank_tier', choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
 	parser.add_argument('-u', '--url', dest= 'url', action='store_true', default=False, help='Print replay URLs')
 	parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
@@ -383,20 +377,28 @@ async def main(argv):
 	parser.add_argument('--db', action='store_true', default=False, help='Use DB - You are unlikely to have it')
 	parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 	parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
+	parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
 	parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files to read. Use \'-\' for STDIN"')
 	
 	args = parser.parse_args()
-	bu.set_verbose(args.verbose)
-	bu.set_debug(args.debug)
+	bu.set_log_level(args.silent, args.verbose, args.debug)
+	bu.set_progress_step(30)  # Set the frequency of the progress dots. 
+	
 	wg = await WG.create(WG_APP_ID, args.tankfile, args.mapfile, True)
 	wi = WoTinspector()
-	bu.set_progress_step(30)  # Set the frequency of the progress dots. 
+
 
 	if args.account != None:
 		args.accountID = await wg.get_account_id(args.account)
 		bu.debug('WG  account_id: ' + str(args.accountID))
 
 	#### Connect to MongoDB (TBD)
+	bu.debug('DB_SERVER: ' + DB_SERVER)
+	bu.debug('DB_PORT: ' + str(DB_PORT))
+	bu.debug('DB_SSL: ' + "True" if DB_SSL else "False")
+	bu.debug('DB_AUTH: ' + DB_AUTH)
+	bu.debug('DB_NAME: ' + DB_NAME)
+	
 	client = None
 	db = None
 	if args.db:

@@ -26,11 +26,11 @@ async def main(argv):
     parser.add_argument('maps', type=str, default='maps.json', nargs='?', metavar='MAPS_FILE', help='File to write map names')
     parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
     parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
+    parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
         
     args = parser.parse_args()
+    bu.set_log_level(args.silent, args.verbose, args.debug)
 
-    bu.set_verbose(args.verbose)
-    bu.set_debug(args.debug)
     wg = WG()
     
     tasks = []

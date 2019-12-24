@@ -65,14 +65,13 @@ async def main(argv):
 	parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default: "maps.json"')
 	parser.add_argument('--db', action='store_true', default=False, help='Use DB - You are unlikely to have it')
 	parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
-	parser.add_argument('-v', '--verbose', action='store_true', default=True, help='Verbose mode')
-	parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')	
+	parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
+	parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
 	parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files to read. Use \'-\' for STDIN"')
 	args = parser.parse_args()
 
 	bu.set_verbose(args.verbose)
-	bu.set_debug(args.debug)
-	bu.set_silent(args.silent)   	
+	bu.set_log_level(args.silent, args.verbose, args.debug)
 
 	wg = WG(WG_appID, args.tankopedia, args.mapfile)
 	wi = WoTinspector()
