@@ -7,44 +7,45 @@ from bs4 import BeautifulSoup
 
 MAX_RETRIES= 3
 SLEEP = 3
-_debug = False
-_verbose = False
-_silent = False
+
+LOG_LEVELS = { 'silent': 0, 'normal': 1, 'verbose': 2, 'debug': 3 }
+SILENT  = 0
+NORMAL  = 1 
+VERBOSE = 2
+DEBUG   = 3
+_log_level = 1
+
+## Progress dots
 _progress_N = 100
 _progress_i = 0
+
 UMASK= os.umask(0)
 os.umask(UMASK)
 
 
 def set_debug(debug: bool):
-    global _debug, _verbose, _silent
-    if debug != None:
-        _debug = debug
-    if _debug: 
-        _verbose = True
-        _silent  = False
+    global _log_level
+    _log_level = DEBUG
 
 
 def set_verbose(verbose: bool):
-    global _verbose, _silent
-    if verbose != None:
-        _verbose = verbose
-    if _verbose: 
-        _silent = False
+    global _log_level
+    _log_level = VERBOSE
 
 
 def set_silent(silent: bool):
-    global _debug, _verbose, _silent
-    if silent != None:
-        _silent = silent
-    if _silent:
-        _verbose = False
-        _debug   = False
+    global _log_level
+    _log_level = SILENT
+
+
+def set_log_level(level = NORMAL):
+    global _log_level
+    _log_level = level
 
 
 def verbose(msg = "", id = None):
     """Print a message"""
-    if _verbose:
+    if _log_level >= VERBOSE:
         if id == None:
             print(msg)
         else:
@@ -54,47 +55,17 @@ def verbose(msg = "", id = None):
 
 def verbose_std(msg = "", id = None):
     """Print a message"""
-    if not _silent:
+    if _log_level >= NORMAL:
         if id == None:
             print(msg)
         else:
-            print('[' + str(id) + ']: ' + msg)
-            
+            print('[' + str(id) + ']: ' + msg)            
     return None
-
-
-def print_progress(force = False):
-    """Print progress dots"""
-    global _progress_N, _progress_i
-    if not _silent and (force or not _debug):
-        _progress_i = (_progress_i + 1) % _progress_N
-        if _progress_i == 0:
-            print('.', end='', flush=True)    
-        
-def set_progress_step(n: int):
-    """Set the frquency of the progress dots. The bigger 'n', the fewer dots"""
-    global _progress_N 
-    if n > 0:
-        _progress_N = n        
-    return
-
-
-def wait(sec : int):
-    for i in range(0, sec): 
-       i=i   ## to get rid of the warning... 
-       time.sleep(1)
-       print_progress(True)
-    print('', flush=True)  
-
-
-def print_new_line(force = False):
-    if not _silent and (force or not _debug):
-        print('', flush=True)
 
 
 def debug(msg = "", n = None):
     """print a conditional debug message"""
-    if _debug: 
+    if _log_level >= DEBUG:
         curframe = inspect.currentframe()
         calframe = inspect.getouterframes(curframe, 2)
         caller = calframe[1][3]
@@ -119,6 +90,36 @@ def error(msg = "", exception = None, id = None):
     else:
         print('ERROR: ' + caller + '()' + '[' + str(id) + ']: ' + msg + exception_msg)
     return None
+
+
+def print_progress(force = False):
+    """Print progress dots"""
+    global _progress_N, _progress_i
+    if (_log_level > SILENT) and ( force or (_log_level < DEBUG ) ):
+        _progress_i = (_progress_i + 1) % _progress_N
+        if _progress_i == 0:
+            print('.', end='', flush=True)    
+        
+def set_progress_step(n: int):
+    """Set the frquency of the progress dots. The bigger 'n', the fewer dots"""
+    global _progress_N 
+    if n > 0:
+        _progress_N = n        
+    return
+
+
+def wait(sec : int):
+    for i in range(0, sec): 
+       i=i   ## to get rid of the warning... 
+       time.sleep(1)
+       print_progress(True)
+    print('', flush=True)  
+
+
+def print_new_line(force = False):
+    if (_log_level > SILENT) and ( force or (_log_level < DEBUG ) ):
+        print('', flush=True)
+
 
 def NOW() -> int:
     return int(time.time())
