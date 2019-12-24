@@ -70,28 +70,30 @@ async def main(argv):
 	parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files to read. Use \'-\' for STDIN"')
 	args = parser.parse_args()
 
-	bu.setVerbose(args.verbose)
-	bu.setDebug(args.debug)
-	if args.silent:
-		bu.setVerbose(False)    	
+	bu.set_verbose(args.verbose)
+	bu.set_debug(args.debug)
+	bu.set_silent(args.silent)   	
 
 	wg = WG(WG_appID, args.tankopedia, args.mapfile)
 	wi = WoTinspector()
 
-		#### Connect to MongoDB (TBD)
+	#### Connect to MongoDB (TBD)
+	client = None
+	db = None
 	if args.db:
 		try:
 			client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ, ssl_certfile=DB_CERT, tlsCAFile=DB_CA)
 			db = client[DB_NAME]
-		except:
-			db = None
+			bu.debug('Database connection initiated')
+		except Exception as err: 
+			bu.error("Could no initiate DB connection: Disabling DB", err) 
+			args.db = False
 			pass
 	else:
-		db = None
-
+		bu.debug('No DB in use')
 
 	if args.account != None:
-		args.accountID = await wg.getAccountID(args.account)
+		args.accountID = await wg.get_account_id(args.account)
 		bu.debug('WG  account_id: ' + str(args.accountID))
 
 	if args.accountID == None: 
@@ -194,7 +196,7 @@ async def replayWorker(queue: asyncio.Queue, db: motor.motor_asyncio.AsyncIOMoto
 				async with aiofiles.open(replay_json_fn) as fp:
 					replay_json = json.loads(await fp.read())
 					#if replay_json['status'] == 'ok':
-					if wi.chkJSONreplay(replay_json):
+					if wi.chk_JSON_replay(replay_json):
 						bu.verbose(msg_str + title + ' has already been posted. Skipping.' )
 						SKIPPED_N += 1
 						queue.task_done()						
@@ -211,9 +213,9 @@ async def replayWorker(queue: asyncio.Queue, db: motor.motor_asyncio.AsyncIOMoto
 			async with aiofiles.open(filename,'rb') as fp:
 				filename = os.path.basename(filename)
 				bu.debug(msg_str + 'File:  ' + filename)
-				json_resp = await wi.postReplay(await fp.read(), filename, account_id, title, priv, N)
+				json_resp = await wi.post_replay(await fp.read(), filename, account_id, title, priv, N)
 				if json_resp != None:
-					if (await bu.saveJSON(replay_json_fn,json_resp)):						
+					if (await bu.save_JSON(replay_json_fn,json_resp)):						
 						bu.debug(msg_str + 'Replay saved OK: ' + filename )
 					else:
 						bu.error(msg_str + 'Error saving replay: ' + filename)
@@ -234,7 +236,7 @@ async def saveReplay2DB(db: motor.motor_asyncio.AsyncIOMotorDatabase, replay: di
 			return False
 		dbc = db[DB_C_REPLAYS]
 		replay_link = replay['data']['download_url'] 
-		replay_id = wi.getReplayID(replay_link)
+		replay_id = wi.get_replay_id(replay_link)
 		replay['_id'] = replay_id
 		await dbc.insert_one(replay)
 		bu.debug('Replay added to database')
@@ -254,8 +256,8 @@ def getTitle(replayfile: str, title: str, i : int) -> str:
 		try:
 			filename = os.path.basename(replayfile)	
 			bu.debug(filename)
-			map_usrStrs = wg.getMapUserStrs()
-			tank_userStrs = wg.getTankUserStrs()
+			map_usrStrs = wg.get_map_user_strs()
+			tank_userStrs = wg.get_tank_user_strs()
 			
 			#p = re.compile('\\d{8}_\\d{4}_(.+)_(' + '|'.join(map_usrStrs) + ')(?:-\\d)?\\.wotbreplay$')
 			# update 6.2 changed the file name format. Bug fixed 2019-09-09 Jylpah

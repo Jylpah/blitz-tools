@@ -1,84 +1,81 @@
 #!/usr/bin/python3.7
 
-import sys, os, json, time,  base64, urllib, inspect, hashlib
+import sys, os, json, time,  base64, urllib, inspect, hashlib, re
 import asyncio, aiofiles, aiohttp, aiosqlite, lxml
+from pathlib import Path
 from bs4 import BeautifulSoup
 
 MAX_RETRIES= 3
 SLEEP = 3
-DEBUG = False
-VERBOSE = False
-SILENT = False
-WAITER_N = 0
-WAITER_I = 0
+_debug = False
+_verbose = False
+_silent = False
+_progress_N = 100
+_progress_i = 0
 UMASK= os.umask(0)
 os.umask(UMASK)
 
-# def chkJSONaccountList(account_list: list) -> bool:
-#     """"Check String for being a valid accountID list JSON file"""
-#     try:
-#         if int(account_list[0]) > 0:
-#             return True
-#     except:
-#         cls.debug("JSON check failed")
-#     return False
 
-def setDebug(debug: bool):
-    global DEBUG, VERBOSE, SILENT
+def set_debug(debug: bool):
+    global _debug, _verbose, _silent
     if debug != None:
-        DEBUG = debug
-    if DEBUG: 
-        VERBOSE = True
-        SILENT  = False
+        _debug = debug
+    if _debug: 
+        _verbose = True
+        _silent  = False
 
-def setVerbose(verbose: bool):
-    global VERBOSE, SILENT
+
+def set_verbose(verbose: bool):
+    global _verbose, _silent
     if verbose != None:
-        VERBOSE = verbose
-    if VERBOSE: 
-        SILENT = False
+        _verbose = verbose
+    if _verbose: 
+        _silent = False
 
-def setSilent(silent: bool):
-    global DEBUG, VERBOSE, SILENT
+
+def set_silent(silent: bool):
+    global _debug, _verbose, _silent
     if silent != None:
-        SILENT = silent
-    if SILENT:
-        VERBOSE = False
-        DEBUG   = False
+        _silent = silent
+    if _silent:
+        _verbose = False
+        _debug   = False
 
-def verbose(msg = "", n = None):
+
+def verbose(msg = "", id = None):
     """Print a message"""
-    if VERBOSE:
-        if n == None:
+    if _verbose:
+        if id == None:
             print(msg)
         else:
-            print('[' + str(n) + ']: ' + msg)
+            print('[' + str(id) + ']: ' + msg)
     return None
 
-def verbose_std(msg = "", n = None):
+
+def verbose_std(msg = "", id = None):
     """Print a message"""
-    if not SILENT:
-        if n == None:
+    if not _silent:
+        if id == None:
             print(msg)
         else:
-            print('[' + str(n) + ']: ' + msg)
+            print('[' + str(id) + ']: ' + msg)
             
     return None
 
-def printWaiter(force = False):
-    global WAITER_N, WAITER_I
-    if not DEBUG and (not SILENT or force):
-        if WAITER_N > 0:
-            WAITER_I = (WAITER_I+1) % WAITER_N
-            if WAITER_I == 0:
-                print('.', end='', flush=True)    
-        else:
-            print('.', end='', flush=True)
 
-def setWaiter(n: int):
-    global WAITER_N 
-    if n > -1:
-        WAITER_N = n        
+def print_progress(force = False):
+    """Print progress dots"""
+    global _progress_N, _progress_i
+    if not _silent and (force or not _debug):
+        _progress_i = (_progress_i + 1) % _progress_N
+        if _progress_i == 0:
+            print('.', end='', flush=True)    
+        
+def set_progress_step(n: int):
+    """Set the frquency of the progress dots. The bigger 'n', the fewer dots"""
+    global _progress_N 
+    if n > 0:
+        _progress_N = n        
     return
 
 
@@ -86,18 +83,18 @@ def wait(sec : int):
     for i in range(0, sec): 
        i=i   ## to get rid of the warning... 
        time.sleep(1)
-       printWaiter(True)
+       print_progress(True)
     print('', flush=True)  
 
 
-def printNewline(force = False):
-    if not DEBUG and (not SILENT  or force):
+def print_new_line(force = False):
+    if not _silent and (force or not _debug):
         print('', flush=True)
 
 
 def debug(msg = "", n = None):
     """print a conditional debug message"""
-    if DEBUG: 
+    if _debug: 
         curframe = inspect.currentframe()
         calframe = inspect.getouterframes(curframe, 2)
         caller = calframe[1][3]
@@ -108,22 +105,26 @@ def debug(msg = "", n = None):
     return None
 
 
-def error(msg = "", n = None):
+def error(msg = "", exception = None, id = None):
     """Print an error message"""
     curframe = inspect.currentframe()
     calframe = inspect.getouterframes(curframe, 2)
     caller = calframe[1][3]
-    if n == None:
-        print('ERROR: ' + caller + '(): ' + msg)
+    exception_msg = ''
+    if (exception != None) and isinstance(exception, Exception):
+        exception_msg = ' : Exception: ' + str(type(exception)) + ' : ' + str(exception)
+
+    if id == None:
+        print('ERROR: ' + caller + '(): ' + msg + exception_msg)
     else:
-        print('ERROR: ' + caller + '()' + '[' + str(n) + ']: ' + msg)
+        print('ERROR: ' + caller + '()' + '[' + str(id) + ']: ' + msg + exception_msg)
     return None
 
 def NOW() -> int:
     return int(time.time())
 
 
-async def readPlainList(filename: str) -> list():
+async def read_int_list(filename: str) -> list():
     """Read file to a list and return list of integers in the input file"""
     
     input_list = []
@@ -135,11 +136,11 @@ async def readPlainList(filename: str) -> list():
                 except (ValueError, TypeError) as err:
                     pass
     except Exception as err:
-        error('Unexpected error when reading file: ' + filename + ' : ' + str(type(err)) + ' : '+ str(err))
+        error('Unexpected error when reading file: ' + filename, err)
     return input_list
 
 
-async def saveJSON(filename: str, json_data: dict, sort_keys = False) -> bool:
+async def save_JSON(filename: str, json_data: dict, sort_keys = False) -> bool:
     """Save JSON data into file"""
     try:
         dirname = os.path.dirname(filename)
@@ -149,37 +150,41 @@ async def saveJSON(filename: str, json_data: dict, sort_keys = False) -> bool:
             await outfile.write(json.dumps(json_data, ensure_ascii=False, indent=4, sort_keys=sort_keys))
             return True
     except Exception as err:
-        error(str(err))
+        error('Error saving JSON', err)
     return False
 
 
-async def readJSON(filename: str, chkJSONfunc = None):
+async def open_JSON(filename: str, chk_JSON_func = None) -> dict:
     try:
         async with aiofiles.open(filename) as fp:
             json_data = json.loads(await fp.read())
-            if (chkJSONfunc == None):
+            if (chk_JSON_func == None):
                 debug("JSON file content not checked: " + filename)
                 return json_data                
-            elif chkJSONfunc(json_data):
+            elif chk_JSON_func(json_data):
                 debug("JSON File is valid: " + filename)
                 return json_data
             else:
                 debug('JSON File has invalid content: ' + filename)
     except Exception as err:
-        error('Unexpected error when reading file: ' + filename + ' : ' + str(type(err)) + ' : '+ str(err))
+        error('Unexpected error when reading file: ' + filename, err)
     return None
 
-async def getUrlJSON(session: aiohttp.ClientSession, url: str, chkJSONfunc = None, max_tries = MAX_RETRIES) -> dict:
+
+async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func = None, max_tries = MAX_RETRIES) -> dict:
         """Retrieve (GET) an URL and return JSON object"""
         try:
-            debug(url)
+            if session == None:
+                error('Session must be initialized first')
+                sys.exit(1)
+            #debug(url)
             ## To avoid excessive use of servers            
             for retry in range(1,max_tries+1):
                 async with session.get(url) as resp:
                     if resp.status == 200:
                         debug('HTTP request OK')
                         json_resp = await resp.json()       
-                        if (chkJSONfunc == None) or chkJSONfunc(json_resp):
+                        if (chk_JSON_func == None) or chk_JSON_func(json_resp):
                             # debug("Received valid JSON: " + str(json_resp))
                             return json_resp
                         else:
@@ -190,22 +195,22 @@ async def getUrlJSON(session: aiohttp.ClientSession, url: str, chkJSONfunc = Non
                         if json_resp != None:
                             str_json = str(json_resp)
                         else:
-                            str_json = 'None'
+                            str_json = 'None'   ## Change to None ??
                         raise aiohttp.ClientError('Request failed: ' + str(resp.status) + ' JSON Response: ' + str_json )
                     debug('Retrying URL [' + str(retry) + '/' +  str(max_tries) + ']: ' + url )
                     await asyncio.sleep(SLEEP)
 
         except aiohttp.ClientError as err:
             error("Could not retrieve URL: " + url)
-            error(str(err))
+            error(exception=err)
         except asyncio.CancelledError as err:
-            error('Queue gets cancelled while still working.')
-        
+            error('Queue gets cancelled while still working.')        
         except Exception as err:
-            error('Unexpected Exception: ' + str(err))
+            error('Unexpected Exception', err)
         return None
 
-def bldDictHierarcy(d : dict, key : str, value) -> dict:
+
+def bld_dict_hierarcy(d : dict, key : str, value) -> dict:
     """Build hierarcical dict based on multi-level key separated with  """
     try:
         key_hier = key.split('.')
@@ -213,16 +218,24 @@ def bldDictHierarcy(d : dict, key : str, value) -> dict:
         if len(key_hier) == 0:
             d[sub_key] = value
         elif sub_key not in d:   
-            d[sub_key] = bldDictHierarcy({}, key_hier, value)
+            d[sub_key] = bld_dict_hierarcy({}, '.'.join(key_hier), value)
         else:
-            d[sub_key] = bldDictHierarcy(d[sub_key], key_hier, value)
+            d[sub_key] = bld_dict_hierarcy(d[sub_key], '.'.join(key_hier), value)
 
         return d    
     except KeyError as err:
-        error('Key not found: ' + str(err))
+        error('Key not found', err)
     except Exception as err:
-        error(str(err))
+        error('Unexpected Exception', err)
     return None
+
+
+## -----------------------------------------------------------
+#### Class StatsNotFound 
+## -----------------------------------------------------------
+
+class CachedStatsNotFound(Exception):
+    pass
 
 ## -----------------------------------------------------------
 #### Class WG 
@@ -230,33 +243,68 @@ def bldDictHierarcy(d : dict, key : str, value) -> dict:
 
 class WG:
 
-    URL_WG_clanInfo         = 'clans/info/?application_id='
-    #URL_WG_playerTankList   = 'tanks/stats/?fields=tank_id%2Clast_battle_time&application_id='
-    URL_WG_playerTankList   = 'tanks/stats/?fields=account_id%2Ctank_id%2Clast_battle_time%2Cbattle_life_time%2Call&application_id='
-    URL_WG_playerTankStats  = 'tanks/stats/?application_id='
-    URL_WG_accountID        = 'account/list/?fields=account_id%2Cnickname&application_id='
-    URL_WG_playerStats      = 'account/info/?application_id='
-    SQLITE_STATS_CACHE      = '.stats_cache.db'  
+    URL_WG_CLAN_INFO         = 'clans/info/?application_id='
+    #URL_WG_PLAYER_TANK_LIST   = 'tanks/stats/?fields=tank_id%2Clast_battle_time&application_id='
+    #URL_WG_PLAYER_TANK_LIST   = 'tanks/stats/?fields=account_id%2Ctank_id%2Clast_battle_time%2Cbattle_life_time%2Call&application_id='
+    URL_WG_PLAYER_TANK_STATS  = 'tanks/stats/?application_id='
+    URL_WG_ACCOUNT_ID        = 'account/list/?fields=account_id%2Cnickname&application_id='
+    URL_WG_PLAYER_STATS      = 'account/info/?application_id='
+    CACHE_DB_FILE           = '.blitzutils_cache.sqlite3' 
+    CACHE_GRACE_TIME        =  2*7*24*3600  # 2 weeks cache
 
-    sql_create_player_stats_tbl = """CREATE TABLE IF NOT EXISTS player_stats (
-                                account_id INTEGER NOT NULL,
-                                date INTEGER NOT NULL,
-                                stat TEXT,
-                                value FLOAT
-                                ); """
+    # sql_create_player_stats_tbl = """CREATE TABLE IF NOT EXISTS player_stats (
+    #                             account_id INTEGER NOT NULL,
+    #                             date INTEGER NOT NULL,
+    #                             stat TEXT,
+    #                             value FLOAT
+    #                             ); """
     
-    sql_create_player_tank_stats_tbl = """CREATE TABLE IF NOT EXISTS player_tank_stats (
-                            account_id INTEGER NOT NULL,
-                            tank_id INTEGER DEFAULT NULL,
-                            date INTEGER NOT NULL,
-                            stat TEXT,
-                            value FLOAT
-                            ); """
+    # sql_create_player_tank_stats_tbl = """CREATE TABLE IF NOT EXISTS player_tank_stats (
+    #                         account_id INTEGER NOT NULL,
+    #                         tank_id INTEGER DEFAULT NULL,
+    #                         date INTEGER NOT NULL,
+    #                         stat TEXT,
+    #                         value FLOAT
+    #                         ); """
     
-    sql_select_player_stats = """SELECT value FROM player_stats ORDERBY date ASC
-                                    WHERE account_id = {} AND stat = {} 
-                                    AND date >= {} LIMIT 1;"""
+    # sql_select_player_stats = """SELECT value FROM player_stats ORDERBY date ASC
+    #                                 WHERE account_id = {} AND stat = {} 
+    #                                 AND date >= {} LIMIT 1;"""
           
+    
+    SQL_TANK_STATS_TBL          = 'tank_stats'
+
+    SQL_TANK_STATS_CREATE_TBL   = 'CREATE TABLE IF NOT EXISTS ' + SQL_TANK_STATS_TBL + \
+                                    """ ( account_id INTEGER NOT NULL, 
+                                    tank_id INTEGER NOT NULL, 
+                                    update_time INTEGER NOT NULL, 
+                                    stats TEXT, 
+                                    PRIMARY KEY (account_id, tank_id) )"""
+
+    SQL_TANK_STATS_COUNT        = 'SELECT COUNT(*) FROM ' + SQL_TANK_STATS_TBL
+
+    SQL_TANK_STATS_UPDATE       = 'REPLACE INTO ' + SQL_TANK_STATS_TBL + '(account_id, tank_id, update_time, stats) VALUES(?,?,?,?)'
+
+    SQL_PLAYER_STATS_TBL        = 'player_stats'
+
+    SQL_PLAYER_STATS_CREATE_TBL = 'CREATE TABLE IF NOT EXISTS ' + SQL_PLAYER_STATS_TBL + \
+                                    """ ( account_id INTEGER PRIMARY KEY, 
+                                    update_time INTEGER NOT NULL, 
+                                    stats TEXT)"""
+
+    SQL_PLAYER_STATS_COUNT       = 'SELECT COUNT(*) FROM ' + SQL_PLAYER_STATS_TBL
+
+    SQL_PLAYER_STATS_UPDATE     = 'REPLACE INTO ' + SQL_PLAYER_STATS_TBL + '(account_id, update_time, stats) VALUES(?,?,?)'
+
+    SQL_PLAYER_STATS_CACHED     = 'SELECT * FROM ' +  SQL_PLAYER_STATS_TBL + ' WHERE account_id = ? AND update_time > ?'
+
+    SQL_TABLES                  = [ SQL_PLAYER_STATS_TBL, SQL_TANK_STATS_TBL ]
+
+    SQL_CHECK_TABLE_EXITS       = """SELECT name FROM sqlite_master WHERE type='table' AND name=?"""
+
+    SQL_PRUNE_CACHE             = """DELETE from {} WHERE update_time < {}""" 
+
+## Default data. Please use the latest maps.json
 
     maps = {
         "Random": "Random map",
@@ -294,8 +342,8 @@ class WG:
     tanks = None
     tanks_by_tier = None
 
-    nations = [ 'ussr', 'germany', 'usa', 'china', 'france', 'uk', 'japan', 'other', 'european']    
-    nation_id = {
+    NATIONS = [ 'ussr', 'germany', 'usa', 'china', 'france', 'uk', 'japan', 'other', 'european']    
+    NATION_ID = {
         'ussr'      : 0,
         'germany'   : 1, 
         'usa'       : 2, 
@@ -307,33 +355,33 @@ class WG:
         'european'  : 8
     }
 
-    tank_type = [ 'lightTank', 'mediumTank', 'heavyTank', 'AT-SPG' ]
-    tank_type_id = {
+    TANK_TYPE = [ 'lightTank', 'mediumTank', 'heavyTank', 'AT-SPG' ]
+    TANK_TYPE_ID = {
         'lightTank'     : 0,
         'mediumTank'    : 1,
         'heavyTank'     : 2,
         'AT-SPG'        : 3
         }
 
-    URL_WG_server = {
+    URL_WG_SERVER = {
         'eu' : 'https://api.wotblitz.eu/wotb/',
         'ru' : 'https://api.wotblitz.ru/wotb/',
         'na' : 'https://api.wotblitz.com/wotb/',
         'asia' : 'https://api.wotblitz.asia/wotb/'
         }
 
-    accountID_server= {
+    ACCOUNT_ID_SERVER= {
         'ru'    : range(0, int(5e8)),
         'eu'    : range(int(5e8), int(10e8)),
         'na'    : range(int(1e9),int(2e9)),
         'asia'  : range(int(2e9),int(4e9))
         }
 
-    def __init__(self, WG_appID = None, tankopedia_fn =  None, maps_fn = None):
+    def __init__(self, WG_app_id = None, tankopedia_fn =  None, maps_fn = None, stats_cache = False):
         
-        self.WG_appID = WG_appID
-        self.loadTanks(tankopedia_fn)
-        WG.tanks =self.tanks
+        self.WG_app_id = WG_app_id
+        self.load_tanks(tankopedia_fn)
+        WG.tanks = self.tanks
 
         if (maps_fn != None):
             if os.path.exists(maps_fn) and os.path.isfile(maps_fn):
@@ -344,7 +392,7 @@ class WG:
                     error('Could not read maps file: ' + maps_fn + '\n' + str(err))  
             else:
                 verbose('Could not find maps file: ' + maps_fn)    
-        if self.WG_appID != None:
+        if self.WG_app_id != None:
             self.session = aiohttp.ClientSession()
             debug('WG aiohttp session initiated')
         else:
@@ -354,177 +402,225 @@ class WG:
         # cache TBD
         self.cache = None
         self.statsQ = None
-        self.statCacheTask = None
-        #if os.path.isfile(self.SQLITE_STATS_CACHE):
-        if False: 		 
-            try:
-                self.cache = aiosqlite.connect('SQLITE_STATS_CACHE')
-                self.cache.execute(self.sql_create_player_stats_tbl) 
-                self.cache.execute(self.sql_create_player_tank_stats_tbl) 
-                self.cache.commit()
-                self.statsQ = asyncio.Queue()
-                self.statCacheTask = asyncio.create_task(self.statsSaver())
+        self.stat_saver_task = None
 
+    
+    @classmethod
+    async def create(cls,  WG_app_id = None, tankopedia_fn =  None, maps_fn = None, stats_cache = False):
+        """Separete Constuctor method to handle async calls required to initialize the object"""
+        self = WG(WG_app_id, tankopedia_fn , maps_fn )
+
+        if stats_cache:
+            try:
+                self.cache = await aiosqlite.connect(WG.CACHE_DB_FILE)
+                ## Player Tank stats cache table
+                await self.cache.execute(WG.SQL_TANK_STATS_CREATE_TBL) 
+
+                await self.cache.commit()
+                
+                async with self.cache.execute(WG.SQL_TANK_STATS_COUNT) as cursor:
+                    debug('Cache contains: ' + str((await cursor.fetchone())[0]) + ' cached player tank stat records' )
+                
+                self.statsQ = asyncio.Queue()
+                self.stat_saver_task = asyncio.create_task(self.stat_saver())
             except Exception as err:
-                error(str(err))    
-        
+                error(exception=err)
+                sys.exit(1)
+        return self
+
     async def close(self):
+        # close stats queue 
         if self.statsQ != None:
+            debug('WG.close(): Waiting for statsQ to finish')
             await self.statsQ.join()
-            self.statCacheTask.cancel()
-            await asyncio.gather(*self.statCacheTask) 
+            debug('WG.close(): statsQ finished')
+            self.stat_saver_task.cancel()
+            debug('statsCacheTask cancelled')
+            await self.stat_saver_task 
+        
+
+        
+        # close cacheDB
+        if self.cache != None:
+            # prune old cache records
+            await self.cleanup_cache()   
+            await self.cache.commit()
+            await self.cache.close()
         
         if self.session != None:
             await self.session.close()        
+        return
 
-
-    ## Class methods  ------------------------------
-
+    ## Class methods  ----------------------------------------------------------
 
     @classmethod
-    def getServer(cls, accountID: int) -> str:
+    def get_server(cls, account_id: int) -> str:
         """Get Realm/server of an account based on account ID"""
-        if accountID > 1e9:
-            if accountID > 2e9:
+        if account_id > 1e9:
+            if account_id > 2e9:
                 return 'asia'
             return 'na'
         else:
-            if accountID < 5e8:
+            if account_id < 5e8:
                 return 'ru'
             return 'eu'
         return None
 
-    @classmethod
-    def updateMaps(cls, mapdata: dict):
-        """Update maps data"""
-        cls.maps = mapdata
-        return None
 
     @classmethod
-    def getMap(cls, mapStr: str) -> str:
+    def update_maps(cls, map_data: dict):
+        """Update maps data"""
+        cls.maps = map_data
+        return None
+
+
+    @classmethod
+    def get_map(cls, map_str: str) -> str:
         """Return map name from short map string in replays"""
         try:
-            return cls.maps[mapStr]
+            return cls.maps[map_str]
         except:
-            error('Map ' + mapStr + ' not found')
+            error('Map ' + map_str + ' not found')
         return None
     
+
     @classmethod
-    def getMapUserStrs(cls) -> str:
+    def get_map_user_strs(cls) -> str:
         return cls.maps.keys()
 
+
     @classmethod
-    def getTankUserStrs(cls) -> str:
+    def get_tank_user_strs(cls) -> str:
         return cls.tanks["userStr"].keys()
 
-    @classmethod
-    def chkJSONcontent(cls, json_obj, check = None) -> bool:
-        try:
-            if (check == 'player') and (not cls.chkJSONplayerStats(json_obj)): 
-                debug('Checking player JSON failed.')
-                return False
-            elif (check == 'tank') and (not cls.chkJSONtank(json_obj)): 
-                debug('Checking tank JSON failed.')
-                return False
-            # elif (check == 'clan') and (not chkJSONclan(json_obj)):
-            #     debug('Checking clan JSON failed.')
-            #     return False
-            elif (check == 'tankList') and (not cls.chkJSONtankList(json_obj)): 
-                debug('Checking tank list JSON failed.')
-                return False
-            # elif (check == 'accountlist') and (not cls.chkJSONaccountList(json_obj)):
-            #     cls.debug('Checking account list JSON failed.')
-            #     return False
-        except (TypeError, ValueError) as err:
-            debug(str(err))
-            return False
-        return True
 
     @classmethod
-    def chkJSONstatus(cls, json_resp: dict) -> bool:
+    def chk_JSON(cls, json_obj, check = None) -> bool:
         try:
-            if json_resp['status'] == 'ok':
+            if (check == None): 
+                # nothing to check
+                return True
+            if (check == 'tank_stats'):
+                if cls.chk_JSON_tank_stats(json_obj):
+                    return True
+                else: 
+                    debug('Checking tank list JSON failed.')
+                    return False
+            elif (check == 'player_stats'):
+                if cls.chk_JSON_player_stats(json_obj):
+                    return True
+                else: 
+                    debug('Checking player JSON failed.')
+                    return False
+            elif (check == 'tankopedia'):
+                if cls.chk_JSON_tankopedia(json_obj):
+                    return True
+                else:
+                    debug('Checking tank JSON failed.')
+                    return False
+            elif (check == 'account_id'):
+                if cls.chk_JSON_get_account_id(json_obj):
+                    return True
+                else: 
+                    debug('Checking account_id JSON failed.')
+                    return False
+        except (TypeError, ValueError) as err:
+            debug(str(err))
+        return False
+
+
+    @classmethod
+    def chk_JSON_status(cls, json_resp: dict) -> bool:
+        try:
+            if (json_resp['status'] == 'ok') and ('data' in json_resp):
                 return True
             elif json_resp['status'] == 'error':
-                #error(str(json_resp['error']['code']) + ' : ' + json_resp['error']['message'] )
+                if ('error' in json_resp):
+                    error_msg = 'Received an error'
+                    if ('message' in json_resp['error']):
+                        error_msg = error_msg + ': ' +  json_resp['error']['message']
+                    if ('value' in json_resp['error']):
+                        error_msg = error_msg + ' Value: ' + json_resp['error']['value']
+                    debug(error_msg)
                 return False
             else:
-                debug('Unknown status-code: ' + json_resp['status'])
+                error('Unknown status-code: ' + json_resp['status'])
                 return False
         except KeyError as err:
-            error('No field found in JSON data: ' + str(err))
-        except:
-            error("JSON format error")
+            error('No field found in JSON data', err)
+        except Exception as err:
+            error("JSON format error", err)
         return False
 
     @classmethod
-    def chkJSONgetAccountID(cls, json_resp: dict) -> bool:
+    def chk_JSON_get_account_id(cls, json_resp: dict) -> bool:
         try:
-            if cls.chkJSONstatus(json_resp): 
+            if cls.chk_JSON_status(json_resp): 
                 if (json_resp['meta']['count'] > 0):
                     return True                
         except KeyError as err:
-            error('Key :' + str(err) + ' not found')
+            error('Key not found', err)
         except Exception as err:
-            error(str(err))
+            error(exception=err)
         return False
 
     # @classmethod
     # def chkJSONplayer(cls, json_resp: dict) -> bool:
     #     """"Check String for being a valid Player JSON file"""
     #     try:
-    #         if cls.chkJSONstatus(json_resp): 
+    #         if cls.chk_JSON_status(json_resp): 
     #             if int(json_resp[0]['account_id']) > 0:
     #                 return True
     #     except KeyError as err:
-    #         error('Key :' + str(err) + ' not found')
+    #         error('Key not found', err)
     #     except:
     #         debug("JSON check failed")
     #     return False
     
     @classmethod
-    def chkJSONtank(cls, json_resp: dict) -> bool:
-        """"Check String for being a valid Tank JSON file"""
+    def chk_JSON_tankopedia(cls, json_resp: dict) -> bool:
+        """"Check String for being a valid Tankopedia JSON file"""
         try:
-            if cls.chkJSONstatus(json_resp):
+            if cls.chk_JSON_status(json_resp):
                 if int(json_resp[0]['tank_id']) > 0:
                     return True
         except KeyError as err:
-            error('Key :' + str(err) + ' not found')
+            error('Key not found', err)
         except:
             debug("JSON check failed")
         return False
     
 
     @classmethod    
-    def chkJSONplayerStats(cls, json_resp: dict) -> bool:
+    def chk_JSON_player_stats(cls, json_resp: dict) -> bool:
         """"Check String for being a valid Tank JSON file"""
         try:
-            if cls.chkJSONstatus(json_resp): 
+            if cls.chk_JSON_status(json_resp): 
                 for acc in json_resp['data']:
                     if json_resp['data'][acc] != None:
                         return True 
         except KeyError as err:
-            error('Key :' + str(err) + ' not found')
+            error('Key not found', err)
         except:
             debug("JSON check failed")
         return False
 
     @classmethod
-    def chkJSONtankList(cls, json_resp: dict) -> bool:
+    def chk_JSON_tank_stats(cls, json_resp: dict) -> bool:
         """"Check String for being a valid Tank list JSON file"""
         try:
-            accountID = next(iter(json_resp['data']))
-            if (json_resp['data'][accountID] != None) and (int(json_resp['data'][accountID][0]['tank_id']) > 0):
-                debug('JSON tank list check OK')
-                return True
+            if cls.chk_JSON_status(json_resp):
+                if ('data' in json_resp) and (len(json_resp['data']) > 0):
+                    debug('JSON tank list check OK')
+                    return True
         except Exception as err:
-            error('JSON check FAILED: ' + str(type(err)) + ' : ' +  str(err) + ' : ' + str(json_resp) )
+            error('JSON check FAILED: ' + str(json_resp) )
+            error(exception=err)
         return False
 
 
     ## Methods --------------------------------------------------
-    def loadTanks(self, tankopedia_fn: str):
+    def load_tanks(self, tankopedia_fn: str):
         """Load tanks from tankopedia JSON"""
         if tankopedia_fn == None:
             return False 
@@ -539,165 +635,160 @@ class WG:
                     self.tanks_by_tier[str(tank['tier'])].append(tank['tank_id'])
                 return True
         except Exception as err:
-            error('Could not read tankopedia: ' + tankopedia_fn + ' : ' + str(err))           
+            error('Could not read tankopedia: ' + tankopedia_fn, err) 
         return False     
      
 
-    def getTanksByTier(self, tier: int) -> list():
+    def get_tanks_by_tier(self, tier: int) -> list():
         """Returns tank_ids by tier"""
-        return self.tanks_by_tier[str(tier)]
-    
-    def getUrlClanInfo(self, server: str, clanID: int) -> str:
-        return self.URL_WG_server[server] + self.URL_WG_clanInfo + self.WG_appID + '&clan_id=' + str(clanID)
-
-    def getUrlPlayerTankList(self, accountID: int) -> str:
-        server = self.getServer(accountID)
-        return self.URL_WG_server[server] + self.URL_WG_playerTankList + self.WG_appID + '&account_id=' + str(accountID)
-    
-    def getUrlPlayerTankStats(self, accountID: int, tankID: int, fields: list) -> str: 
-        server = self.getServer(accountID)
-        url = self.URL_WG_server[server] + self.URL_WG_playerTankStats + self.WG_appID + '&account_id=' + str(accountID) + '&tank_id=' + str(tankID)
-        if (fields != None) and (len(fields) > 0):
-            field_str =  '%2C' + '%2C'.join(fields)
-        else:
-            field_str = ''
-        return url + '&fields=tank_id' + field_str												  
-
-    def getUrlPlayerTanksStats(self, accountID: int, tankIDs: list, fields: list) -> str: 
-        server = self.getServer(accountID)
-        tank_ids = '%2C'.join([ str(x) for x in tankIDs])
-        url = self.URL_WG_server[server] + self.URL_WG_playerTankStats + self.WG_appID + '&account_id=' + str(accountID) + '&tank_id=' + tank_ids
-        if (fields != None) and (len(fields) > 0):
-            field_str =  '%2C' + '%2C'.join(fields)
-        else:
-            field_str = ''
-        return url + '&fields=tank_id' + field_str												  
-
-
-    def getUrlPlayerStats(self, accountID,  fields) -> str: 
-        server = self.getServer(accountID)
-        return self.URL_WG_server[server] + self.URL_WG_playerStats + self.WG_appID + '&account_id=' + str(accountID) + '&fields=' + '%2C'.join(fields)
-
-    def getUrlAccountID(self, nickname, server) -> int:
         try:
-            return self.URL_WG_server[server] + self.URL_WG_accountID + self.WG_appID + '&search=' + urllib.parse.quote(nickname)
+            return self.tanks_by_tier[str(tier)]
+        except KeyError as err:
+            error('Invalid tier', err)
+        return None  
+    
+    def get_url_clan_info(self, server: str, clan_id: int) -> str:
+        try:
+           return self.URL_WG_SERVER[server] + self.URL_WG_CLAN_INFO + self.WG_app_id + '&clan_id=' + str(clan_id)
         except Exception as err:
-            print('ERROR: getUrlAccountID(): ' + str(err))
-            return None
+            if (server == None) or (server.lower() not in WG.ACCOUNT_ID_SERVER.keys()):
+                error('No server name or invalid server name given: ' + server if (server !=  None) else '')
+                error('Available servers: ' + ', '.join(WG.ACCOUNT_ID_SERVER.keys()))
+            error(exception=err)
+        return None
+
+
+    def get_url_player_tank_list(self, account_id: int) -> str:
+        return self.get_url_player_tanks_stats(account_id, fields='tank_id')
+
+
+    def get_url_player_tanks_stats(self, account_id: int, tank_ids = [], fields = []) -> str: 
+        server = self.get_server(account_id)
+        
+        if (tank_ids != None) and (len(tank_ids) > 0):
+            tank_id_str= '&tank_id=' + '%2C'.join([ str(x) for x in tank_ids])
+        else:
+            # emtpy tank-id list returns all the player's tanks  
+            tank_id_str = ''
+
+        if (fields != None) and (len(fields) > 0):
+            field_str =  '&fields=' + '%2C'.join(fields)
+        else:
+            # return all the fields
+            field_str = ''
+
+        return self.URL_WG_SERVER[server] + self.URL_WG_PLAYER_TANK_STATS + self.WG_app_id + '&account_id=' + str(account_id) + tank_id_str + field_str
+        
+
+    def get_url_player_stats(self, account_id,  fields) -> str: 
+        try:
+            server = self.get_server(account_id)
+            if (fields != None) and (len(fields) > 0):
+                field_str =  '&fields=' + '%2C'.join(fields)
+            else:
+                # return all the fields
+                field_str = ''
+
+            return self.URL_WG_SERVER[server] + self.URL_WG_PLAYER_STATS + self.WG_app_id + '&account_id=' + str(account_id) + field_str
+        except Exception as err:
+            if (server == None):
+                error('Invalid account_id')
+            error(exception=err)
+        return None
+
+
+    def get_url_account_id(self, nickname, server) -> int:
+        try:
+            return self.URL_WG_SERVER[server] + self.URL_WG_ACCOUNT_ID + self.WG_app_id + '&search=' + urllib.parse.quote(nickname)
+        except Exception as err:
+            if nickname == None or len(nickname) == 0:
+                error('No nickname given')            
+            if (server == None) or (server.lower() not in WG.ACCOUNT_ID_SERVER.keys()):
+                error('No server name or invalid server name given: ' + server if (server !=  None) else '')
+                error('Available servers: ' + ', '.join(WG.ACCOUNT_ID_SERVER.keys()))
+            error(exception=err)
+        return None
   
-    async def getAccountID(self, nickname: str) -> int:
+
+    async def get_account_id(self, nickname: str) -> int:
         """Get WG account_id for a nickname"""
         try:
+            nick    = None
+            server  = None
             nick, server = nickname.split('@')
             debug(nick + ' @ '+ server)
             server = server.lower()
             if nick == None or server == None:
                 raise ValueError('Invalid nickname given: ' + nickname)
-            url = self.getUrlAccountID(nick, server)
-            json_data = await getUrlJSON(self.session, url)
+            url = self.get_url_account_id(nick, server)
+            json_data = await get_url_JSON(self.session, url, self.chk_JSON_status)
             for res in json_data['data']:
                 if res['nickname'].lower() == nick.lower(): 
                     return res['account_id']
-            raise ValueError('No WG account_id found: ' + nickname)
+            error('No WG account_id found: ' + nickname)
             
         except Exception as err:
-            error(str(err))
-            return None
+            error(exception=err)
+        return None
       
-    async def getPlayerTanksStats(self, accountID: int, tankIDs : list, fields: list) -> dict:
+
+    async def get_player_tanks_stats(self, account_id: int, tank_ids = [], fields = []) -> dict:
         """Get player's stats (WR, # of battles) in a tank"""
         # debug('Started')        
-        if self.session == None:
-            error('Session must be initialized first')
-            sys.exit(1)
+        
         try:
-            debug('AccountID: ' + str(accountID) + ' TankID: ' + ','.join([ str(id) for id in tankIDs]))
-            url = self.getUrlPlayerTanksStats(accountID, tankIDs, fields)
-            json_data = await getUrlJSON(self.session, url, self.chkJSONtankList)
+            #debug('account_id: ' + str(account_id) + ' TankID: ' + ','.join([ str(id) for id in tank_ids]))
+            stats = None
+
+            # try cached stats first:
+            stats = await self.get_cached_tank_stats(account_id, tank_ids, fields)
+            if stats != None:
+                return stats
+
+            # Cached stats not found, fetching new ones
+            url = self.get_url_player_tanks_stats(account_id, tank_ids, fields)
+            json_data = await get_url_JSON(self.session, url, self.chk_JSON_status)
             if json_data != None:
-                debug('JSON Response received: ' + str(json_data))
-                return json_data['data'][str(accountID)]
+                #debug('JSON Response received: ' + str(json_data))
+                stats = json_data['data'][str(account_id)]
+                await self.save_stats('tank_stats', [account_id, tank_ids], stats)
+                return stats
         except Exception as err:
-            error('Type: ' + str(type(err)) + ' : ' + str(err))
+            error(exception=err)
         return None
 
-    async def getPlayerTankStats(self, accountID: int, tankID : int, fields: list) -> dict:
-        """Get player's stats (WR, # of battles) in a tank"""
-        # debug('Started')        
-        if self.session == None:
-            error('Session must be initialized first')
-            sys.exit(1)
-        try:
-            debug('AccountID: ' + str(accountID) + ' TankID: ' + str(tankID))
-            url = self.getUrlPlayerTankStats(accountID, tankID, fields)
-            json_data = await getUrlJSON(self.session, url, self.chkJSONtankList)
-            if json_data != None:
-                debug('JSON Response received: ' + str(json_data))
-                return json_data['data'][str(accountID)][0]
-        except Exception as err:
-            error(err)
-        return None
-
-    async def getPlayerStats(self, accountID: int, fields: list, battle_time = None) -> dict:
+   
+    async def get_player_stats(self, account_id: int, fields = []) -> dict:
         """Get player's global stats """
-        # debug('Started')
-        fields_missing  = fields
-        cached_stats = None
-        if self.cache != None:
-            cached_stats, fields_missing = await self.getCachedPlayerStats(accountID, fields)
+        try:
+            #debug('account_id: ' + str(account_id) )
+            stats = None
 
-        if fields_missing != None:
-            if self.session == None:
-                error('Session must be initialized first')
-                sys.exit(1)
-            try:
-                debug('AccountID: ' + str(accountID) + ' Fields: ' + ', '.join(fields_missing))
-                url = self.getUrlPlayerStats(accountID, fields_missing)
-                json_data = await getUrlJSON(self.session, url, self.chkJSONplayerStats)
-                if json_data != None:
-                    debug('JSON Response received: ' + str(json_data))
-                    stats = json_data['data'][str(accountID)]
-                    if self.statsQ != None:
-                        self.statsQ.put([accountID, 'player', stats])
-                    return self.mergePlayerStats(stats, cached_stats)
-            except Exception as err:
-                error('Unexpected Exception: ' + str(type(err)) + ' : ' +  str(err))
-        else:
-            return cached_stats
+            # try cached stats first:
+            stats = await self.get_cached_player_stats(account_id,fields)
+            # stats found unless CachedStatsNotFound exception is raised 
+            return stats
+
+        except CachedStatsNotFound as err:
+            # No cached stats found, need to retrieve
+            debug(str(err))
+            pass
+        
+        try:
+            # Cached stats not found, fetching new ones
+            url = self.get_url_player_stats(account_id, fields)
+            json_data = await get_url_JSON(self.session, url, self.chk_JSON_status)
+            if json_data != None:
+                #debug('JSON Response received: ' + str(json_data))
+                stats = json_data['data'][str(account_id)]
+                await self.save_stats('player_stats', [account_id], stats)
+                return stats
+        except Exception as err:
+            error(exception=err)
         return None
 
-    async def getCachedPlayerStats(self, accountID, fields):
-        if self.cache == None:
-            error('No stats cache available')
-            return None, fields            
-        try:
-            res_tmp = {}
-            missing = []
-            for field in fields:
-                curr = self.cache.execute(self.sql_select_player_stats.format(accountID, field, NOW() ))
-                res_tmp[field] = curr.fetchone()
-                if res_tmp[field] == None:
-                    res_tmp.pop(field, None)
-                    missing.append(field)
-                else:
-                    res_tmp[field] = res_tmp[field][0]
 
-            res = {}
-            for field in res_tmp.keys():
-                res = bldDictHierarcy(res, field, res_tmp[field])
-                
-            if len(missing) == 0:  
-                missing = None
-            if len(res.keys()) == 0:
-                res = None
-            return res, missing
-        except KeyError as err:
-            error('Key not found: ' + str(err))
-        except Exception as err:
-            error(str(err))
-        return None, fields
-
-    def mergePlayerStats(self, stats1: dict, stats2: dict) -> dict:
+    def merge_player_stats(self, stats1: dict, stats2: dict) -> dict:
         try:
             if stats2 == None: return stats1								
             for keyA in stats2:
@@ -708,44 +799,197 @@ class WG:
                         stats1[keyA][keyB] = stats2[keyA][keyB] 
             return stats1
         except KeyError as err:
-            error('Key not found: ' + str(err))
+            error('Key not found', err) 
         return None
 
 
-    def getTankData(self, tank_id: int, field: str):
+    def get_tank_data(self, tank_id: int, field: str):
         if self.tanks == None:
             return None
         try:
             return self.tanks['data'][str(tank_id)][field]
         except KeyError as err:
-            error('Key not found: ' + str(err))
+            error('Key not found', err)
         return None
         
-    def getTankTier(self, tank_id: int):
-        return self.getTankData(tank_id, 'tier')
+    def get_tank_tier(self, tank_id: int):
+        return self.get_tank_data(tank_id, 'tier')
 
-    async def statsSaver(self): 
+
+    async def save_stats(self, statsType: str, key: list, stats: list):
+        """Save stats to a async queue to be saved by the stat_saver -task"""
+        if self.statsQ == None:
+            return False
+        else:
+            await self.statsQ.put([ statsType, key, stats, NOW() ])
+            return True
+
+    async def stat_saver(self): 
+        """Async task for saving stats into cache in background"""
+
+        if self.statsQ == None:
+            error('No statsQ defined')
+            return None
         while True:
-            stats = await self.statsQ.get()
             try:
-                return stats  ## FIX
-                
-          
+                stats = await self.statsQ.get()
+            
+                stats_type  = stats[0]
+                key         = stats[1]
+                stats_data  = stats[2]
+                update_time = stats[3]
+
+                if stats_type == 'tank_stats':
+                    await self.store_tank_stats(key, stats_data, update_time)
+                elif stats_type == 'player_stats':
+                    await self.store_player_stats(key, stats_data, update_time)
+                else: 
+                    error('Function to saves stats type \'' + stats_type + '\' is not implemented yet')
+            
+            except (asyncio.CancelledError):
+                # this is an eternal loop that will wait until cancelled	
+                return None
 
             except Exception as err:
-                error(str(err))
+                error(exception=err)
+            self.statsQ.task_done()
         return None
+
+
+    async def cleanup_cache(self, grace_time = CACHE_GRACE_TIME):
+        """Clean old cache records"""
+        if self.cache == None:
+            debug('No active cache')
+            return None
+        for table in WG.SQL_TABLES:
+            async with self.cache.execute(WG.SQL_CHECK_TABLE_EXITS, (table,)) as cursor:
+                if (await cursor.fetchone()) != None:
+                    debug('Pruning cache table: ' + table)
+                    await self.cache.execute(WG.SQL_PRUNE_CACHE.format(table, NOW() - grace_time))
+                    await self.cache.commit()
+        return None
+
+
+    async def store_tank_stats(self, key: list , stats_data: list, update_time: int):
+        """Save tank stats into cache"""
+        try:
+            account_id  = key[0]
+            tank_ids    = set(key[1])
+            if stats_data != None:
+                for stat in stats_data:
+                    tank_id = stat['tank_id']
+                    await self.cache.execute(WG.SQL_TANK_STATS_UPDATE, (account_id, tank_id, update_time, json.dumps(stat)))
+                    tank_ids.remove(tank_id)
+            # no stats found => Add None to mark that
+            for tank_id in tank_ids:
+                await self.cache.execute(WG.SQL_TANK_STATS_UPDATE, (account_id, tank_id, update_time, None))
+            await self.cache.commit()
+            debug('Cached tank stats saved for account_id: ' + str(account_id) )
+            return True
+        except Exception as err:
+            error(exception=err)
+            return False
+
+
+    async def store_player_stats(self, key: list , stats_data: list, update_time: int):
+        """Save player stats into cache"""
+        try:
+            account_id  = key[0]
+            if stats_data != None:
+                await self.cache.execute(WG.SQL_PLAYER_STATS_UPDATE, (account_id, update_time, json.dumps(stats_data)))
+            else:
+                await self.cache.execute(WG.SQL_PLAYER_STATS_UPDATE, (account_id, update_time, None))
+            await self.cache.commit()
+            debug('Cached player stats saved for account_id: ' + str(account_id) )
+            return True
+        except Exception as err:
+            error(exception=err)
+            return False
+
+
+    async def get_cached_tank_stats(self, account_id: int, tank_ids: list, fields: list ):
+        try:
+            # test for cacheDB existence
+            debug('Trying cached stats first')
+            if self.cache == None:
+                debug('No cache DB')
+                return None
+            
+            stats = []
+            if len(tank_ids) > 0:
+                sql_query = 'SELECT * FROM ' +  WG.SQL_TANK_STATS_TBL + ' WHERE account_id = ? AND update_time > ? AND tank_id IN (' + ','.join([str(x) for x in tank_ids]) + ')'
+            else:
+                sql_query = 'SELECT * FROM ' +  WG.SQL_TANK_STATS_TBL + ' WHERE account_id = ? AND update_time > ?'
+
+            async with self.cache.execute(sql_query, [account_id, NOW() - WG.CACHE_GRACE_TIME] ) as cursor:
+                tank_ids = set(tank_ids)
+                async for row in cursor:
+                    #debug('account_id: ' + str(account_id) + ': 1')
+                    if row[3] == None:
+                        # None/null stats found in cache 
+                        # i.e. stats have been requested, but not returned from WG API
+                        tank_ids.remove(row[1])
+                        continue
+                    #debug('account_id: ' + str(account_id) + ': 2')
+                    stats.append(json.loads(row[3]))
+                    # debug('account_id: ' + str(account_id) + ': 3')
+                    tank_ids.remove(row[1])
+                
+                # return stats ONLY if ALL the requested stats were found in cache
+                if tank_ids == set():
+                    debug('Cached stats found: ' + str(account_id))
+                    return stats
+           
+        except Exception as err:
+            error(exception=err)
+        debug('No cached stats found')
+        return None
+
+
+    async def get_cached_player_stats(self, account_id, fields):
+        try:
+            # test for cacheDB existence
+            debug('Trying cached stats first')
+            if self.cache == None:
+                #debug('No cache DB')
+                raise CachedStatsNotFound('No cache DB in use')
+                      
+            async with self.cache.execute(WG.SQL_PLAYER_STATS_CACHED, (account_id, NOW() - WG.CACHE_GRACE_TIME) ) as cursor:
+                row = await cursor.fetchone()
+                #debug('account_id: ' + str(account_id) + ': 1')
+                if row == None:
+                    # no cached stats found, marked with an empty array
+                    #debug('No cached stats found')
+                    raise CachedStatsNotFound('No cached stats found')
+                
+                debug('Cached stats found')    
+                if row[3] == None:
+                    # None/null stats found in cache 
+                    # i.e. stats have been requested, but not returned from WG API
+                    return None
+                else:
+                    # Return proper stats 
+                    return json.loads(row[3])
+        except CachedStatsNotFound as err:
+            debug(str(err))
+            raise
+        except Exception as err:
+            error('Error trying to look for cached stats', err)
+        return None
+
+
 
 ## -----------------------------------------------------------
 #### Class WoTinspector 
 ## -----------------------------------------------------------
 
 class WoTinspector:
-    URL_WI = 'https://replays.wotinspector.com'
-    URL_REPLAYS     = URL_WI + '/en/sort/ut/page/'
+    URL_WI          = 'https://replays.wotinspector.com'
+    URL_REPLAY_LIST = URL_WI + '/en/sort/ut/page/'
     URL_REPLAY_DL   = URL_WI + '/en/download/'  
     URL_REPLAY_UL   = 'https://api.wotinspector.com/replay/upload?'
     URL_REPLAY_INFO = 'https://api.wotinspector.com/replay/upload?details=full&key='
+    URL_TANK_DB     ="https://wotinspector.com/static/armorinspector/tank_db_blitz.js"
 
     REPLAY_N = 1
 
@@ -754,20 +998,59 @@ class WoTinspector:
 
     async def close(self):
         if self.session != None:
+            debug('Closing aiohttp session')
             await self.session.close()        
 
-    async def getReplayJSON(self, replay_id: str):
-        json_resp = await getUrlJSON(self.session, self.URL_REPLAY_INFO + replay_id, None)
+    async def get_tankopedia(self, filename = 'tanks.json'):
+        """Retrieve Tankpedia from WoTinspector.com"""
+    
+        async with self.session.get(self.URL_TANK_DB) as r:
+            if r.status == 200:
+                WI_tank_db=await r.text()
+                WI_tank_db = WI_tank_db.split("\n")
+            else:
+                print('Error: Could not get valid HTTPS response. HTTP: ' + str(r.status) )  
+                sys.exit(1) 
+            tanks = {}
+            n = 0
+            p = re.compile('\\s*(\\d+):\\s{"en":"([^"]+)",.*?"tier":(\\d+), "type":(\\d), "premium":(\\d).*')
+            for line in WI_tank_db[1:-1]:
+                try:
+                    m = p.match(line)
+                    tank = {}
+                    tank['tank_id'] = int(m.group(1))
+                    tank['name'] = m.group(2)
+                    tank['tier'] = int(m.group(3))
+                    tank['type'] = WG.TANK_TYPE[int(m.group(4))]
+                    tank['is_premium'] = (int(m.group(5)) == 1)
+                    tanks[str(m.group(1))] = tank
+                    n += 1
+                except Exception as err:
+                    error(exception=err)
+            
+            tankopedia = {}
+            tankopedia['status'] = "ok"
+            tankopedia['meta'] = {"count" : n}
+            tankopedia['data'] = tanks
+            
+            verbose_std("Tankopedia has " + str(n) + " tanks in: " + filename)
+            with open(filename,'w') as outfile:
+                outfile.write(json.dumps(tankopedia, ensure_ascii=False, indent=4, sort_keys=False))
+            return None
+
+
+    async def get_replay_JSON(self, replay_id: str):
+        json_resp = await get_url_JSON(self.session, self.URL_REPLAY_INFO + replay_id, None)
         try:
-            if self.chkJSONreplay(json_resp):
+            if self.chk_JSON_replay(json_resp):
                 return json_resp
             else:
                 return None
         except Exception as err:
-            error('Unexpected Exception: ' + str(type(err)) + ' : ' + str(err) )
+            error('Unexpected Exception', err) 
             return None
 
-    async def postReplay(self,  data, filename = 'Replay', account_id = 0, title = 'Replay', priv = False, N = None):
+    async def post_replay(self,  data, filename = 'Replay', account_id = 0, title = 'Replay', priv = False, N = None):
         try:
             N = N if N != None else self.REPLAY_N
             msg_str = 'Replay[' + str(N) + ']: '
@@ -778,7 +1061,7 @@ class WoTinspector:
             replay_id = hash.hexdigest()
 
             ##  Testing if the replay has already been posted
-            json_resp = await self.getReplayJSON(replay_id)
+            json_resp = await self.get_replay_JSON(replay_id)
             if json_resp != None:
                 debug(msg_str + 'Already uploaded: ' + title)
                 return json_resp
@@ -796,7 +1079,7 @@ class WoTinspector:
             headers ={'Content-type':  'application/x-www-form-urlencoded'}
             payload = { 'file' : (filename, base64.b64encode(data)) }
         except Exception as err:
-            error(msg_str + 'Unexpected Exception: ' + str(type(err)) + ' : ' + str(err) )
+            error(msg_str + 'Unexpected Exception', err)
             return None
 
         for retry in range(MAX_RETRIES):
@@ -820,18 +1103,18 @@ class WoTinspector:
                     else:
                         debug(msg_str + 'Got HTTP/' + str(resp.status))
             except Exception as err:
-                error(str(err))
+                error(exception=err)
             await asyncio.sleep(SLEEP)
             
         error(msg_str + ' Could not post replay: ' + title)
         return None
 
     @classmethod
-    def getUrlReplayListing(cls, page : int):
-        return cls.URL_REPLAYS + str(page) + '?vt=#filters'
+    def get_url_replay_listing(cls, page : int):
+        return cls.URL_REPLAY_LIST + str(page) + '?vt=#filters'
 
     @classmethod
-    def getReplayLinks(cls, doc: str):
+    def get_replay_links(cls, doc: str):
         """Get replay download links from WoTinspector.com replay listing page"""
         try:
             soup = BeautifulSoup(doc, 'lxml')
@@ -843,22 +1126,22 @@ class WoTinspector:
                     replay_links.add(link)
                     debug('Adding replay link:' + link)
         except Exception as err:
-            debug(str(err))
+            error(exception=err)
         return replay_links
     
     @classmethod
-    def getReplayID(cls, url):
+    def get_replay_id(cls, url):
         return url.rsplit('/', 1)[-1]
 
     @classmethod
-    def chkJSONreplay(cls, json_resp):
+    def chk_JSON_replay(cls, json_resp):
         """"Check String for being a valid JSON file"""
         try:
             if ('status' in json_resp) and json_resp['status'] == 'ok' and ('data' in json_resp) and json_resp['data'] != None:
                 debug("JSON check OK")
                 return True 
         except KeyError as err:
-            error('Key :' + str(err) + ' not found')
+            error('Key not found', err)
         except:
             debug("JSON check failed: " + str(json_resp))
         return False      
@@ -868,9 +1151,10 @@ class BlitzStars:
     URL_BlitzStars      = 'https://www.blitzstars.com'
     URL_playerStats     = URL_BlitzStars + '/api/playerstats'
     URL_playerTankStats = URL_BlitzStars + '/api/tanks'
+    URL_playersTankStats= URL_BlitzStars +  '/api/top/forjylpah?'
     URL_tankAverages    = URL_BlitzStars + '/tankaverages.json'
     URL_activeplayers   = URL_BlitzStars +  '/api/playerstats/activeinlast30days'
-    URL_playersTankStats= URL_BlitzStars +  '/api/top/forjylpah?'
+
 
     def __init__(self):
         self.session = aiohttp.ClientSession()
@@ -884,16 +1168,16 @@ class BlitzStars:
         return cls.URL_tankAverages
 
     @classmethod
-    def getUrlPlayerStats(cls, accountID: int):
-        return cls.URL_playerStats + '/' + str(accountID)
+    def get_url_player_stats(cls, account_id: int):
+        return cls.URL_playerStats + '/' + str(account_id)
 
     @classmethod
-    def getUrlPlayerTankStats(cls, accountID: int, tankID: int):
-        return cls.URL_playerTankStats + '/' + str(accountID) + '/' + str(tankID)
+    def getUrlPlayerTankStats(cls, account_id: int, tank_id: int):
+        return cls.URL_playerTankStats + '/' + str(account_id) + '/' + str(tank_id)
 
     @classmethod
-    def getUrlPlayersTankStats(cls, accountID: int):
-        return cls.URL_playersTankStats + '&accountId=' + str(accountID) 
+    def getUrlPlayersTankStats(cls, account_id: int):
+        return cls.URL_playersTankStats + '&accountId=' + str(account_id) 
 
     @classmethod
     def getUrlActivePlayers(cls):
@@ -908,7 +1192,7 @@ class BlitzStars:
                 debug("JSON check OK")
                 return True 
         except KeyError as err:
-            error('Key :' + str(err) + ' not found')
+            error('Key not found', err)
         except:
             debug("JSON check failed")
         return False        

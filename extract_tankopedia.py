@@ -21,7 +21,7 @@ async def main(argv):
     os.chdir(os.path.dirname(sys.argv[0]))
     
     parser = argparse.ArgumentParser(description='Extract Tankopedia data from Blitz game files')
-    parser.add_argument('blitzAppBase', type=str,  metavar="BLITZAPP_FOLDER", default=".", help='Base dir of the Blitz App files')
+    parser.add_argument('blitz_app_base', type=str,  metavar="BLITZAPP_FOLDER", default=".", help='Base dir of the Blitz App files')
     parser.add_argument('tanks', type=str, default='tanks.json', nargs='?', metavar="TANKS_FILE", help='File to write Tankopedia')
     parser.add_argument('maps', type=str, default='maps.json', nargs='?', metavar='MAPS_FILE', help='File to write map names')
     parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
@@ -29,19 +29,19 @@ async def main(argv):
         
     args = parser.parse_args()
 
-    bu.setVerbose(args.verbose)
-    bu.setDebug(args.debug)
+    bu.set_verbose(args.verbose)
+    bu.set_debug(args.debug)
     wg = WG()
     
     tasks = []
-    for nation in wg.nations:
-        tasks.append(asyncio.create_task(extractTanks(args.blitzAppBase, nation)))
+    for nation in wg.NATIONS:
+        tasks.append(asyncio.create_task(extract_tanks(args.blitz_app_base, nation)))
 
     tanklist = []
     for tanklist_tmp in await asyncio.gather(*tasks):
         tanklist.extend(tanklist_tmp)
     
-    tank_strs, map_strs = await readUserStrs(args.blitzAppBase)
+    tank_strs, map_strs = await read_user_strs(args.blitz_app_base)
 
     json_data = None
     userStrs = {}
@@ -56,7 +56,7 @@ async def main(argv):
             bu.error('Unexpected error when reading file: ' + args.tanks + ' : ' + str(err))
 
     async with aiofiles.open(args.tanks, 'w', encoding="utf8") as outfile:
-        new_tanks, new_userStrs = await convertTankNames(tanklist, tank_strs)
+        new_tanks, new_userStrs = await convert_tank_names(tanklist, tank_strs)
         # merge old and new tankopedia
         tanks.update(new_tanks)
         userStrs.update(new_userStrs) 
@@ -65,6 +65,7 @@ async def main(argv):
         tankopedia['meta'] = { "count":  len(tanks) }
         tankopedia['data'] = tanks
         tankopedia['userStr'] = userStrs
+        bu.verbose_std('New tankopedia \'' + args.tanks + '\' contains ' + str(len(tanks)) + ' tanks')
         await outfile.write(json.dumps(tankopedia, ensure_ascii=False, indent=4, sort_keys=False))
     
     if args.maps != None:
@@ -78,14 +79,15 @@ async def main(argv):
         # merge old and new map data
         maps.update(map_strs)
         async with aiofiles.open(args.maps, 'w', encoding="utf8") as outfile:
+            bu.verbose_std('New maps file \'' + args.maps + '\' contains ' + str(len(maps)) + ' maps')
             await outfile.write(json.dumps(maps, ensure_ascii=False, indent=4, sort_keys=True))
 
     return None
     
-async def extractTanks(blitzAppBase : str, nation: str):
+async def extract_tanks(blitz_app_base : str, nation: str):
 
     tanks = []
-    list_xml_file = blitzAppBase + BLITZAPP_VEHICLES_DIR + nation + BLITZAPP_VEHICLE_FILE
+    list_xml_file = blitz_app_base + BLITZAPP_VEHICLES_DIR + nation + BLITZAPP_VEHICLE_FILE
     if not os.path.isfile(list_xml_file): 
         print('ERROR: cannot open ' + list_xml_file)
         return None
@@ -96,24 +98,24 @@ async def extractTanks(blitzAppBase : str, nation: str):
             for data in tankList['root'].keys():
                 tank_xml = tankList['root'][data]
                 tank = {}
-                tank['tank_id'] = await getTankID(nation, int(tank_xml['id']))
+                tank['tank_id'] = await get_tank_id(nation, int(tank_xml['id']))
                 tank['userStr'] = tank_xml['userString']
                 tank['nation'] = nation
                 tank['tier'] = int(tank_xml['level'])
                 #debug(tank_xml['price'])
                 tank['is_premium'] = issubclass(type(tank_xml['price']), dict)
-                tank['type'] = await getTankType(tank_xml['tags'])
+                tank['type'] = await get_tank_type(tank_xml['tags'])
                 tanks.append(tank)
         except Exception as err:
             bu.error(err)
             sys.exit(2)
     return tanks
 
-async def readUserStrs(blitzAppBase : str) -> dict:
+async def read_user_strs(blitz_app_base : str) -> dict:
     """Read user strings to convert map and tank names"""
     tank_strs = {}
     map_strs = {}
-    filename = blitzAppBase + BLITZAPP_STRINGS
+    filename = blitz_app_base + BLITZAPP_STRINGS
     bu.debug('Opening file: ' + filename + ' for reading UserStrings')
     try:
         async with aiofiles.open(filename, 'r', encoding="utf8") as f:
@@ -135,7 +137,7 @@ async def readUserStrs(blitzAppBase : str) -> dict:
 
     return tank_strs, map_strs
     
-async def convertTankNames(tanklist : list, tank_strs: dict) -> dict:
+async def convert_tank_names(tanklist : list, tank_strs: dict) -> dict:
     """Convert tank names for Tankopedia"""
     tankopedia = {}
     userStrs = {}
@@ -162,12 +164,12 @@ async def convertTankNames(tanklist : list, tank_strs: dict) -> dict:
 
     return tankopedia_sorted, userStrs_sorted
 
-async def getTankID(nation: str, tankID : int) -> int:
-    return (tankID << 8) + (wg.nation_id[nation] << 4) + 1 
+async def get_tank_id(nation: str, tank_id : int) -> int:
+    return (tank_id << 8) + (wg.NATION_ID[nation] << 4) + 1 
 
-async def getTankType(tagstr : str):
+async def get_tank_type(tagstr : str):
     tags = tagstr.split(' ')
-    for t_type in wg.tank_type:
+    for t_type in wg.TANK_TYPE:
         if tags[0] == t_type:
             return t_type
     return None

@@ -4,6 +4,9 @@
 
 import sys, argparse, json, os, inspect, aiohttp, asyncio, re, logging
 from pathlib import Path
+import blitzutils as bu
+from blitzutils import WG
+from blitzutils import WoTinspector
 
 logging.getLogger("asyncio").setLevel(logging.DEBUG)
 
@@ -47,8 +50,7 @@ async def get_tankopedia(filename: str):
             return None
 
 
-def main(argv):
-    global VERBOSE, DEBUG
+async def main(argv):
     # set the directory for the script
     os.chdir(os.path.dirname(sys.argv[0]))
 
@@ -58,12 +60,16 @@ def main(argv):
     parser.add_argument('--verbose', '-v', action='store_true', default=False, help='Verbose mode')
     
     args = parser.parse_args()
-    VERBOSE = args.verbose
-    DEBUG = args.debug
-    if DEBUG: VERBOSE = True
+    bu.set_verbose(args.verbose)
+    bu.set_debug(args.debug)
+    
+    wi = WoTinspector()
 
-    asyncio.run(get_tankopedia(args.outfile))
+    await wi.get_tankopedia(args.outfile)
+
+    await wi.close()
     
 
+### main()
 if __name__ == "__main__":
-   main(sys.argv[1:])
+   asyncio.run(main(sys.argv[1:]), debug=False)
