@@ -365,12 +365,12 @@ async def main(argv):
 
 	parser = argparse.ArgumentParser(description='Analyze Blitz replay JSONs from WoTinspector.com')
 	parser.add_argument('--output', default='plain', choices=['json', 'plain', 'db'], help='Select output mode: JSON, plain text or database')
-	parser.add_argument('-id', dest='accountID', type=int, default=None, help='WG account_id to analyze')
-	parser.add_argument('-a', '--account', dest='account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
+	parser.add_argument('-id', dest='account_id', type=int, default=None, help='WG account_id to analyze')
+	parser.add_argument('-a', '--account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 	parser.add_argument('-x', '--extended', action='store_true', default=False, help='Print Extended stats')
 	parser.add_argument('--hist', action='store_true', default=False, help='Print player histograms (WR/battles)')
 	parser.add_argument('--stat_func', default='tank_tier', choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
-	parser.add_argument('-u', '--url', dest= 'url', action='store_true', default=False, help='Print replay URLs')
+	parser.add_argument('-u', '--url', action='store_true', default=False, help='Print replay URLs')
 	parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
 	parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default is "maps.json"')
 	parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
@@ -389,8 +389,8 @@ async def main(argv):
 
 
 	if args.account != None:
-		args.accountID = await wg.get_account_id(args.account)
-		bu.debug('WG  account_id: ' + str(args.accountID))
+		args.account_id = await wg.get_account_id(args.account)
+		bu.debug('WG  account_id: ' + str(args.account_id))
 
 	#### Connect to MongoDB (TBD)
 	bu.debug('DB_SERVER: ' + DB_SERVER)
@@ -905,7 +905,7 @@ async def mk_readerQ_item(filename : str) -> list:
 async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Namespace):
 	"""Async Worker to process the replay queue"""
 	#global SKIPPED_N
-	# account_id = args.accountID
+	# account_id = args.account_id
 	results = []
 	playerstanks = set()
 	try:
@@ -950,7 +950,7 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict:
 	"""Parse replay JSON dict"""
 	global REPLAY_I
-	account_id = args.accountID
+	account_id = args.account_id
 	url = args.url
 	#db = args.db
 	result = {}

@@ -42,6 +42,7 @@ def set_log_level_normal():
     global _log_level
     _log_level = NORMAL
 
+
 def set_log_level(silent: bool,verbose: bool, debug: bool):
     global _log_level
     _log_level = NORMAL
@@ -81,42 +82,45 @@ def verbose_std(msg = "", id = None):
     return None
 
 
-def debug(msg = "", n = None):
+def debug(msg = "", id = None, exception = None):
     """print a conditional debug message"""
     if _log_level >= DEBUG:
-        curframe = inspect.currentframe()
-        calframe = inspect.getouterframes(curframe, 2)
-        caller = calframe[1][3]
-        if n == None:
-            print('DEBUG: ' + caller + '(): ' + msg)
-        else:
-            print('DEBUG: ' + caller + '()' + '[' + str(n) + ']: ' + msg)
+        _print_log_msg('DEBUG', msg, exception, id)
     return None
 
 
 def error(msg = "", exception = None, id = None):
     """Print an error message"""
+    _print_log_msg('ERROR', msg, exception, id)
+    return None
+
+
+def _print_log_msg(prefix = 'LOG', msg = '', exception = None, id = None):
     curframe = inspect.currentframe()
-    calframe = inspect.getouterframes(curframe, 2)
-    caller = calframe[1][3]
+    calframe = inspect.getouterframes(curframe)
+    caller = calframe[2].function
+    
+    prefix = prefix + ': ' + caller + '(): '
+    if id != None:
+        prefix = prefix + '[' + str(id) + ']: '
+
     exception_msg = ''
     if (exception != None) and isinstance(exception, Exception):
         exception_msg = ' : Exception: ' + str(type(exception)) + ' : ' + str(exception)
 
-    if id == None:
-        print('ERROR: ' + caller + '(): ' + msg + exception_msg)
-    else:
-        print('ERROR: ' + caller + '()' + '[' + str(id) + ']: ' + msg + exception_msg)
+    print(prefix + msg + exception_msg)
     return None
 
 
-def print_progress(force = False):
-    """Print progress dots"""
+def print_progress(force = False) -> bool:
+    """Print progress dots. Returns True if the dot is being printed."""
     global _progress_N, _progress_i
     if (_log_level > SILENT) and ( force or (_log_level < DEBUG ) ):
         _progress_i = (_progress_i + 1) % _progress_N
         if _progress_i == 0:
-            print('.', end='', flush=True)    
+            print('.', end='', flush=True)
+            return True
+    return False    
         
 def set_progress_step(n: int):
     """Set the frquency of the progress dots. The bigger 'n', the fewer dots"""
@@ -206,10 +210,10 @@ async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func =
                         if (chk_JSON_func == None) or chk_JSON_func(json_resp):
                             # debug("Received valid JSON: " + str(json_resp))
                             return json_resp
-                        else:
-                            debug('Received JSON error. URL: ' + url)
-                            # Sometimes WG API returns JSON error even a retry gives valid JSON
-                            # return None                            
+                        # else:
+                        #     debug('Received JSON error. URL: ' + url)
+                        #     # Sometimes WG API returns JSON error even a retry gives valid JSON
+                        #     # return None                            
                     if retry == max_tries:                        
                         if json_resp != None:
                             str_json = str(json_resp)
@@ -221,7 +225,7 @@ async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func =
 
         except aiohttp.ClientError as err:
             error("Could not retrieve URL: " + url)
-            error(exception=err)
+            error(str(err))
         except asyncio.CancelledError as err:
             error('Queue gets cancelled while still working.')        
         except Exception as err:
@@ -253,7 +257,7 @@ def bld_dict_hierarcy(d : dict, key : str, value) -> dict:
 #### Class StatsNotFound 
 ## -----------------------------------------------------------
 
-class CachedStatsNotFound(Exception):
+class StatsNotFound(Exception):
     pass
 
 ## -----------------------------------------------------------
@@ -751,8 +755,8 @@ class WG:
         return None
       
 
-    async def get_player_tanks_stats(self, account_id: int, tank_ids = [], fields = []) -> dict:
-        """Get player's stats (WR, # of battles) in a tank"""
+    async def get_player_tank_stats(self, account_id: int, tank_ids = [], fields = [], cache=True) -> dict:
+        """Get player's stats (WR, # of battles) in a tank or all tanks (empty tank_ids[])"""
         # debug('Started')        
         
         try:
@@ -760,9 +764,10 @@ class WG:
             stats = None
 
             # try cached stats first:
-            stats = await self.get_cached_tank_stats(account_id, tank_ids, fields)
-            if stats != None:
-                return stats
+            if cache:
+                stats = await self.get_cached_tank_stats(account_id, tank_ids, fields)
+                if stats != None:
+                    return stats
 
             # Cached stats not found, fetching new ones
             url = self.get_url_player_tanks_stats(account_id, tank_ids, fields)
@@ -770,27 +775,29 @@ class WG:
             if json_data != None:
                 #debug('JSON Response received: ' + str(json_data))
                 stats = json_data['data'][str(account_id)]
-                await self.save_stats('tank_stats', [account_id, tank_ids], stats)
+                if cache:
+                    await self.save_stats('tank_stats', [account_id, tank_ids], stats)
                 return stats
         except Exception as err:
             error(exception=err)
         return None
 
    
-    async def get_player_stats(self, account_id: int, fields = []) -> dict:
+    async def get_player_stats(self, account_id: int, fields = [], cache=True) -> dict:
         """Get player's global stats """
         try:
             #debug('account_id: ' + str(account_id) )
             stats = None
 
             # try cached stats first:
-            stats = await self.get_cached_player_stats(account_id,fields)
-            # stats found unless CachedStatsNotFound exception is raised 
-            return stats
+            if cache:
+                stats = await self.get_cached_player_stats(account_id,fields)
+                # stats found unless StatsNotFound exception is raised 
+                return stats
 
-        except CachedStatsNotFound as err:
+        except StatsNotFound as err:
             # No cached stats found, need to retrieve
-            debug(str(err))
+            debug(exception=err)
             pass
         
         try:
@@ -800,7 +807,8 @@ class WG:
             if json_data != None:
                 #debug('JSON Response received: ' + str(json_data))
                 stats = json_data['data'][str(account_id)]
-                await self.save_stats('player_stats', [account_id], stats)
+                if cache:
+                    await self.save_stats('player_stats', [account_id], stats)
                 return stats
         except Exception as err:
             error(exception=err)
@@ -971,7 +979,7 @@ class WG:
             debug('Trying cached stats first')
             if self.cache == None:
                 #debug('No cache DB')
-                raise CachedStatsNotFound('No cache DB in use')
+                raise StatsNotFound('No cache DB in use')
                       
             async with self.cache.execute(WG.SQL_PLAYER_STATS_CACHED, (account_id, NOW() - WG.CACHE_GRACE_TIME) ) as cursor:
                 row = await cursor.fetchone()
@@ -979,7 +987,7 @@ class WG:
                 if row == None:
                     # no cached stats found, marked with an empty array
                     #debug('No cached stats found')
-                    raise CachedStatsNotFound('No cached stats found')
+                    raise StatsNotFound('No cached stats found')
                 
                 debug('Cached stats found')    
                 if row[3] == None:
@@ -989,8 +997,8 @@ class WG:
                 else:
                     # Return proper stats 
                     return json.loads(row[3])
-        except CachedStatsNotFound as err:
-            debug(str(err))
+        except StatsNotFound as err:
+            debug(exception=err)
             raise
         except Exception as err:
             error('Error trying to look for cached stats', err)
@@ -1167,51 +1175,163 @@ class WoTinspector:
 
 class BlitzStars:
 
-    URL_BlitzStars      = 'https://www.blitzstars.com'
-    URL_playerStats     = URL_BlitzStars + '/api/playerstats'
-    URL_playerTankStats = URL_BlitzStars + '/api/tanks'
-    URL_playersTankStats= URL_BlitzStars +  '/api/top/forjylpah?'
-    URL_tankAverages    = URL_BlitzStars + '/tankaverages.json'
-    URL_activeplayers   = URL_BlitzStars +  '/api/playerstats/activeinlast30days'
+    URL_BLITZSTARS          = 'https://www.blitzstars.com'
+    URL_PLAYER_STATS        = URL_BLITZSTARS + '/api/playerstats'
+    URL_PLAYER_TANK_STATS   = URL_BLITZSTARS + '/api/tanks'
+    URL_TANK_AVERAGES       = URL_BLITZSTARS + '/tankaverages.json'
+    URL_ACTIVE_PLAYERS      = URL_BLITZSTARS +  '/api/playerstats/activeinlast30days'
 
 
     def __init__(self):
         self.session = aiohttp.ClientSession()
 
+
     async def close(self):
         if self.session != None:
             await self.session.close()        
 
+
     @classmethod
-    def getUrlTankAvgs(cls):
-        return cls.URL_tankAverages
+    def get_url_tank_averages(cls):
+        return cls.URL_TANK_AVERAGES
+
 
     @classmethod
     def get_url_player_stats(cls, account_id: int):
-        return cls.URL_playerStats + '/' + str(account_id)
+        return cls.URL_PLAYER_STATS + '/' + str(account_id)
+
 
     @classmethod
-    def getUrlPlayerTankStats(cls, account_id: int, tank_id: int):
-        return cls.URL_playerTankStats + '/' + str(account_id) + '/' + str(tank_id)
+    def get_url_player_tank_stats(cls, account_id: int, tank_id: int):
+        return cls.URL_PLAYER_TANK_STATS + '/' + str(account_id) + '/' + str(tank_id)
+
 
     @classmethod
-    def getUrlPlayersTankStats(cls, account_id: int):
-        return cls.URL_playersTankStats + '&accountId=' + str(account_id) 
+    def get_url_player_tanks_stats(cls, account_id: int):
+        return cls.URL_PLAYER_TANK_STATS + '/' + str(account_id) 
+
 
     @classmethod
-    def getUrlActivePlayers(cls):
-        return cls.URL_activeplayers
-    
+    def get_url_active_players(cls):
+        return cls.URL_ACTIVE_PLAYERS
+
+ 
     @classmethod
-    def chkJSONtankStats(cls, json_resp):
-        """"Check String for being a valid JSON file"""
+    def chk_JSON_tank_stats(cls, json_resp):
+        """Check BlitzStars player tank stats"""
         try:
-            # print(str(json_resp['data']))
-            if ('data' in json_resp):
-                debug("JSON check OK")
-                return True 
-        except KeyError as err:
-            error('Key not found', err)
-        except:
-            debug("JSON check failed")
-        return False        
+            if (len(json_resp) > 0) and ('tank_id' in json_resp[0]):
+                debug('JSON check OK')
+                return True
+        except Exception as err:
+            error('JSON check FAILED: ' + str(json_resp) )
+            error(exception=err)
+        return False
+
+    @classmethod
+    def chk_JSON_player_stats(cls, json_resp : list):
+        """Check BlitzStars player stats"""
+        try:
+            if (len(json_resp) > 0) and ('account_id' in json_resp[0]):
+                debug('JSON check OK')
+                return True
+        except Exception as err:
+            error('JSON check FAILED: ' + str(json_resp) )
+            error(exception=err)
+        return False
+
+
+    @classmethod
+    async def tank_stats2WG(cls, BS_tank_stats: list) -> list:
+        """Convert BlitzStars player tank stats to WG API format""" 
+        try:
+            if BS_tank_stats == None:
+                return None
+            WG_tank_stats = []
+            for stat in BS_tank_stats:
+                try:
+                    tmp = {}
+                    for field in ['all', 'last_battle_time', 'tank_id', 'battle_life_time', 'account_id']:
+                        tmp[field] = stat[field]
+                    WG_tank_stats.append(tmp)
+                except KeyError as err:
+                    error(exception=err)
+            if len(WG_tank_stats) > 0:
+                return WG_tank_stats
+        
+        except Exception as err:
+            error(exception=err)
+            pass
+        return None
+
+
+    async def get_player_stats(self, account_id: int, cache=True):
+        """Get player stats from BlitzStars"""
+        try:
+            #debug('account_id: ' + str(account_id) )
+            stats = None
+
+            if cache:
+                error('CACHE NOT IMPLEMENTED YET FOR BlitzStars()')
+                sys.exit(1)
+                #stats = await self.get_cached_player_stats(account_id,fields)
+                # stats found unless StatsNotFound exception is raised 
+                return stats
+
+        except StatsNotFound as err:
+            # No cached stats found, need to retrieve
+            debug(exception=err)
+            pass
+        
+        try:
+            # Cached stats not found, fetching new ones
+            url = self.get_url_player_stats(account_id)
+            stats = await get_url_JSON(self.session, url, self.chk_JSON_player_stats)
+            if stats != None:
+                #debug('JSON Response received: ' + str(json_data))
+                if cache:
+                    error('CACHE NOT IMPLEMENTED YET FOR BlitzStars()')
+                    sys.exit(1)
+                    # await self.save_stats('player_stats', [account_id], stats)
+                return stats
+        except Exception as err:
+            error(exception=err)
+        return None
+
+    async def get_player_tank_stats(self, account_id: int, tank_id = None, cache=True):
+        """Get player stats for all his tanks from BlitzStars"""
+        try:
+            #debug('account_id: ' + str(account_id) )
+            stats = None
+
+            if cache:
+                error('CACHE NOT IMPLEMENTED YET FOR BlitzStars()')
+                sys.exit(1)
+                #stats = await self.get_cached_player_stats(account_id,fields)
+                # stats found unless StatsNotFound exception is raised 
+                return stats
+
+        except StatsNotFound as err:
+            # No cached stats found, need to retrieve
+            debug(exception=err)
+            pass
+        
+        try:
+            # Cached stats not found, fetching new ones
+            if tank_id == None:
+                # get stats for all the player's tanks
+                url = self.get_url_player_tanks_stats(account_id)
+            else:
+                url = self.get_url_player_tank_stats(account_id, tank_id)
+            stats = await get_url_JSON(self.session, url, self.chk_JSON_tank_stats)
+            if stats != None:
+                #debug('JSON Response received: ' + str(json_data))
+                if cache:
+                    error('CACHE NOT IMPLEMENTED YET FOR BlitzStars()')
+                    sys.exit(1)
+                    # await self.save_stats('player_stats', [account_id], stats)
+                return stats
+        except Exception as err:
+            error(exception=err)
+        return None    
+
