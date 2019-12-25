@@ -13,8 +13,8 @@ Python scripts to analyze WoT Blitz replays and stats. All the scripts require [
 * [blitzutils.py](blitzutils.py): A utils class for various Blitz related to functions. *Other scripts use this*, so you need to place it to the same folder with the other scripts
 
 ### Data
-* [tanks.json](tanks.json): Tankopedia in WG JSON format extracted from the Blitz app files with [extractTankopedia.py]](extractTankopedia.py]). Contains only limited information required by the scripts. 
-* [maps.json](maps.json): Blitz map names extracted from the Blitz app files with [extractTankopedia.py]](extractTankopedia.py]). 
+* [tanks.json](tanks.json): Tankopedia in WG JSON format extracted from the Blitz app files with [extract_tankopedia.py]](extractTankopedia.py]). Contains only limited information required by the scripts. 
+* [maps.json](maps.json): Blitz map names extracted from the Blitz app files with [extract_tankopedia.py]](extract_tankopedia.py]). 
 
 ### Quick instructions
 
