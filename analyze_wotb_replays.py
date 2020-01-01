@@ -649,18 +649,6 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 			try:
 				bu.debug('Stat_id: ' + stat_id)
 				bu.print_progress()
-				#bu.debug(str(stat_id), workerID)
-				# ## Add time stamp here
-				# stat 		= stat_id.split(':')	
-				# account_id 	= int(stat[0])
-				# tier 		= int(stat[1])
-				
-				# if len(stat) == 3:
-				# 	battletime 	= int(stat[2]) 
-				# else:
-				# 	battletime = None
-				# bu.debug('account_id: ' + str(account_id) + ' tank_tier: ' + str(tier), workerID)
-
 				# Analysing player performance based on their stats on the tier tanks they are playing 
 
 				stats[stat_id] = await stat_db_func(db, stat_id)				
