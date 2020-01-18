@@ -1,4 +1,4 @@
-#!/usr/bin/python3.7
+#!/usr/bin/env python3.8
 
 # Extract tankopedia data in WG API JSON format from Blitz app files (Android APK unzipped)
 

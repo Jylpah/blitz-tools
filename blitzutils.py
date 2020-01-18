@@ -1,9 +1,12 @@
-#!/usr/bin/python3.7
+#!/usr/bin/env python3.8
 
-import sys, os, json, time, base64, urllib, inspect, hashlib, re
+import sys, os, json, time,  base64, urllib, inspect, hashlib, re
 import asyncio, aiofiles, aiohttp, aiosqlite, lxml
 from pathlib import Path
 from bs4 import BeautifulSoup
+from progress.bar import IncrementalBar
+from progress.counter import Counter
+from decimal import Decimal
 
 MAX_RETRIES= 3
 SLEEP = 3
@@ -15,9 +18,11 @@ VERBOSE = 2
 DEBUG   = 3
 _log_level = NORMAL
 
-## Progress dots
+## Progress display
 _progress_N = 100
 _progress_i = 0
+_progress_id = None
+_progress_obj = None
 
 UMASK= os.umask(0)
 os.umask(UMASK)
@@ -112,22 +117,75 @@ def _print_log_msg(prefix = 'LOG', msg = '', exception = None, id = None):
     return None
 
 
-def print_progress(force = False) -> bool:
-    """Print progress dots. Returns True if the dot is being printed."""
-    global _progress_N, _progress_i
-    if (_log_level > SILENT) and ( force or (_log_level < DEBUG ) ):
-        _progress_i = (_progress_i + 1) % _progress_N
-        if _progress_i == 0:
-            print('.', end='', flush=True)
-            return True
-    return False    
-        
 def set_progress_step(n: int):
-    """Set the frquency of the progress dots. The bigger 'n', the fewer dots"""
+    """Set the frequency of the progress dots. The bigger 'n', the fewer dots"""
     global _progress_N 
     if n > 0:
-        _progress_N = n        
+        _progress_N = n
+        _progress_i = 0
     return
+
+
+def get_progress_step():
+    """Get the frequency of the progress dots. The bigger 'n', the fewer dots"""
+    return _progress_N
+
+
+def set_progress_bar(heading: str, max_value: int, step: int = None, slow: bool = False, id: str = None):
+    global _progress_obj, _progress_N, _progress_i, _progress_id
+    _progress_id = id
+    if step == None:
+        _progress_N = int(max_value / 1000) if (max_value > 1000) else 2
+    else:
+        _progress_N = step
+    if _progress_obj != None:
+        finish_progress_bar()
+    if slow:
+        _progress_obj = SlowBar(heading, max=max_value)
+    else:
+        _progress_obj = IncrementalBar(heading, max=max_value, suffix='%(index)d/%(max)d %(percent)d%%')
+    _progress_i = 0
+
+    return
+
+
+def set_counter(heading: str):
+    global _progress_obj, _progress_i
+    _progress_i = 0
+    if _progress_obj != None:
+        finish_progress_bar()
+    _progress_obj = Counter(heading)
+    return 
+
+
+def print_progress(force = False, id : str = None) -> bool:
+    """Print progress bar/dots. Returns True if the dot is being printed."""
+    global _progress_i
+    
+    _progress_i +=  1 
+    if ((_progress_i % _progress_N) == 0):
+        if (_log_level > SILENT) and ( force or (_log_level < DEBUG ) ):
+            if (_progress_obj != None):
+                if (_progress_id == id):
+                    _progress_obj.next(_progress_N)
+                    return True
+                else:
+                    return False
+            else:
+                print('.', end='', flush=True)
+                return True
+    return False    
+
+
+def finish_progress_bar():
+    """Finish and close progress bar object"""
+    global _progress_obj
+
+    _progress_obj.finish()
+    _progress_obj = None
+    print_new_line()
+
+    return None
 
 
 def wait(sec : int):
@@ -196,13 +254,13 @@ async def open_JSON(filename: str, chk_JSON_func = None) -> dict:
 
 async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func = None, max_tries = MAX_RETRIES) -> dict:
         """Retrieve (GET) an URL and return JSON object"""
-        try:
-            if session == None:
-                error('Session must be initialized first')
-                sys.exit(1)
-            #debug(url)
+        if session == None:
+            error('Session must be initialized first')
+            sys.exit(1)
+
             ## To avoid excessive use of servers            
-            for retry in range(1,max_tries+1):
+        for retry in range(1,max_tries+1):
+            try:
                 async with session.get(url) as resp:
                     if resp.status == 200:
                         debug('HTTP request OK')
@@ -210,26 +268,20 @@ async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func =
                         if (chk_JSON_func == None) or chk_JSON_func(json_resp):
                             # debug("Received valid JSON: " + str(json_resp))
                             return json_resp
-                        # else:
-                        #     debug('Received JSON error. URL: ' + url)
-                        #     # Sometimes WG API returns JSON error even a retry gives valid JSON
-                        #     # return None                            
+                        # Sometimes WG API returns JSON error even a retry gives valid JSON
                     if retry == max_tries:                        
-                        if json_resp != None:
-                            str_json = str(json_resp)
-                        else:
-                            str_json = 'None'   ## Change to None ??
-                        raise aiohttp.ClientError('Request failed: ' + str(resp.status) + ' JSON Response: ' + str_json )
+                        break
                     debug('Retrying URL [' + str(retry) + '/' +  str(max_tries) + ']: ' + url )
                     await asyncio.sleep(SLEEP)
 
-        except aiohttp.ClientError as err:
-            error("Could not retrieve URL: " + url)
-            error(str(err))
-        except asyncio.CancelledError as err:
-            error('Queue gets cancelled while still working.')        
-        except Exception as err:
-            error('Unexpected Exception', err)
+            except aiohttp.ClientError as err:
+                debug("Could not retrieve URL: " + url)
+                debug(str(err))
+            except asyncio.CancelledError as err:
+                debug('Queue gets cancelled while still working.')        
+            except Exception as err:
+                debug('Unexpected Exception', err)
+        debug("Could not retrieve URL: " + url)
         return None
 
 
@@ -251,6 +303,16 @@ def bld_dict_hierarcy(d : dict, key : str, value) -> dict:
     except Exception as err:
         error('Unexpected Exception', err)
     return None
+
+## -----------------------------------------------------------
+#### Class SlowBar 
+## -----------------------------------------------------------
+
+class SlowBar(IncrementalBar):
+    suffix = '%(index)d/%(max)d %(percent)d%% ETA %(remaining_hours).1f hours'
+    @property
+    def remaining_hours(self):
+        return Decimal(self.eta / 3600).quantize(Decimal('1.0')) 
 
 
 ## -----------------------------------------------------------
@@ -555,14 +617,16 @@ class WG:
     @classmethod
     def chk_JSON_status(cls, json_resp: dict) -> bool:
         try:
-            if (json_resp['status'] == 'ok') and ('data' in json_resp):
+            if (json_resp == None) or ('status' not in json_resp) or (json_resp['status'] == None):
+                return False
+            elif (json_resp['status'] == 'ok') and ('data' in json_resp):
                 return True
             elif json_resp['status'] == 'error':
                 if ('error' in json_resp):
                     error_msg = 'Received an error'
-                    if ('message' in json_resp['error']):
+                    if ('message' in json_resp['error']) and (json_resp['error']['message'] != None):
                         error_msg = error_msg + ': ' +  json_resp['error']['message']
-                    if ('value' in json_resp['error']):
+                    if ('value' in json_resp['error']) and (json_resp['error']['value'] != None):
                         error_msg = error_msg + ' Value: ' + json_resp['error']['value']
                     debug(error_msg)
                 return False
@@ -1333,5 +1397,6 @@ class BlitzStars:
                 return stats
         except Exception as err:
             error(exception=err)
-        return None    
+        return None
+
 
