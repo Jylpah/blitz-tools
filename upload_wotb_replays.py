@@ -55,7 +55,7 @@ async def main(argv):
 	WG_ID		= configGeneral.getint('wg_id', 0)
 
 	parser = argparse.ArgumentParser(description='Post replays(s) to WoTinspector.com and retrieve battle data')
-	parser.add_argument('--output', default='single', choices=['file', 'files', 'db'] , help='Select output mode: single/multiple files or database')
+	#parser.add_argument('--output', default='file', choices=['file', 'files', 'db'] , help='Select output mode: single/multiple files or database')
 	parser.add_argument('-id', dest='accountID', type=int, default=WG_ID, help='WG account_id')
 	parser.add_argument('-a', '--account', dest='account', type=str, default=None, help='Uploader\'s WG account name. Format: ACCOUNT_NAME@SERVER')
 	parser.add_argument('-t','--title', type=str, default=None, help='Title for replays. Use NN for continous numbering. Default is filename-based numbering')
