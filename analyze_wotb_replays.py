@@ -422,9 +422,10 @@ async def main(argv):
 		bu.debug('No DB in use')
 
 	try:
-		replayQ  = asyncio.Queue()			
+		replayQ  = asyncio.Queue(maxsize=1000)			
 		reader_tasks = []
 		# Make replay Queue
+		
 		scanner_task = asyncio.create_task(mk_replayQ(replayQ, args.files))
 		bu.debug('Replay scanner started')
 		# Start tasks to process the Queue
@@ -447,15 +448,6 @@ async def main(argv):
 		for res in await asyncio.gather(*reader_tasks):
 			results.extend(res[0])
 			players.update(res[1])
-
-		# ## Remove battle_time from the player:tank data in case DB is not in use
-		# if db == None:
-		# 	players_tmp = set()
-		# 	for player in players:
-		# 		#bu.debug('playerID: ' + player + ' ==> ' + prune_stat_id(player))
-		# 		players_tmp.add(prune_stat_id(player))
-		# 	#bu.debug(str(len(players_tmp)))
-		# 	players = players_tmp
 
 		(player_stats, stat_id_map) = await process_player_stats(players, TASK_N, args, db)
 		bu.verbose('')
