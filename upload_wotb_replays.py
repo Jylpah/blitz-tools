@@ -53,9 +53,10 @@ async def main(argv):
 	# WG account id of the uploader: 
 	# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
 	WG_ID		= configGeneral.getint('wg_id', 0)
+	USE_DB		= configGeneral.getint('use_DB', False)
 
 	parser = argparse.ArgumentParser(description='Post replays(s) to WoTinspector.com and retrieve battle data')
-	parser.add_argument('--output', default='single', choices=['file', 'files', 'db'] , help='Select output mode: single/multiple files or database')
+	#parser.add_argument('--output', default='file', choices=['file', 'files', 'db'] , help='Select output mode: single/multiple files or database')
 	parser.add_argument('-id', dest='accountID', type=int, default=WG_ID, help='WG account_id')
 	parser.add_argument('-a', '--account', dest='account', type=str, default=None, help='Uploader\'s WG account name. Format: ACCOUNT_NAME@SERVER')
 	parser.add_argument('-t','--title', type=str, default=None, help='Title for replays. Use NN for continous numbering. Default is filename-based numbering')
@@ -63,7 +64,7 @@ async def main(argv):
 	parser.add_argument('--tasks', dest='N_tasks', type=int, default=5, help='Number of worker threads')
 	parser.add_argument('--tankopedia', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default: "tanks.json"')
 	parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default: "maps.json"')
-	parser.add_argument('--db', action='store_true', default=False, help='Use DB - You are unlikely to have it')
+	parser.add_argument('--db', action='store_true', default=USE_DB, help='Use DB - You are unlikely to have it')
 	parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 	parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
 	parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
@@ -198,6 +199,7 @@ async def replayWorker(queue: asyncio.Queue, db: motor.motor_asyncio.AsyncIOMoto
 					if wi.chk_JSON_replay(replay_json):
 						bu.verbose(msg_str + title + ' has already been posted. Skipping.' )
 						SKIPPED_N += 1
+						await saveReplay2DB(db, replay_json)
 						queue.task_done()						
 						continue
 					else:
