@@ -198,6 +198,7 @@ async def replayWorker(queue: asyncio.Queue, db: motor.motor_asyncio.AsyncIOMoto
 					if wi.chk_JSON_replay(replay_json):
 						bu.verbose(msg_str + title + ' has already been posted. Skipping.' )
 						SKIPPED_N += 1
+						await saveReplay2DB(db, replay_json)
 						queue.task_done()						
 						continue
 					else:
