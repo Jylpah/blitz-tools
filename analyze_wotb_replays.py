@@ -86,7 +86,10 @@ result_categories = {
 result_categories_default = [
 	'total',
 	'battle_result',
-	'tank_tier'
+	'tank_tier', 
+	'top_tier', 
+	'tank_name',
+	'map_name'
 ]
 
 RESULT_CAT_HEADER_FRMT = '{:_<17s}'
@@ -349,6 +352,12 @@ async def main(argv):
 	## Read config
 	config = configparser.ConfigParser()
 	config.read(FILE_CONFIG)
+	configGeneral 	= config['GENERAL']
+	# WG account id of the uploader: 
+	# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
+	WG_ID		= configGeneral.getint('wg_id', None)
+	USE_DB		= configGeneral.getboolean('use_DB', False)
+	
 	configDB 	= config['DATABASE']
 	DB_SERVER 	= configDB.get('db_server', 'localhost')
 	DB_PORT 	= configDB.getint('db_port', 27017)
@@ -365,7 +374,7 @@ async def main(argv):
 
 	parser = argparse.ArgumentParser(description='Analyze Blitz replay JSONs from WoTinspector.com')
 	parser.add_argument('--output', default='plain', choices=['json', 'plain', 'db'], help='Select output mode: JSON, plain text or database')
-	parser.add_argument('-id', dest='account_id', type=int, default=None, help='WG account_id to analyze')
+	parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
 	parser.add_argument('-a', '--account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 	parser.add_argument('-x', '--extended', action='store_true', default=False, help='Print Extended stats')
 	parser.add_argument('--hist', action='store_true', default=False, help='Print player histograms (WR/battles)')
@@ -374,7 +383,7 @@ async def main(argv):
 	parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
 	parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default is "maps.json"')
 	parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
-	parser.add_argument('--db', action='store_true', default=False, help='Use DB - You are unlikely to have it')
+	parser.add_argument('--db', action='store_true', default=USE_DB, help='Use DB - You are unlikely to have it')
 	parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 	parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
 	parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
@@ -386,7 +395,6 @@ async def main(argv):
 	
 	wg = await WG.create(WG_APP_ID, args.tankfile, args.mapfile, True)
 	wi = WoTinspector()
-
 
 	if args.account != None:
 		args.account_id = await wg.get_account_id(args.account)
@@ -454,7 +462,8 @@ async def main(argv):
 		bu.debug('Number of player stats: ' + str(len(player_stats)))
 		teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
 		process_battle_results(teamresults, args)	
-		if args.stats: 
+		if args.hist: 
+			print('\nPlayer Historgrams______', end='', flush=True)
 			process_player_dist(results, player_stats, stat_id_map)
 		bu.debug('Finished. Cleaning up..................')
 	except Exception as err:
@@ -696,7 +705,7 @@ async def get_wg_tank_tier_stats(stat_id_str: str) -> dict:
 		hist_stats = [ 'all.' + x for x in histogram_fields.keys() ]
 		hist_stats.append('tank_id')
 
-		player_stats = await wg.get_player_tanks_stats(account_id, tier_tanks ,hist_stats)
+		player_stats = await wg.get_player_tank_stats(account_id, tier_tanks ,hist_stats)
 		#bu.debug('account_id: ' + str(account_id) + ' ' + str(player_stats))
 
 		return await tank_stats_helper(player_stats)
