@@ -15,6 +15,7 @@ WG_APP_ID  			= '81381d3f45fa4aa75b78a7198eb216ad'
 FILE_CONFIG 		= 'blitzstats.ini'
 DB_C_TANK_STATS 	= 'WG_TankStats'
 DB_C_PLAYER_STATS 	= 'WG_PlayerStats'
+DB_C_REPLAYS		= 'Replays'
 
 wg = None
 wi = None
@@ -384,10 +385,11 @@ async def main(argv):
 	parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default is "maps.json"')
 	parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
 	parser.add_argument('--db', action='store_true', default=USE_DB, help='Use DB - You are unlikely to have it')
+	parser.add_argument('--filters', type=str, default=None, help='Filters for DB based analyses. MongoDB find() filter JSON format.')
 	parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 	parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
 	parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
-	parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files to read. Use \'-\' for STDIN"')
+	parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files/dirs to read. Use \'-\' for STDIN, "db:" for database')
 	
 	args = parser.parse_args()
 	bu.set_log_level(args.silent, args.verbose, args.debug)
@@ -418,15 +420,16 @@ async def main(argv):
 			bu.error("Could no initiate DB connection: Disabling DB", err) 
 			args.db = False
 			pass
-	else:
+
+	if not(args.db):
 		bu.debug('No DB in use')
 
 	try:
 		replayQ  = asyncio.Queue(maxsize=1000)			
 		reader_tasks = []
 		# Make replay Queue
-		
-		scanner_task = asyncio.create_task(mk_replayQ(replayQ, args.files))
+
+		scanner_task = asyncio.create_task(mk_replayQ(replayQ, args.files, db))
 		bu.debug('Replay scanner started')
 		# Start tasks to process the Queue
 		for i in range(TASK_N):
@@ -852,43 +855,65 @@ async def player_stats_helper(player_stats: dict):
 	return None
 
 
-async def mk_replayQ(queue : asyncio.Queue, files : list):
+async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : motor.motor_asyncio.AsyncIOMotorDatabase = None):
 	"""Create queue of replays to post"""
 	p_replayfile = re.compile('.*\\.wotbreplay\\.json$')
-	if files[0] == '-':
+	files = args.files
+	if files[0] == 'db:':
+		if db == None:
+			bu.error('No database connection opened')
+			sys.exit(1)
+		try:
+			dbc = db[DB_C_REPLAYS]
+			filters = args.filters
+			cursor = dbc.find(filters)
+			async for replay_json in cursor:
+				await mk_readerQ_item(replay_json)
+		except Exception as err:
+			bu.error(exception=err)
+
+	elif files[0] == '-':
 		bu.debug('reading replay file list from STDIN')
 		stdin, _ = await aioconsole.get_standard_streams()
 		while True:
-			line = (await stdin.readline()).decode('utf-8').rstrip()
-			if not line: 
-				break
-			else:
+			try:
+				line = (await stdin.readline()).decode('utf-8').rstrip()
+				if not line: break
+				
 				if (p_replayfile.match(line) != None):
-					await queue.put(await mk_readerQ_item(line))
+					replay_json = await bu.open_JSON(line, wi.chk_JSON_replay)			
+					await queue.put(await mk_readerQ_item(replay_json))
+			except Exception as err:
+				bu.error(exception=err)
 	else:
 		for fn in files:
-			# bu.debug('Filename: ' + fn)
-			if fn.endswith('"'):
-				fn = fn[:-1] 
-			if os.path.isfile(fn) and (p_replayfile.match(fn) != None):
-				await queue.put(await mk_readerQ_item(fn))
-				bu.debug('File added to queue: ' + fn)
-			elif os.path.isdir(fn):
-				with os.scandir(fn) as dirEntry:
-					for entry in dirEntry:
-						if entry.is_file() and (p_replayfile.match(entry.name) != None): 
-							bu.debug(entry.name)
-							await queue.put(await mk_readerQ_item(entry.path))
-							bu.debug('File added to queue: ' + entry.path)
+			try:
+				# bu.debug('Filename: ' + fn)
+				if fn.endswith('"'):
+					fn = fn[:-1] 
+				if os.path.isfile(fn) and (p_replayfile.match(fn) != None):
+					replay_json = await bu.open_JSON(fn, wi.chk_JSON_replay)
+					await queue.put(await mk_readerQ_item(fn))
+					bu.debug('File added to queue: ' + fn)
+				elif os.path.isdir(fn):
+					with os.scandir(fn) as dirEntry:
+						for entry in dirEntry:
+							if entry.is_file() and (p_replayfile.match(entry.name) != None): 
+								bu.debug(entry.name)
+								replay_json = await bu.open_JSON(entry.path, wi.chk_JSON_replay)
+								await queue.put(await mk_readerQ_item(replay_json))
+								bu.debug('File added to queue: ' + entry.path)
+			except Exception as err:
+				bu.error(exception=err)					
 	bu.debug('Finished: ' + str(queue.qsize())  + ' replays to process') 
 	return None
 
 
-async def mk_readerQ_item(filename : str) -> list:
+async def mk_readerQ_item(replay_json : dict) -> list:
 	"""Make an item to replay queue"""
 	global REPLAY_N
 	REPLAY_N +=1
-	return [filename, REPLAY_N]
+	return [replay_json, REPLAY_N]
 
 
 async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Namespace):
@@ -900,23 +925,22 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 	try:
 		while True:
 			item = await queue.get()
-			filename = item[0]
+			replay_json = item[0]
 			replayID = item[1]
 
 			try:
-				replay_json = await bu.open_JSON(filename, wi.chk_JSON_replay)
 				if replay_json == None:
-					bu.verbose('Replay[' + str(replayID) + ']: ' + filename + ' is invalid. Skipping.' )
+					bu.verbose('Replay[' + str(replayID) + ']: is empty. Skipping.' )
 					#SKIPPED_N += 1
 					queue.task_done()
 					continue
 						
 				## Read the replay JSON
-				bu.debug('reading replay: ' + filename, readerID)
+				bu.debug('reading replay', readerID)
 				result = await read_replay_JSON(replay_json, args)
 				bu.print_progress()
 				if result == None:
-					bu.error('Replay[' + str(replayID) + ']: Error reading: ' + filename, id=readerID)
+					bu.error('Replay[' + str(replayID) + ']: Invalid replay', id=readerID)
 					queue.task_done()
 					continue
 				
