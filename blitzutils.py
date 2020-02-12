@@ -261,6 +261,7 @@ async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func =
             ## To avoid excessive use of servers            
         for retry in range(1,max_tries+1):
             try:
+                await asyncio.sleep(SLEEP)
                 async with session.get(url) as resp:
                     if resp.status == 200:
                         debug('HTTP request OK')
@@ -272,7 +273,7 @@ async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func =
                     if retry == max_tries:                        
                         break
                     debug('Retrying URL [' + str(retry) + '/' +  str(max_tries) + ']: ' + url )
-                    await asyncio.sleep(SLEEP)
+                    
 
             except aiohttp.ClientError as err:
                 debug("Could not retrieve URL: " + url)
@@ -541,8 +542,11 @@ class WG:
     @classmethod
     def get_server(cls, account_id: int) -> str:
         """Get Realm/server of an account based on account ID"""
-        if account_id > 1e9:
-            if account_id > 2e9:
+        if account_id >= 1e9:
+            if account_id >= 3e9:
+                debug('Chinese account/server: not stats available')
+                return None
+            if account_id >= 2e9:
                 return 'asia'
             return 'na'
         else:
@@ -736,7 +740,9 @@ class WG:
     
     def get_url_clan_info(self, server: str, clan_id: int) -> str:
         try:
-           return self.URL_WG_SERVER[server] + self.URL_WG_CLAN_INFO + self.WG_app_id + '&clan_id=' + str(clan_id)
+            if server == None:
+                return None 
+            return self.URL_WG_SERVER[server] + self.URL_WG_CLAN_INFO + self.WG_app_id + '&clan_id=' + str(clan_id)
         except Exception as err:
             if (server == None) or (server.lower() not in WG.ACCOUNT_ID_SERVER.keys()):
                 error('No server name or invalid server name given: ' + server if (server !=  None) else '')
@@ -751,7 +757,8 @@ class WG:
 
     def get_url_player_tanks_stats(self, account_id: int, tank_ids = [], fields = []) -> str: 
         server = self.get_server(account_id)
-        
+        if server == None:
+            return None        
         if (tank_ids != None) and (len(tank_ids) > 0):
             tank_id_str= '&tank_id=' + '%2C'.join([ str(x) for x in tank_ids])
         else:
@@ -770,6 +777,8 @@ class WG:
     def get_url_player_stats(self, account_id,  fields) -> str: 
         try:
             server = self.get_server(account_id)
+            if server == None:
+                return None 
             if (fields != None) and (len(fields) > 0):
                 field_str =  '&fields=' + '%2C'.join(fields)
             else:
