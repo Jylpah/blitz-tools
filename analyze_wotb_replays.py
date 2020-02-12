@@ -1,4 +1,4 @@
-#!/usr/bin/python3.7
+#!/usr/bin/env python3.8
 
 # Script Analyze WoT Blitz replays
 
@@ -11,11 +11,14 @@ from blitzutils import WoTinspector
 
 logging.getLogger("asyncio").setLevel(logging.DEBUG)
 
-WG_APP_ID  			= '81381d3f45fa4aa75b78a7198eb216ad'
+WG_APP_ID  			= 'df25c506c7944e48fbec67e8b74fd34e'
 FILE_CONFIG 		= 'blitzstats.ini'
 DB_C_TANK_STATS 	= 'WG_TankStats'
 DB_C_PLAYER_STATS 	= 'WG_PlayerStats'
 DB_C_REPLAYS		= 'Replays'
+
+N_PLAYERS		= 'Nplayers'
+MISSING_STATS 	= 'missing_stats'
 
 wg = None
 wi = None
@@ -110,6 +113,7 @@ result_fields = {
 	'survived'			: [ 'Surv%', 'Survival rate', 					6, '{:6.1%}' ],
 	'time_alive%'		: [ 'T alive%', 'Percentage of time being alive in a battle', 8, '{:8.0%}' ], 
 	'top_tier'			: [ 'Top tier', 'Share of games as top tier', 					8, '{:8.0%}' ],
+	MISSING_STATS		: [ 'No stats', 'Players without stats avail', 	8, '{:8.1%}'], 
 	'allies_wins'		: [ 'Allies WR', 'Average WR of allies at the tier of their tank', 9, '{:9.2%}' ],
 	'enemies_wins'		: [ 'Enemies WR', 'Average WR of enemies at the tier of their tank', 10, '{:10.2%}' ],
 	'allies_battles'	: [ 'Allies Btls', 'Average number battles of the allies', 		11, '{:11.0f}' ],
@@ -187,12 +191,15 @@ class PlayerHistogram():
 class BattleRecord():
 	def __init__(self):
 		try:
-			self.battles = 0
+			self.battles 		= 0
+			self.missing_stats 	= 0
+			self.n_players 		= 0
 			self.ratios_ready = False
 			self.results_ready = False
 			self.results = collections.defaultdict(def_value_zero)
 			self.avg_fields = set(result_fields.keys())
 			self.avg_fields.remove('battles')
+			self.avg_fields.remove(MISSING_STATS)
 			self.avg_fields.difference_update(result_ratios.keys())
 			self.ratio_fields = set()
 			for ratio in result_ratios.keys():
@@ -205,12 +212,15 @@ class BattleRecord():
 	def record_result(self, result : dict) -> bool:
 		try:
 			for field in self.avg_fields | self.ratio_fields:
-				if result[field] != None:
+				if (field in result) and (result[field] != None):
 					self.results[field] += result[field]
 			self.battles += 1
+			self.n_players		+= result[N_PLAYERS]
+			self.missing_stats 	+= result[MISSING_STATS]
 			return True
 		except KeyError as err:
 			bu.error('Key not found', err)  
+			bu.error(str(result))
 		return False
 
 	def calc_ratios(self) -> bool:
@@ -239,6 +249,7 @@ class BattleRecord():
 			for field in self.avg_fields:
 				self.results[field] = self.results[field] / max(self.battles,1)
 			self.results['battles'] = self.battles
+			self.results[MISSING_STATS] = self.missing_stats / self.n_players
 			self.results_ready = True
 			return True
 		except KeyError as err:
@@ -283,6 +294,7 @@ class BattleRecordCategory():
 
 	def record_result(self, result: dict):
 		try:
+			cat = None
 			if self.type == 'total':
 				cat = 'Total'
 			elif self.type == 'number':
@@ -294,7 +306,9 @@ class BattleRecordCategory():
 			self.category[cat].record_result(result)
 			return True
 		except KeyError as err:
-			bu.error('Key not found', err)  
+			bu.error('Key not found', err)
+			bu.error('Category: ', str(cat))
+			bu.error(str(result))
 		except Exception as err:
 			bu.error(str(err)) 
 		return False
@@ -415,6 +429,7 @@ async def main(argv):
 		try:
 			client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ, ssl_certfile=DB_CERT, tlsCAFile=DB_CA)
 			db = client[DB_NAME]
+			args.account_id = None
 			bu.debug('Database connection initiated')
 		except Exception as err: 
 			bu.error("Could no initiate DB connection: Disabling DB", err) 
@@ -429,7 +444,7 @@ async def main(argv):
 		reader_tasks = []
 		# Make replay Queue
 
-		scanner_task = asyncio.create_task(mk_replayQ(replayQ, args.files, db))
+		scanner_task = asyncio.create_task(mk_replayQ(replayQ, args, db))
 		bu.debug('Replay scanner started')
 		# Start tasks to process the Queue
 		for i in range(TASK_N):
@@ -578,9 +593,9 @@ async def process_player_stats(players, N_workers: int, args : argparse.Namespac
 def remap_stat_id(stat_id_map: dict, stat_id_remap: dict):
 	bu.debug('Remapping stat_ids: stat_id_map: ' + str(len(stat_id_map)) + ' remap needed: ' + str(len(stat_id_remap)))
 	for stat_id in stat_id_map:
-		# bu.debug(stat_id)
-		if stat_id_map[stat_id] in stat_id_remap:
-			stat_id_map[stat_id] = stat_id_remap[stat_id_map[stat_id]]
+	 	# bu.debug(stat_id)
+	 	if stat_id_map[stat_id] in stat_id_remap.keys():
+	 		stat_id_map[stat_id] = stat_id_remap[stat_id_map[stat_id]]
 	return stat_id_map
 
 
@@ -589,18 +604,29 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 	
 	return_list = []
 
-	stat_types = player_stats[list(player_stats.keys())[0]].keys()
+	## Bug here?? 
+	#stat_types = player_stats[list(player_stats.keys())[0]].keys()
+	stat_types = list()
+	p_team_fields = re.compile('^allies_(.+)$')
+	for field in result_fields:
+		m = p_team_fields.match(field)
+		if m != None:
+			stat_types.append(m.group(1))
+
 	bu.debug('stat_types: ' + ','.join(stat_types))
 	
 	for result in results:
 		try:
+			missing_stats = 0
+			n_players = len(result['allies']) + len(result['enemies'])
 			n_allies = collections.defaultdict(def_value_zero)
 			allies_stats = collections.defaultdict(def_value_zero)
 			#bu.debug('Processing Allies')
 			for ally in result['allies']:
 				# Player itself is not in 'allies': see read_replay_JSON()
 				ally_mapped = stat_id_map[ally]
-				if ally_mapped not in player_stats: 
+				if ally_mapped not in player_stats.keys(): 
+					missing_stats += 1
 					continue
 				for stat in stat_types:
 					if player_stats[ally_mapped][stat] != None:
@@ -611,13 +637,17 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 			for stat in stat_types:
 				if  n_allies[stat] > 0:
 					result['allies_' + str(stat)] = allies_stats[stat] / n_allies[stat]
+				else:
+					bu.debug('No allies stats for: ' + str(result))
 			
 			#bu.debug('Processing Enemies')
 			n_enemies = collections.defaultdict(def_value_zero)
 			enemies_stats = collections.defaultdict(def_value_zero)
 			for enemy in result['enemies']:
 				enemy_mapped = stat_id_map[enemy]
-				if enemy_mapped not in player_stats: continue
+				if enemy_mapped not in player_stats: 
+					missing_stats += 1
+					continue
 				for stat in stat_types:
 					if player_stats[enemy_mapped][stat] != None:
 						enemies_stats[stat] += player_stats[enemy_mapped][stat]
@@ -627,7 +657,10 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 			for stat in stat_types:
 				if  n_enemies[stat] > 0:
 					result['enemies_' + str(stat)] = enemies_stats[stat] / n_enemies[stat]
-
+				else:
+					bu.debug('No allies stats for: ' + str(result))
+			result[N_PLAYERS] = n_players
+			result[MISSING_STATS] = missing_stats
 			return_list.append(result)
 		except KeyError as err:
 			bu.error('Key not found', err) 
@@ -658,6 +691,7 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 				stats[stat_id] = await stat_db_func(db, stat_id)				
 				bu.debug('get_db_' + args.stat_func + '_stats returned: ' + str(stats[stat_id]), workerID)
 
+				# no DB stats found, trying WG
 				if (stats[stat_id] == None):
 					pruned_stat_id = prune_stat_id(stat_id)
 					if (pruned_stat_id not in stats):
@@ -683,7 +717,7 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 				if stats[key] == None: 
 					keys_2_del.append(key)		
 			for key in keys_2_del:
-				del stats[key]
+				del stats[key]				
 		except KeyError as err:
 			bu.error('Error in pruning empty stats', err)
 	# bu.debug('Returning stats & exiting')		
@@ -859,16 +893,27 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 	"""Create queue of replays to post"""
 	p_replayfile = re.compile('.*\\.wotbreplay\\.json$')
 	files = args.files
+	
 	if files[0] == 'db:':
 		if db == None:
 			bu.error('No database connection opened')
 			sys.exit(1)
 		try:
 			dbc = db[DB_C_REPLAYS]
-			filters = args.filters
-			cursor = dbc.find(filters)
+			cursor = None
+			if args.filters  != None:
+				bu.debug(str(args.filters))
+				filters = json.loads(args.filters)
+				bu.debug(json.dumps(filters, indent=2))
+				cursor = dbc.find(filters, {'_id': 0 })
+			else:
+				# select all
+				cursor = dbc.find({}, {'_id': 0 })
+			bu.debug('Reading replays...')	
 			async for replay_json in cursor:
-				await mk_readerQ_item(replay_json)
+				#bu.debug(json.dumps(replay_json, indent=2))
+				await queue.put(await mk_readerQ_item(replay_json))
+			bu.debug('All the matching replays have been read from the DB')
 		except Exception as err:
 			bu.error(exception=err)
 
@@ -909,7 +954,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 	return None
 
 
-async def mk_readerQ_item(replay_json : dict) -> list:
+async def mk_readerQ_item(replay_json) -> list:
 	"""Make an item to replay queue"""
 	global REPLAY_N
 	REPLAY_N +=1
@@ -1060,6 +1105,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 def str2ints(stat_id_str: str) -> list:
 	"""Convert stat_id string e.g. 'account_id:tank_id' to list of ints""" 
 	return [ int(x) for x in stat_id_str.split(':') ]
+
 
 def prune_stat_id(stat_id_str: str) -> str: 
 	stat_id 		= stat_id_str.split(':')	
