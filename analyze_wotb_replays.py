@@ -120,6 +120,25 @@ result_fields = {
 	'enemies_battles'	: [ 'Enemies Btls', 'Average number battles of the enemies', 	12, '{:12.0f}' ]	
 }
 
+# fields to display in results
+result_display_fields = [
+    'battles',
+    'win',
+    'damage_made',
+    'DR',
+    'KDR',
+    'enemies_spotted',
+    'hit_rate',
+    'pen_rate',
+    'survived',
+    'time_alive%',
+	'top_tier',
+    'allies_wins',
+	'enemies_wins',
+	'allies_battles',
+	'enemies_battles'
+]
+
 ## Syntax: key == stat field in https://api.wotblitz.eu/wotb/tanks/stats/  (all.KEY)
 ## Value array [ 'Stat Title', [ 0, data buckets ....], scaling_factor_for_bucket_values, 'print_format' ]
 histogram_fields = {
@@ -263,7 +282,7 @@ class BattleRecord():
 			self.calc_results()
 		results = []
 		try:
-			for field in result_fields.keys():
+			for field in result_display_fields:
 				results.append( result_fields[field][3].format(self.results[field]) )
 			return results
 		except KeyError as err:
