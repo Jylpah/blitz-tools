@@ -241,6 +241,8 @@ class BattleRecord():
 		except KeyError as err:
 			bu.error('Key not found', err)  
 			bu.error(str(result))
+		except Exception as err:
+			bu.error('BattleRecord:' ,exception=err)
 		return False
 
 	def calc_ratios(self) -> bool:
@@ -573,6 +575,8 @@ async def process_player_stats(players, N_workers: int, args : argparse.Namespac
 	stat_id_map = {}
 	stat_ids = set()
 
+	bu.set_progress_bar('Fetching player stats', len(players), 25, True)
+
 	stat_id_map_func = globals()[STAT_FUNC[args.stat_func][0]]
 
 	for player in players:
@@ -603,6 +607,8 @@ async def process_player_stats(players, N_workers: int, args : argparse.Namespac
 		player_stats = {**player_stats, **stats}
 		stat_id_remap = {**stat_id_remap, **id_remap}
 
+	bu.finish_progress_bar()
+	
 	## DO REMAPPING
 	stat_id_map = remap_stat_id(stat_id_map, stat_id_remap)
 
@@ -1033,6 +1039,12 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 	#db = args.db
 	result = {}
 	try:
+		result['battle_start_timestamp'] = int(replay_json['data']['summary']['battle_start_timestamp'])
+		# TBD... 
+		# protagonist = int(replay_json['data']['summary']['protagonist'])
+		# protagonist_tank = int()
+		# result['protagonist'] = get_stat_id(protagonist, protagonist_tank, result['battle_start_timestamp'])
+		
 		if account_id == None:
 			account_id = replay_json['data']['summary']['protagonist'] 
 		elif replay_json['data']['summary']['protagonist'] != account_id:
@@ -1054,7 +1066,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 			result['url'] = replay_json['data']['view_url']
 		for key in replay_summary_flds:
 			result[key] = replay_json['data']['summary'][key]
-		result['battle_start_timestamp'] = int(replay_json['data']['summary']['battle_start_timestamp'])
+		
 		result['allies'] = set()
 		result['enemies'] = set()
 		btl_duration = 0
