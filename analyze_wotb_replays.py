@@ -25,6 +25,7 @@ wi = None
 REPLAY_N = 0
 REPLAY_I = 0
 STAT_TANK_BATTLE_MIN = 100
+BATTLE_TIME_BUCKET = 3600*24*14
 
 ## For different player stat functions (global stats, tank tier stats, etc)
 # 1st function = for forming stat_id, 2nd for DB stats query, 3rd for WG API stats query
@@ -92,8 +93,7 @@ result_categories_default = [
 	'battle_result',
 	'battle_type',
 	'tank_tier', 
-	'top_tier', 
-	
+	'top_tier'	
 ]
 
 RESULT_CAT_HEADER_FRMT = '{:_<17s}'
@@ -136,7 +136,8 @@ result_display_fields = [
     'allies_wins',
 	'enemies_wins',
 	'allies_battles',
-	'enemies_battles'
+	'enemies_battles', 
+	MISSING_STATS
 ]
 
 ## Syntax: key == stat field in https://api.wotblitz.eu/wotb/tanks/stats/  (all.KEY)
@@ -1085,8 +1086,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 			else:
 				tmp_account_id 	= player['dbid']
 				tmp_tank_id 	= player['vehicle_descr']
-				# tmp_tank_tier 	= wg.get_tank_tier(tmp_tank_id)				
-				tmp_battletime	= int(replay_json['data']['summary']['battle_start_timestamp'])
+				tmp_battletime	= result['battle_start_timestamp']
 				
 				if player['dbid'] in replay_json['data']['summary']['allies']: 
 					result['allies'].add(get_stat_id(tmp_account_id, tmp_tank_id, tmp_battletime))
@@ -1102,9 +1102,10 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 					tmp_account_id 	= player['dbid']
 					tmp_tank_id 	= player['vehicle_descr']
 					#tmp_tank_tier 	= str(wg.get_tank_tier(tmp_tank_id))
-					tmp_battletime	= int(replay_json['data']['summary']['battle_start_timestamp'])
+					tmp_battletime	= result['battle_start_timestamp']
 					# platoon buddy removed from stats 
 					result['allies'].remove(get_stat_id(tmp_account_id, tmp_tank_id, tmp_battletime))
+					break
 
 		result['time_alive%'] = result['time_alive'] / btl_duration  
 		result['battle_tier'] = btl_tier
@@ -1140,13 +1141,15 @@ def get_stat_id_tank_tier(stat_id_str: str) -> str:
 	"""Return stat_id = account_id:tank_tier"""
 	stat_id 	= stat_id_str.split(':')
 	tank_tier = wg.get_tank_tier(int(stat_id[1]))
-	return ':'.join([ stat_id[0], str(tank_tier), stat_id[2] ])
+	battle_time = (int(stat_id[2]) // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
+	return ':'.join([ stat_id[0], str(tank_tier), str(battle_time) ])
 
 
 def get_stat_id_player(stat_id_str: str) -> str:
 	"""Return stat_id = account_id:tank_tier"""
 	stat_id 	= stat_id_str.split(':')
-	return ':'.join([ stat_id[0], stat_id[2] ])
+	battle_time = (int(stat_id[2]) // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
+	return ':'.join([ stat_id[0], str(battle_time) ])
 
 
 ### main()
