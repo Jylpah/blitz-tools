@@ -252,7 +252,7 @@ async def open_JSON(filename: str, chk_JSON_func = None) -> dict:
     return None
 
 
-async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func = None, max_tries = MAX_RETRIES) -> dict:
+async def get_url_JSON(session: aiohttp.ClientSession, url, chk_JSON_func = None, max_tries = MAX_RETRIES) -> dict:
         """Retrieve (GET) an URL and return JSON object"""
         if session == None:
             error('Session must be initialized first')
