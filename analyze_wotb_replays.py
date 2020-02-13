@@ -335,7 +335,7 @@ class BattleRecordCategory():
 	def get_headers(self):
 		try:
 			headers = [  RESULT_CAT_HEADER_FRMT.format(result_categories[self.category_name][0]) ]
-			for field in result_fields.keys():
+			for field in result_display_fields:
 				print_format = '{:^' + str(result_fields[field][2]) + 's}'
 				headers.append(print_format.format(result_fields[field][0]))
 			return headers

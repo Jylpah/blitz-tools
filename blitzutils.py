@@ -252,13 +252,15 @@ async def open_JSON(filename: str, chk_JSON_func = None) -> dict:
     return None
 
 
-async def get_url_JSON(session: aiohttp.ClientSession, url, chk_JSON_func = None, max_tries = MAX_RETRIES) -> dict:
+async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func = None, max_tries = MAX_RETRIES) -> dict:
         """Retrieve (GET) an URL and return JSON object"""
         if session == None:
             error('Session must be initialized first')
             sys.exit(1)
-
-            ## To avoid excessive use of servers            
+        if url == None:
+            return None
+        
+        ## To avoid excessive use of servers            
         for retry in range(1,max_tries+1):
             try:
                 await asyncio.sleep(SLEEP)
@@ -830,10 +832,7 @@ class WG:
 
     async def get_player_tank_stats(self, account_id: int, tank_ids = [], fields = [], cache=True) -> dict:
         """Get player's stats (WR, # of battles) in a tank or all tanks (empty tank_ids[])"""
-        # debug('Started')        
-        
         try:
-            #debug('account_id: ' + str(account_id) + ' TankID: ' + ','.join([ str(id) for id in tank_ids]))
             stats = None
 
             # try cached stats first:
