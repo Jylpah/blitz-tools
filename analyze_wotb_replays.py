@@ -90,10 +90,10 @@ result_categories = {
 result_categories_default = [
 	'total',
 	'battle_result',
+	'battle_type',
 	'tank_tier', 
 	'top_tier', 
-	'tank_name',
-	'map_name'
+	
 ]
 
 RESULT_CAT_HEADER_FRMT = '{:_<17s}'
