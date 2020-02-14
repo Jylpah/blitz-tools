@@ -69,76 +69,6 @@ replay_details_flds = [
 	'enemies_spotted'
 	]
 
-result_ratios = {
-	'KDR'				: [ 'enemies_destroyed', 'destroyed' ],
-	'DR'				: [ 'damage_made', 'damage_received' ],
-	'hit_rate'			: [ 'shots_hit', 'shots_made' ],
-	'pen_rate'			: [ 'shots_pen', 'shots_hit' ],
-	'dmg_block_rate' 	: [ 'damage_blocked', 'damage_received' ]
-}
-
-result_categories = {
-	'total'				: [ 'TOTAL', 'total' ],
-	'battle_result'		: [ 'Result', [ 'Loss', 'Win', 'Draw']],
-	'battle_type'		: [ 'Battle Type',['Encounter', 'Supremacy']],
-	'tank_tier'			: [ 'Tank Tier', 'number' ],
-	'top_tier'			: [ 'Tier', ['Bottom tier', 'Top tier']],
-	'tank_name'			: [ 'Tank', 'string' ],
-	'map_name'			: [ 'Map', 'string' ],
-	'battle_i'			: [ 'Battle #', 'number']
-	}
-
-result_categories_default = [
-	'total',
-	'battle_result',
-	'battle_type',
-	'tank_tier', 
-	'top_tier'	
-]
-
-RESULT_CAT_HEADER_FRMT = '{:_<17s}'
-RESULT_CAT_FRMT = '{:>17s}'
-
-
-## Syntax: Check how the replay JSON files look. The algorithm is counting/recording fields
-result_fields = {
-	'battles'			: [ 'Battles', 'Number of battles', 8, '{:^8.0f}' ],
-	'win'				: [ 'WR', 'Win rate', 				6, '{:6.1%}' ],
-	'damage_made'		: [ 'DPB', 'Average Damage', 		5, '{:5.0f}' ],
-	'DR'				: [ 'DR', 'Damage Ratio', 			5, '{:5.1f}' ],
-	'KDR'				: [ 'KDR', 'Kills / Death', 		4, '{:4.1f}' ],
-	'enemies_spotted'	: [ 'Spot', 'Enemies spotted per battle', 		4, '{:4.1f}' ],
-	'hit_rate'			: [ 'Hit rate', 'Shots hit / all shots made', 	8, '{:8.1%}' ],
-	'pen_rate'			: [ 'Pen rate', 'Shots pen / shots hit', 		8, '{:8.1%}' ],
-	'survived'			: [ 'Surv%', 'Survival rate', 					6, '{:6.1%}' ],
-	'time_alive%'		: [ 'T alive%', 'Percentage of time being alive in a battle', 8, '{:8.0%}' ], 
-	'top_tier'			: [ 'Top tier', 'Share of games as top tier', 					8, '{:8.0%}' ],
-	MISSING_STATS		: [ 'No stats', 'Players without stats avail', 	8, '{:8.1%}'], 
-	'allies_wins'		: [ 'Allies WR', 'Average WR of allies at the tier of their tank', 9, '{:9.2%}' ],
-	'enemies_wins'		: [ 'Enemies WR', 'Average WR of enemies at the tier of their tank', 10, '{:10.2%}' ],
-	'allies_battles'	: [ 'Allies Btls', 'Average number battles of the allies', 		11, '{:11.0f}' ],
-	'enemies_battles'	: [ 'Enemies Btls', 'Average number battles of the enemies', 	12, '{:12.0f}' ]	
-}
-
-# fields to display in results
-result_display_fields = [
-    'battles',
-    'win',
-    'damage_made',
-    'DR',
-    'KDR',
-    'enemies_spotted',
-    'hit_rate',
-    'pen_rate',
-    'survived',
-    'time_alive%',
-	'top_tier',
-    'allies_wins',
-	'enemies_wins',
-	'allies_battles',
-	'enemies_battles', 
-	MISSING_STATS
-]
 
 ## Syntax: key == stat field in https://api.wotblitz.eu/wotb/tanks/stats/  (all.KEY)
 ## Value array [ 'Stat Title', [ 0, data buckets ....], scaling_factor_for_bucket_values, 'print_format' ]
@@ -155,6 +85,296 @@ def def_value_zero():
 def def_value_BattleRecord():
 	return BattleRecord()
 
+class BattleRecordCategory():
+	_result_categories = {
+		'total'				: [ 'TOTAL', 'total' ],
+		'battle_result'		: [ 'Result', [ 'Loss', 'Win', 'Draw']],
+		'battle_type'		: [ 'Battle Type',['Encounter', 'Supremacy']],
+		'tank_tier'			: [ 'Tank Tier', 'number' ],
+		'top_tier'			: [ 'Tier', ['Bottom tier', 'Top tier']],
+		'tank_name'			: [ 'Tank', 'string' ],
+		'map_name'			: [ 'Map', 'string' ],
+		'battle_i'			: [ 'Battle #', 'number']
+		}
+
+	_result_categories_default = [
+		'total',
+		'battle_result',
+		'battle_type',
+		'tank_tier', 
+		'top_tier'	
+		]
+
+	_result_categories_extended = [
+		'tank_name',
+		'map_name', 
+		'battle_i'		
+		]
+
+	
+	RESULT_CAT_FRMT = '{:>17s}'
+	
+	@classmethod
+	def get_result_categories(cls, extended_stats: bool = False):
+		if extended_stats:
+			return cls._result_categories_default + cls._result_categories_extended
+		else:
+			return cls._result_categories_default
+
+	def __init__(self, cat_name : str):
+		self.category_name = cat_name
+		self.category = collections.defaultdict(def_value_BattleRecord)
+		if self._result_categories[self.category_name][1] == 'string':
+			self.type = 'string'
+		elif self._result_categories[self.category_name][1] == 'number':
+			self.type = 'number'
+		elif self._result_categories[self.category_name][1] == 'total':
+			self.type = 'total'
+		else:
+			self.type = 'category'
+	
+
+	def get_sub_categories(self):
+		return self.category.keys()
+
+	def record_result(self, result: dict):
+		try:
+			cat = None
+			if self.type == 'total':
+				cat = 'Total'
+			elif self.type == 'number':
+				cat = str(result[self.category_name])
+			elif self.type == 'string':
+				cat = result[self.category_name]
+			else:
+				cat = self._result_categories[self.category_name][1][result[self.category_name]]
+			self.category[cat].record_result(result)
+			return True
+		except KeyError as err:
+			bu.error('Key not found', err)
+			bu.error('Category: ', str(cat))
+			bu.error(str(result))
+		except Exception as err:
+			bu.error(str(err)) 
+		return False
+	
+
+	def print_results(self):
+		try:
+			print('   '.join(self.get_headers()))
+			for row in self.get_results():
+				print(' : '.join(row))
+		except KeyError as err:
+			bu.error('Key not found', err)  
+		except Exception as err:
+			bu.error(str(err)) 
+		return None
+
+	def get_results(self):
+		try:
+			results = []
+			# results.append(self.get_headers())			
+			if self.type == 'number':
+				for cat in sorted( [ int(s) for s in self.category.keys() ] ):
+					cat = str(cat) 
+					row = [ self.RESULT_CAT_FRMT.format(cat) ]
+					row.extend(self.category[cat].get_results())
+					results.append(row)
+			else:
+				for cat in sorted(self.category.keys() , key=str.casefold):
+					row = [ self.RESULT_CAT_FRMT.format(cat) ]
+					row.extend(self.category[cat].get_results())
+					results.append(row)
+			return results
+		except KeyError as err:
+			bu.error('Key not found', err)  
+		return None
+
+
+class BattleRecord():
+	
+	## Syntax: Check how the replay JSON files look. The algorithm is counting/recording fields
+	_result_fields = {
+		'battles'			: [ 'Battles', 'Number of battles', 8, '{:^8.0f}' ],
+		'win'				: [ 'WR', 'Win rate', 				6, '{:6.1%}' ],
+		'damage_made'		: [ 'DPB', 'Average Damage', 		5, '{:5.0f}' ],
+		'DR'				: [ 'DR', 'Damage Ratio', 			5, '{:5.1f}' ],
+		'KDR'				: [ 'KDR', 'Kills / Death', 		4, '{:4.1f}' ],
+		'enemies_spotted'	: [ 'Spot', 'Enemies spotted per battle', 		4, '{:4.1f}' ],
+		'hit_rate'			: [ 'Hit rate', 'Shots hit / all shots made', 	8, '{:8.1%}' ],
+		'pen_rate'			: [ 'Pen rate', 'Shots pen / shots hit', 		8, '{:8.1%}' ],
+		'survived'			: [ 'Surv%', 'Survival rate', 					6, '{:6.1%}' ],
+		'time_alive%'		: [ 'T alive%', 'Percentage of time being alive in a battle', 8, '{:8.0%}' ], 
+		'top_tier'			: [ 'Top tier', 'Share of games as top tier', 					8, '{:8.0%}' ],
+		MISSING_STATS		: [ 'No stats', 'Players without stats avail', 	8, '{:8.1%}'], 
+		'allies_wins'		: [ 'Allies WR', 'Average WR of allies at the tier of their tank', 9, '{:9.2%}' ],
+		'enemies_wins'		: [ 'Enemies WR', 'Average WR of enemies at the tier of their tank', 10, '{:10.2%}' ],
+		'allies_battles'	: [ 'Allies Btls', 'Average number battles of the allies', 		11, '{:11.0f}' ],
+		'enemies_battles'	: [ 'Enemies Btls', 'Average number battles of the enemies', 	12, '{:12.0f}' ]	
+	}
+
+	# fields to display in results
+	_result_fields_default = [
+		'battles',
+		'win',
+		'damage_made',
+		'enemies_spotted',
+		'top_tier',
+		'allies_wins',
+		'enemies_wins',
+		'allies_battles',
+		'enemies_battles'
+	]
+
+	_result_fields_extended = [
+		'DR',
+		'KDR',
+		'hit_rate',
+		'pen_rate',
+		'survived',
+		'time_alive%',
+		MISSING_STATS
+	]
+
+	_result_ratios = {
+		'KDR'				: [ 'enemies_destroyed', 'destroyed' ],
+		'DR'				: [ 'damage_made', 'damage_received' ],
+		'hit_rate'			: [ 'shots_hit', 'shots_made' ],
+		'pen_rate'			: [ 'shots_pen', 'shots_hit' ],
+		'dmg_block_rate' 	: [ 'damage_blocked', 'damage_received' ]
+	}
+
+
+	RESULT_CAT_HEADER_FRMT = '{:_<17s}'
+
+
+	@classmethod
+	def get_result_fields(cls, extended_stats: bool = False):
+		if extended_stats:
+			return cls._result_fields_default + cls._result_fields_extended
+		else:
+			return cls._result_fields_default
+
+	
+	@classmethod
+	def get_fields_avg(cls) -> set:
+		avg_fields = set(cls.get_result_fields(True))
+		avg_fields.remove('battles')
+		avg_fields.remove(MISSING_STATS)
+		avg_fields.difference_update(cls._result_ratios.keys())
+		return avg_fields
+
+
+	@classmethod
+	def get_fields_ratio(cls) -> set:
+		ratio_fields = set()
+		for ratio in cls._result_ratios.keys():
+			ratio_fields.add(cls._result_ratios[ratio][0])
+			ratio_fields.add(cls._result_ratios[ratio][1])
+		return ratio_fields
+
+
+	def __init__(self, extended_stats: bool = False):
+		try:
+			self.battles 		= 0
+			self.missing_stats 	= 0
+			self.n_players 		= 0
+			self.ratios_ready 	= False
+			self.results_ready 	= False
+			self.results = collections.defaultdict(def_value_zero)
+			self.avg_fields 	= self.get_fields_avg()
+			self.ratio_fields 	= self.get_fields_ratio()
+			self.result_fields 	= self.get_result_fields(extended_stats)
+			self.result_fields_ratio = set(self._result_ratios.keys()) & set(self.get_result_fields(extended_stats)) 
+
+			
+		except KeyError as err:
+			bu.error('Key not found', err) 
+
+
+	def record_result(self, result : dict) -> bool:
+		try:
+			for field in self.avg_fields | self.ratio_fields:
+				if (field in result) and (result[field] != None):
+					self.results[field] += result[field]
+			self.battles += 1
+			self.n_players		+= result[N_PLAYERS]
+			self.missing_stats 	+= result[MISSING_STATS]
+			return True
+		except KeyError as err:
+			bu.error('Key not found', err)  
+			bu.error(str(result))
+		except Exception as err:
+			bu.error('BattleRecord:' ,exception=err)
+		return False
+
+
+	def calc_ratios(self) -> bool:
+		if self.ratios_ready:
+			return True
+		try:					
+			for field in self.result_fields_ratio:
+				if self.results[self._result_ratios[field][1]] != 0:
+					self.results[field] = self.results[self._result_ratios[field][0]] / self.results[self._result_ratios[field][1]]
+				else:
+					self.results[field] = float('Inf')
+			self.ratios_ready = True
+			return True
+		except KeyError as err:
+			bu.error('Key not found', err) 
+		return False
+
+
+	def calc_results(self):
+		if self.results_ready == True: 
+			return True
+		if not self.ratios_ready:
+			self.calc_ratios()
+		try:
+			for field in self.avg_fields:
+				self.results[field] = self.results[field] / max(self.battles,1)
+			self.results['battles'] = self.battles
+			self.results[MISSING_STATS] = self.missing_stats / self.n_players
+			self.results_ready = True
+			return True
+		except KeyError as err:
+			bu.error('Key not found', err) 
+		except Exception as err:
+			bu.error(exception=err) 
+		return False
+
+
+	def get_headers(self, cat_name: str):
+		try:
+			headers = [ self.RESULT_CAT_HEADER_FRMT.format(cat_name) ]
+			for field in self.result_fields:
+				print_format = '{:^' + str(self._result_fields[field][2]) + 's}'
+				headers.append(print_format.format(self._result_fields[field][0]))
+			return headers
+		except KeyError as err:
+			bu.error('Key not found', err)  
+		except Exception as err:
+			bu.error(str(err)) 
+		return None
+
+	def get_results(self):
+		if not self.results_ready:
+			self.calc_results()
+		results = []
+		try:
+			for field in self.result_fields:
+				results.append(self._result_fields[field][3].format(self.results[field]) )
+			return results
+		except KeyError as err:
+			bu.error('Key not found', err)  
+		except Exception as err:
+			bu.error(exception=err) 
+		return None
+	
+
+	def print_results(self):
+		print(' : '.join(self.get_results()))
+
 
 class PlayerHistogram():
 	def __init__(self, field: str, name: str, fields : list, factor: float, format: str ):
@@ -162,7 +382,7 @@ class PlayerHistogram():
 		self.name 		= name
 		self.fields 	= fields
 		self.cat_factor = factor
-		self.cat_format 	= format
+		self.cat_format = format
 		self.ncat 		= len(self.fields) - 1
 		self.allies 	= [0] * self.ncat
 		self.enemies 	= [0] * self.ncat
@@ -207,177 +427,6 @@ class PlayerHistogram():
 			print("{:12s} | {:5d} ({:4.1f}%) | {:5d} ({:4.1f}%) | {:5d} ({:4.1f}%)".format(self.get_category_name(cat), self.allies[cat], self.allies[cat]/N_allies*100, self.enemies[cat], self.enemies[cat]/N_enemies*100, self.allies[cat] + self.enemies[cat], (self.allies[cat] + self.enemies[cat])/N_total*100 ))
 		return None
 
-
-class BattleRecord():
-	def __init__(self):
-		try:
-			self.battles 		= 0
-			self.missing_stats 	= 0
-			self.n_players 		= 0
-			self.ratios_ready = False
-			self.results_ready = False
-			self.results = collections.defaultdict(def_value_zero)
-			self.avg_fields = set(result_fields.keys())
-			self.avg_fields.remove('battles')
-			self.avg_fields.remove(MISSING_STATS)
-			self.avg_fields.difference_update(result_ratios.keys())
-			self.ratio_fields = set()
-			for ratio in result_ratios.keys():
-				self.ratio_fields.add(result_ratios[ratio][0])
-				self.ratio_fields.add(result_ratios[ratio][1])
-
-		except KeyError as err:
-			bu.error('Key not found', err) 
-
-	def record_result(self, result : dict) -> bool:
-		try:
-			for field in self.avg_fields | self.ratio_fields:
-				if (field in result) and (result[field] != None):
-					self.results[field] += result[field]
-			self.battles += 1
-			self.n_players		+= result[N_PLAYERS]
-			self.missing_stats 	+= result[MISSING_STATS]
-			return True
-		except KeyError as err:
-			bu.error('Key not found', err)  
-			bu.error(str(result))
-		except Exception as err:
-			bu.error('BattleRecord:' ,exception=err)
-		return False
-
-	def calc_ratios(self) -> bool:
-		if self.ratios_ready:
-			return True
-		try:
-			ratio_result_flds = set(result_ratios.keys()) & set(result_fields.keys())
-			
-			for field in ratio_result_flds:
-				if self.results[result_ratios[field][1]] != 0:
-					self.results[field] = self.results[result_ratios[field][0]] / self.results[result_ratios[field][1]]
-				else:
-					self.results[field] = float('Inf')
-			self.ratios_ready = True
-			return True
-		except KeyError as err:
-			bu.error('Key not found', err) 
-		return False
-
-	def calc_results(self):
-		if self.results_ready == True: 
-			return True
-		if not self.ratios_ready:
-			self.calc_ratios()
-		try:
-			for field in self.avg_fields:
-				self.results[field] = self.results[field] / max(self.battles,1)
-			self.results['battles'] = self.battles
-			self.results[MISSING_STATS] = self.missing_stats / self.n_players
-			self.results_ready = True
-			return True
-		except KeyError as err:
-			bu.error('Key not found', err) 
-		except Exception as err:
-			bu.error(exception=err) 
-		return False
-
-	def get_results(self):
-		if not self.results_ready:
-			self.calc_results()
-		results = []
-		try:
-			for field in result_display_fields:
-				results.append( result_fields[field][3].format(self.results[field]) )
-			return results
-		except KeyError as err:
-			bu.error('Key not found', err)  
-		except Exception as err:
-			bu.error(exception=err) 
-		return None
-	
-	def print_results(self):
-		print(' : '.join(self.get_results()))
-
-
-class BattleRecordCategory():
-	def __init__(self, cat_name : str):
-		self.category_name = cat_name
-		self.category = collections.defaultdict(def_value_BattleRecord)
-		if result_categories[self.category_name][1] == 'string':
-			self.type = 'string'
-		elif result_categories[self.category_name][1] == 'number':
-			self.type = 'number'
-		elif result_categories[self.category_name][1] == 'total':
-			self.type = 'total'
-		else:
-			self.type = 'category'
-	
-	def get_sub_categories(self):
-		return self.category.keys()
-
-	def record_result(self, result: dict):
-		try:
-			cat = None
-			if self.type == 'total':
-				cat = 'Total'
-			elif self.type == 'number':
-				cat = str(result[self.category_name])
-			elif self.type == 'string':
-				cat = result[self.category_name]
-			else:
-				cat = result_categories[self.category_name][1][result[self.category_name]]
-			self.category[cat].record_result(result)
-			return True
-		except KeyError as err:
-			bu.error('Key not found', err)
-			bu.error('Category: ', str(cat))
-			bu.error(str(result))
-		except Exception as err:
-			bu.error(str(err)) 
-		return False
-	
-	def get_headers(self):
-		try:
-			headers = [  RESULT_CAT_HEADER_FRMT.format(result_categories[self.category_name][0]) ]
-			for field in result_display_fields:
-				print_format = '{:^' + str(result_fields[field][2]) + 's}'
-				headers.append(print_format.format(result_fields[field][0]))
-			return headers
-		except KeyError as err:
-			bu.error('Key not found', err)  
-		except Exception as err:
-			bu.error(str(err)) 
-		return None
-
-	def print_results(self):
-		try:
-			print('   '.join(self.get_headers()))
-			for row in self.get_results():
-				print(' : '.join(row))
-		except KeyError as err:
-			bu.error('Key not found', err)  
-		except Exception as err:
-			bu.error(str(err)) 
-		return None
-
-	def get_results(self):
-		try:
-			results = []
-			# results.append(self.get_headers())			
-			if self.type == 'number':
-				for cat in sorted( [ int(s) for s in self.category.keys() ] ):
-					cat = str(cat) 
-					row = [ RESULT_CAT_FRMT.format(cat) ]
-					row.extend(self.category[cat].get_results())
-					results.append(row)
-			else:
-				for cat in sorted(self.category.keys() , key=str.casefold):
-					row = [ RESULT_CAT_FRMT.format(cat) ]
-					row.extend(self.category[cat].get_results())
-					results.append(row)
-			return results
-		except KeyError as err:
-			bu.error('Key not found', err)  
-		return None
 
 ## main() -------------------------------------------------------------
 
