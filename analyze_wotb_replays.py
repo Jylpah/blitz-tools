@@ -93,6 +93,7 @@ class BattleRecordCategory():
 		'battle_type'		: [ 'Battle Type',['Encounter', 'Supremacy']],
 		'tank_tier'			: [ 'Tank Tier', 'number' ],
 		'top_tier'			: [ 'Tier', ['Bottom tier', 'Top tier']],
+		'mastery_badge'		: [ 'Battle Class', ['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
 		'tank_name'			: [ 'Tank', 'string' ],
 		'map_name'			: [ 'Map', 'string' ],
 		'battle_i'			: [ 'Battle #', 'number']
@@ -103,7 +104,8 @@ class BattleRecordCategory():
 		'battle_result',
 		'battle_type',
 		'tank_tier', 
-		'top_tier'	
+		'top_tier',
+		'mastery_badge'		
 		]
 
 	_result_categories_extended = [
@@ -142,6 +144,10 @@ class BattleRecordCategory():
 	def get_sub_categories(self):
 		return self.category.keys()
 
+	
+	def get_category_name(self) -> str:
+		return self._result_categories[self.category_name][0]
+
 
 	def record_result(self, result: dict):
 		try:
@@ -168,7 +174,7 @@ class BattleRecordCategory():
 	def print_results(self):
 		try:
 			first_btl_record = list(self.category.values())[0]
-			print('   '.join(first_btl_record.get_headers(self.category_name)))
+			print('   '.join(first_btl_record.get_headers(self.get_category_name())))
 			for row in self.get_results():
 				print(' : '.join(row))
 		except KeyError as err:
@@ -233,6 +239,7 @@ class BattleRecord():
 		'enemies_spotted',
 		'top_tier',
 		'player_wins',
+		'player_battles',
 		'allies_wins',
 		'enemies_wins',
 		'allies_battles',
@@ -249,6 +256,9 @@ class BattleRecord():
 		MISSING_STATS
 	]
 
+	_result_counts = [
+		'battles', MISSING_STATS, 'mastery_badge'
+	]
 	_result_ratios = {
 		'KDR'				: [ 'enemies_destroyed', 'destroyed' ],
 		'DR'				: [ 'damage_made', 'damage_received' ],
@@ -278,7 +288,7 @@ class BattleRecord():
 			cls.result_fields_ratio = set(cls._result_ratios.keys()) & set(cls.result_fields)
 		
 			cls.avg_fields = set(cls.result_fields)
-			for field in ['battles', MISSING_STATS]:
+			for field in cls._result_counts:
 				if field in cls.avg_fields:
 					cls.avg_fields.remove(field)
 			cls.avg_fields.difference_update(set(cls._result_ratios.keys()))
@@ -362,7 +372,7 @@ class BattleRecord():
 			for field in self.avg_fields:
 				self.results[field] = self.results[field] / max(self.battles,1)
 			self.results['battles'] = self.battles
-			self.results[MISSING_STATS] = self.missing_stats / self.n_players
+			self.results[MISSING_STATS] = self.missing_stats / max(self.n_players, 1)
 			self.results_ready = True
 			return True
 		except KeyError as err:
@@ -384,6 +394,7 @@ class BattleRecord():
 		except Exception as err:
 			bu.error(str(err)) 
 		return None
+
 
 	def get_results(self):
 		if not self.results_ready:
