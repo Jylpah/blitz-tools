@@ -93,7 +93,7 @@ class BattleRecordCategory():
 		'battle_type'		: [ 'Battle Type',['Encounter', 'Supremacy']],
 		'tank_tier'			: [ 'Tank Tier', 'number' ],
 		'top_tier'			: [ 'Tier', ['Bottom tier', 'Top tier']],
-		'mastery_badge'		: [ 'Battle Class', ['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
+		'mastery_badge'		: [ 'Battle Medal', ['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
 		'tank_name'			: [ 'Tank', 'string' ],
 		'map_name'			: [ 'Map', 'string' ],
 		'battle_i'			: [ 'Battle #', 'number']
@@ -167,6 +167,7 @@ class BattleRecordCategory():
 			bu.error('Category: ', str(cat))
 			bu.error(str(result))
 		except Exception as err:
+			bu.error('Category: ', str(cat))
 			bu.error(str(err)) 
 		return False
 	
@@ -239,7 +240,7 @@ class BattleRecord():
 		'enemies_spotted',
 		'top_tier',
 		'player_wins',
-		'player_battles',
+#		'player_battles',
 		'allies_wins',
 		'enemies_wins',
 		'allies_battles',
@@ -518,7 +519,7 @@ async def main(argv):
 	
 	args = parser.parse_args()
 	bu.set_log_level(args.silent, args.verbose, args.debug)
-	bu.set_progress_step(200)  # Set the frequency of the progress dots. 
+	bu.set_progress_step(250)  # Set the frequency of the progress dots. 
 	
 	wg = await WG.create(WG_APP_ID, args.tankfile, args.mapfile, True)
 	wi = WoTinspector()
@@ -763,6 +764,12 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 			
 			#bu.debug('Processing avg stats')
 			player_mapped = stat_id_map[result['player']]
+			if player_mapped not in player_stats:
+				missing_stats += 1				
+			else:				
+				for stat in stat_types:
+					if player_stats[player_mapped][stat] != None:
+						result['player_' + str(stat)] = player_stats[player_mapped][stat]
 
 			for stat in stat_types:
 				if  n_allies[stat] > 0:
@@ -775,9 +782,7 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 				else:
 					bu.debug('No enemies stats for: ' + str(result))
 				
-				if player_stats[player_mapped][stat] != None:
-						result['player_' + str(stat)] = player_stats[player_mapped][stat]
-
+				
 			result[N_PLAYERS] = n_players
 			result[MISSING_STATS] = missing_stats
 			return_list.append(result)
@@ -1104,7 +1109,7 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 				result = await read_replay_JSON(replay_json, args)
 				bu.print_progress()
 				if result == None:
-					bu.error('Replay[' + str(replayID) + ']: Invalid replay', id=readerID)
+					bu.debug('Replay[' + str(replayID) + ']: Invalid replay', id=readerID)
 					queue.task_done()
 					continue
 				
@@ -1133,6 +1138,10 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 	#db = args.db
 	result = {}
 	try:
+		if (replay_json['data']['summary']['mastery_badge'] == None) or (replay_json['data']['summary']['battle_result'] < 0):
+			bu.debug('Invalid replay')
+			return None
+		
 		result['battle_start_timestamp'] = int(replay_json['data']['summary']['battle_start_timestamp'])
 		# TBD... 
 		protagonist = int(replay_json['data']['summary']['protagonist'])
@@ -1156,8 +1165,10 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 				return None
 		if url: 
 			result['url'] = replay_json['data']['view_url']
+				
 		for key in replay_summary_flds:
 			result[key] = replay_json['data']['summary'][key]
+
 		
 		result['allies'] = set()
 		result['enemies'] = set()
