@@ -257,8 +257,10 @@ async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func =
         if session == None:
             error('Session must be initialized first')
             sys.exit(1)
-
-            ## To avoid excessive use of servers            
+        if url == None:
+            return None
+        
+        ## To avoid excessive use of servers            
         for retry in range(1,max_tries+1):
             try:
                 async with session.get(url) as resp:
@@ -272,7 +274,7 @@ async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func =
                     if retry == max_tries:                        
                         break
                     debug('Retrying URL [' + str(retry) + '/' +  str(max_tries) + ']: ' + url )
-                    await asyncio.sleep(SLEEP)
+                await asyncio.sleep(SLEEP)    
 
             except aiohttp.ClientError as err:
                 debug("Could not retrieve URL: " + url)
@@ -309,10 +311,15 @@ def bld_dict_hierarcy(d : dict, key : str, value) -> dict:
 ## -----------------------------------------------------------
 
 class SlowBar(IncrementalBar):
-    suffix = '%(index)d/%(max)d %(percent)d%% ETA %(remaining_hours).1f hours'
+    suffix = '%(index)d/%(max)d %(percent)d%% ETA %(remaining_hours).0f h %(remaining_mins).0f mins'
     @property
     def remaining_hours(self):
-        return Decimal(self.eta / 3600).quantize(Decimal('1.0')) 
+        return self.eta // 3600
+
+    @property
+    def remaining_mins(self):
+        return (self.eta - (self.eta // 3600)*3600) // 60
+ 
 
 
 ## -----------------------------------------------------------
@@ -541,8 +548,11 @@ class WG:
     @classmethod
     def get_server(cls, account_id: int) -> str:
         """Get Realm/server of an account based on account ID"""
-        if account_id > 1e9:
-            if account_id > 2e9:
+        if account_id >= 1e9:
+            if account_id >= 3e9:
+                debug('Chinese account/server: not stats available')
+                return None
+            if account_id >= 2e9:
                 return 'asia'
             return 'na'
         else:
@@ -736,7 +746,9 @@ class WG:
     
     def get_url_clan_info(self, server: str, clan_id: int) -> str:
         try:
-           return self.URL_WG_SERVER[server] + self.URL_WG_CLAN_INFO + self.WG_app_id + '&clan_id=' + str(clan_id)
+            if server == None:
+                return None 
+            return self.URL_WG_SERVER[server] + self.URL_WG_CLAN_INFO + self.WG_app_id + '&clan_id=' + str(clan_id)
         except Exception as err:
             if (server == None) or (server.lower() not in WG.ACCOUNT_ID_SERVER.keys()):
                 error('No server name or invalid server name given: ' + server if (server !=  None) else '')
@@ -751,7 +763,8 @@ class WG:
 
     def get_url_player_tanks_stats(self, account_id: int, tank_ids = [], fields = []) -> str: 
         server = self.get_server(account_id)
-        
+        if server == None:
+            return None        
         if (tank_ids != None) and (len(tank_ids) > 0):
             tank_id_str= '&tank_id=' + '%2C'.join([ str(x) for x in tank_ids])
         else:
@@ -770,6 +783,8 @@ class WG:
     def get_url_player_stats(self, account_id,  fields) -> str: 
         try:
             server = self.get_server(account_id)
+            if server == None:
+                return None 
             if (fields != None) and (len(fields) > 0):
                 field_str =  '&fields=' + '%2C'.join(fields)
             else:
@@ -821,10 +836,7 @@ class WG:
 
     async def get_player_tank_stats(self, account_id: int, tank_ids = [], fields = [], cache=True) -> dict:
         """Get player's stats (WR, # of battles) in a tank or all tanks (empty tank_ids[])"""
-        # debug('Started')        
-        
         try:
-            #debug('account_id: ' + str(account_id) + ' TankID: ' + ','.join([ str(id) for id in tank_ids]))
             stats = None
 
             # try cached stats first:
