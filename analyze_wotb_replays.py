@@ -518,7 +518,7 @@ async def main(argv):
 	
 	args = parser.parse_args()
 	bu.set_log_level(args.silent, args.verbose, args.debug)
-	bu.set_progress_step(30)  # Set the frequency of the progress dots. 
+	bu.set_progress_step(200)  # Set the frequency of the progress dots. 
 	
 	wg = await WG.create(WG_APP_ID, args.tankfile, args.mapfile, True)
 	wi = WoTinspector()
