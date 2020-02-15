@@ -263,7 +263,6 @@ async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func =
         ## To avoid excessive use of servers            
         for retry in range(1,max_tries+1):
             try:
-                await asyncio.sleep(SLEEP)
                 async with session.get(url) as resp:
                     if resp.status == 200:
                         debug('HTTP request OK')
@@ -275,7 +274,7 @@ async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func =
                     if retry == max_tries:                        
                         break
                     debug('Retrying URL [' + str(retry) + '/' +  str(max_tries) + ']: ' + url )
-                    
+                await asyncio.sleep(SLEEP)    
 
             except aiohttp.ClientError as err:
                 debug("Could not retrieve URL: " + url)
