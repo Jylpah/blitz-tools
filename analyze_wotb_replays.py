@@ -115,7 +115,7 @@ class BattleRecordCategory():
 		]
 
 	
-	RESULT_CAT_FRMT = '{:>17s}'
+	RESULT_CAT_FRMT = '{:>20s}'
 	
 	@classmethod
 	def get_result_categories(cls, extended_cats: list = None):
@@ -275,7 +275,7 @@ class BattleRecord():
 	ratio_fields 	= set()
 	
 	
-	RESULT_CAT_HEADER_FRMT = '{:_<17s}'
+	RESULT_CAT_HEADER_FRMT = '{:_<20s}'
 
 
 	@classmethod
