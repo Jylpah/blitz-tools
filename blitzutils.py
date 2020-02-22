@@ -1197,7 +1197,7 @@ class WoTinspector:
                             error(msg_str +' : ' + title + ' : Received invalid JSON')
                         elif (json_resp['status'] == 'ok'): 
                             debug('Response data read')
-                            verbose(msg_str + title + ' posted')
+                            verbose_std(msg_str + title + ' posted')
                             return json_resp	
                         elif (json_resp['status'] == 'error'):  
                             error(msg_str + json_resp['error']['message'] + ' : ' + title)
