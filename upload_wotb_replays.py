@@ -11,9 +11,10 @@ logging.getLogger("asyncio").setLevel(logging.DEBUG)
 FILE_CONFIG 	= 'blitzstats.ini'
 # DB_C_REPLAYS   	= 'Replays'
 
-DEBUG = False
+DEBUG 	= False
 VERBOSE = False
-SLEEP = 2
+SLEEP 		= 2
+N_WORKERS	= 5
 MAX_RETRIES = 3
 REPLAY_N 	= 0
 SKIPPED_N 	= 0
@@ -31,29 +32,13 @@ async def main(argv):
 	## Read config
 	config = configparser.ConfigParser()
 	config.read(FILE_CONFIG)
-	# configDB 	= config['DATABASE']
-	# DB_SERVER 	= configDB.get('db_server', 'localhost')
-	# DB_PORT 	= configDB.getint('db_port', 27017)
-	# DB_SSL		= configDB.getboolean('db_ssl', False)
-	# DB_CERT_REQ = configDB.getint('db_ssl_req', ssl.CERT_NONE)
-	# DB_AUTH 	= configDB.get('db_auth', 'admin')
-	# DB_NAME 	= configDB.get('db_name', 'BlitzStats')
-	# DB_USER		= configDB.get('db_user', 'mongouser')
-	# DB_PASSWD 	= configDB.get('db_password', "PASSWORD")
-	# DB_CERT 	= configDB.get('db_ssl_cert_file', None)
-	# DB_CA		= configDB.get('db_ssl_ca_file', None)
 
-	# bu.debug('DB_SERVER: ' + DB_SERVER)
-	# bu.debug('DB_PORT: ' + str(DB_PORT))
-	# bu.debug('DB_SSL: ' + "True" if DB_SSL else "False")
-	# bu.debug('DB_AUTH: ' + DB_AUTH)
-	# bu.debug('DB_NAME: ' + DB_NAME)
-
-	configGeneral 	= config['GENERAL']
+	configWG 		= config['WG']
 	# WG account id of the uploader: 
 	# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
-	WG_ID		= configGeneral.getint('wg_id', 0)
-#	USE_DB		= configGeneral.getint('use_DB', False)
+	WG_ID			= configWG.getint('wg_id', None)
+	## WG API Rules limit 10 request / sec. Higher rate of requests will return errors ==> extra delay
+	WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', 10)
 
 	parser = argparse.ArgumentParser(description='Post replays(s) to WoTinspector.com and retrieve battle data')
 	#parser.add_argument('--output', default='file', choices=['file', 'files', 'db'] , help='Select output mode: single/multiple files or database')
@@ -61,7 +46,7 @@ async def main(argv):
 	parser.add_argument('-a', '--account', dest='account', type=str, default=None, help='Uploader\'s WG account name. Format: ACCOUNT_NAME@SERVER')
 	parser.add_argument('-t','--title', type=str, default=None, help='Title for replays. Use NN for continous numbering. Default is filename-based numbering')
 	parser.add_argument('-p', '--private', dest="private", action='store_true', default=False, help='Set replays private on WoTinspector.com')
-	parser.add_argument('--tasks', dest='N_tasks', type=int, default=5, help='Number of worker threads')
+	parser.add_argument('--tasks', dest='N_tasks', type=int, default=N_WORKERS, help='Number of worker threads')
 	parser.add_argument('--tankopedia', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default: "tanks.json"')
 	parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default: "maps.json"')
 #	parser.add_argument('--db', action='store_true', default=USE_DB, help='Use DB - You are unlikely to have it')
@@ -75,22 +60,7 @@ async def main(argv):
 	bu.set_log_level(args.silent, args.verbose, args.debug)
 
 	wg = WG(WG_appID, args.tankopedia, args.mapfile)
-	wi = WoTinspector()
-
-	#### Connect to MongoDB (TBD)
-	# client = None
-	# db = None
-	# if args.db:
-	# 	try:
-	# 		client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ, ssl_certfile=DB_CERT, tlsCAFile=DB_CA)
-	# 		db = client[DB_NAME]
-	# 		bu.debug('Database connection initiated')
-	# 	except Exception as err: 
-	# 		bu.error("Could no initiate DB connection: Disabling DB", err) 
-	# 		args.db = False
-	# 		pass
-	# else:
-	# 	bu.debug('No DB in use')
+	wi = WoTinspector(rate_limit=WG_RATE_LIMIT)
 
 	if args.account != None:
 		args.accountID = await wg.get_account_id(args.account)
@@ -170,13 +140,14 @@ async def mkReplayQ(queue : asyncio.Queue, files : list, title : str):
 	bu.debug('Finished')
 	return None
 
+
 async def mkQueueItem(filename : str, title : str) -> list:
 	"""Make an item to replay queue"""
 	global REPLAY_N
 	REPLAY_N +=1
 	return [filename, REPLAY_N, getTitle(filename, title, REPLAY_N)]
 
-#async def replayWorker(queue: asyncio.Queue, db: motor.motor_asyncio.AsyncIOMotorDatabase, workerID: int, account_id: int, priv = False):
+
 async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, priv = False):
 	"""Async Worker to process the replay queue"""
 	global SKIPPED_N
@@ -199,14 +170,14 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 					replay_json = json.loads(await fp.read())
 					#if replay_json['status'] == 'ok':
 					if wi.chk_JSON_replay(replay_json):
-						bu.verbose(msg_str + title + ' has already been posted. Skipping.' )
-						SKIPPED_N += 1
-						#await saveReplay2DB(db, replay_json)
-						queue.task_done()						
-						continue
+						bu.verbose_std(msg_str + title + ' has already been posted. Skipping.' )
 					else:
 						os.remove(replay_json_fn)
 						bu.debug("Replay JSON not valid: Deleting " + replay_json_fn)
+					SKIPPED_N += 1						
+					queue.task_done()						
+					continue
+
 		except asyncio.CancelledError as err:
 			raise err
 		except Exception as err:
@@ -218,12 +189,12 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 				bu.debug(msg_str + 'File:  ' + filename)
 				json_resp = await wi.post_replay(await fp.read(), filename, account_id, title, priv, N)
 				if json_resp != None:
-					if (await bu.save_JSON(replay_json_fn,json_resp)):						
-						bu.debug(msg_str + 'Replay saved OK: ' + filename )
+					if (await bu.save_JSON(replay_json_fn,json_resp)):
+						if not bu.debug(msg_str + 'Replay saved OK: ' + filename):
+							bu.verbose_std(msg_str + title + ' posted')
 					else:
 						bu.error(msg_str + 'Error saving replay: ' + filename)
-						ERROR_N += 1
-					# await saveReplay2DB(db, json_resp)
+						ERROR_N += 1					
 		except Exception as err:
 			bu.error(msg_str + 'Unexpected Exception: ' + str(type(err)) + ' : ' + str(err) )
 		bu.debug(msg_str + 'Marking task done')
@@ -231,26 +202,6 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 
 	return None
 
-
-# async def saveReplay2DB(db: motor.motor_asyncio.AsyncIOMotorDatabase, replay: dict) -> bool:
-# 	"""Save retriever replay JSON into DB (mongo)"""
-# 	try:
-# 		if db == None:
-# 			return False
-# 		dbc = db[DB_C_REPLAYS]
-# 		replay_link = replay['data']['download_url'] 
-# 		replay_id = wi.get_replay_id(replay_link)
-# 		replay['_id'] = replay_id
-# 		await dbc.insert_one(replay)
-# 		bu.debug('Replay added to database')
-# 	except pymongo.errors.DuplicateKeyError as err:
-# 		bu.verbose_std('Replay already in the DB: ' + replay['data']['summary']['title'] + ' : id=' + replay_id)
-# 		return False	
-# 	except Exception as err:
-# 		bu.error('Unexpected Exception: ' + str(type(err)) + ' : ' + str(err)) 
-# 		return False
-# 	return True
-	
 
 def getTitle(replayfile: str, title: str, i : int) -> str:
 	global wg
