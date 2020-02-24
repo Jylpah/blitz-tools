@@ -27,6 +27,94 @@ _progress_obj = None
 UMASK= os.umask(0)
 os.umask(UMASK)
 
+## -----------------------------------------------------------
+#### Class ThrottledClientSession(aiohttp.ClientSession)
+## -----------------------------------------------------------
+
+class ThrottledClientSession(aiohttp.ClientSession):
+    """Rate-throttled client session class inherited from aiohttp.ClientSession)""" 
+    MIN_SLEEP = 0.1
+
+    def __init__(self, rate_limit: float =None, *args,**kwargs) -> None: 
+        super().__init__(*args,**kwargs)
+        self.rate_limit = rate_limit
+        self._fillerTask = None
+        self._queue = None
+
+        if rate_limit != None:
+            if rate_limit <= 0:
+                raise ValueError('rate_limit must be positive')
+            #(increment, sleep) = self._get_rate_increment()            
+            self._queue = asyncio.Queue(min(2, int(rate_limit)+1))
+            self._fillerTask = asyncio.create_task(self._filler(rate_limit))
+        self._start_time = None
+        self._count = 0
+     
+    def _get_sleep(self) -> list:
+        return max(1/self.rate_limit, self.MIN_SLEEP)
+        
+    async def close(self) -> None:
+        """Close rate-limiter's "bucket filler" task"""
+        # DEBUG 
+        if self._start_time != None:
+            duration = time.time() - self._start_time
+            debug('Average WG API request rate: ' + '{:.1f}'.format(self._count / duration) + ' / sec')
+        if self._fillerTask != None:
+            self._fillerTask.cancel()
+        try:
+            await asyncio.wait_for(self._fillerTask, timeout= 3)
+        except asyncio.TimeoutError as err:
+            error(exception=err)
+        await super().close()
+
+
+    async def _filler(self, rate_limit: float = 1):
+        """Filler task to fill the leaky bucket algo"""
+        try:
+            if self._queue == None:
+                return 
+            self.rate_limit = rate_limit
+            sleep = self._get_sleep()
+            debug('SLEEP: ' + str(sleep))
+            updated_at = time.monotonic()
+            fraction = 0
+            extra_increment = 0
+            for i in range(0,self._queue.maxsize):
+                self._queue.put_nowait(i)
+            while True:
+                if not self._queue.full():
+                    now = time.monotonic()
+                    increment = rate_limit * (now - updated_at)
+                    fraction += increment % 1
+                    extra_increment = fraction // 1
+                    items_2_add = int(min(self._queue.maxsize - self._queue.qsize(), int(increment) + extra_increment))
+                    fraction = fraction % 1
+                    for i in range(0,items_2_add):
+                        self._queue.put_nowait(i)
+                    updated_at = now
+                await asyncio.sleep(sleep)
+        except asyncio.CancelledError:
+            debug('Cancelled')
+        except Exception as err:
+            error(exception=err)
+
+
+    async def _allow(self) -> None:
+        if self._queue != None:
+            # debug 
+            if self._start_time == None:
+                self._start_time = time.time()
+            await self._queue.get()
+            self._queue.task_done()
+            # DEBUG 
+            self._count += 1
+        return None
+
+
+    async def _request(self, *args,**kwargs):
+        """Throttled _request()"""
+        await self._allow()
+        return await super()._request(*args,**kwargs)
 
 def set_debug(debug: bool):
     global _log_level
@@ -67,37 +155,39 @@ def get_log_level_str() -> str:
     error('Unknown log level: ' + str(_log_level))
 
 
-def verbose(msg = "", id = None):
+def verbose(msg = "", id = None) -> bool:
     """Print a message"""
     if _log_level >= VERBOSE:
         if id == None:
             print(msg)
         else:
             print('[' + str(id) + ']: ' + msg)
-    return None
+        return True
+    return False
 
 
-def verbose_std(msg = "", id = None):
+def verbose_std(msg = "", id = None) -> bool:
     """Print a message"""
     if _log_level >= NORMAL:
         if id == None:
             print(msg)
         else:
             print('[' + str(id) + ']: ' + msg)            
-    return None
+        return True
+    return False
 
-
-def debug(msg = "", id = None, exception = None):
+def debug(msg = "", id = None, exception = None, force: bool = False) -> bool:
     """print a conditional debug message"""
-    if _log_level >= DEBUG:
+    if (_log_level >= DEBUG) or force:
         _print_log_msg('DEBUG', msg, exception, id)
-    return None
+        return True
+    return False
 
 
-def error(msg = "", exception = None, id = None):
+def error(msg = "", exception = None, id = None) -> bool:
     """Print an error message"""
     _print_log_msg('ERROR', msg, exception, id)
-    return None
+    return True
 
 
 def _print_log_msg(prefix = 'LOG', msg = '', exception = None, id = None):
@@ -271,6 +361,9 @@ async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func =
                             # debug("Received valid JSON: " + str(json_resp))
                             return json_resp
                         # Sometimes WG API returns JSON error even a retry gives valid JSON
+                    elif resp.status == 407:
+                        json_resp_err = await resp.json()
+                        error('WG API returned 407: ' + json_resp_err['error']['message'])
                     if retry == max_tries:                        
                         break
                     debug('Retrying URL [' + str(retry) + '/' +  str(max_tries) + ']: ' + url )
@@ -321,13 +414,15 @@ class SlowBar(IncrementalBar):
         return (self.eta - (self.eta // 3600)*3600) // 60
  
 
-
 ## -----------------------------------------------------------
 #### Class StatsNotFound 
 ## -----------------------------------------------------------
 
 class StatsNotFound(Exception):
     pass
+
+
+
 
 ## -----------------------------------------------------------
 #### Class WG 
@@ -456,25 +551,27 @@ class WG:
         }
 
     URL_WG_SERVER = {
-        'eu' : 'https://api.wotblitz.eu/wotb/',
-        'ru' : 'https://api.wotblitz.ru/wotb/',
-        'na' : 'https://api.wotblitz.com/wotb/',
-        'asia' : 'https://api.wotblitz.asia/wotb/'
+        'eu'    : 'https://api.wotblitz.eu/wotb/',
+        'ru'    : 'https://api.wotblitz.ru/wotb/',
+        'na'    : 'https://api.wotblitz.com/wotb/',
+        'asia'  : 'https://api.wotblitz.asia/wotb/',
+        'china' : None
         }
 
     ACCOUNT_ID_SERVER= {
         'ru'    : range(0, int(5e8)),
         'eu'    : range(int(5e8), int(10e8)),
         'na'    : range(int(1e9),int(2e9)),
-        'asia'  : range(int(2e9),int(4e9))
+        'asia'  : range(int(2e9),int(3e9)),
+        'china' : range(int(3e9),int(4e9))
         }
 
-    def __init__(self, WG_app_id = None, tankopedia_fn =  None, maps_fn = None, stats_cache = False):
+    def __init__(self, WG_app_id : str = None, tankopedia_fn : str =  None, maps_fn : str = None, stats_cache: bool = False, rate_limit: int = 10):
         
         self.WG_app_id = WG_app_id
         self.load_tanks(tankopedia_fn)
         WG.tanks = self.tanks
-
+        
         if (maps_fn != None):
             if os.path.exists(maps_fn) and os.path.isfile(maps_fn):
                 try:
@@ -484,41 +581,26 @@ class WG:
                     error('Could not read maps file: ' + maps_fn + '\n' + str(err))  
             else:
                 verbose('Could not find maps file: ' + maps_fn)    
+        self.rate_limiter = None
         if self.WG_app_id != None:
-            self.session = aiohttp.ClientSession()
-            debug('WG aiohttp session initiated')
+            self.session = ThrottledClientSession(rate_limit=rate_limit)
+            debug('WG aiohttp session initiated')            
         else:
             self.session = None
             debug('WG aiohttp session NOT initiated')
         
-        # cache TBD
+        # cache
         self.cache = None
         self.statsQ = None
         self.stat_saver_task = None
-
-    
-    @classmethod
-    async def create(cls,  WG_app_id = None, tankopedia_fn =  None, maps_fn = None, stats_cache = False):
-        """Separete Constuctor method to handle async calls required to initialize the object"""
-        self = WG(WG_app_id, tankopedia_fn , maps_fn )
-
         if stats_cache:
             try:
-                self.cache = await aiosqlite.connect(WG.CACHE_DB_FILE)
-                ## Player Tank stats cache table
-                await self.cache.execute(WG.SQL_TANK_STATS_CREATE_TBL) 
-
-                await self.cache.commit()
-                
-                async with self.cache.execute(WG.SQL_TANK_STATS_COUNT) as cursor:
-                    debug('Cache contains: ' + str((await cursor.fetchone())[0]) + ' cached player tank stat records' )
-                
                 self.statsQ = asyncio.Queue()
                 self.stat_saver_task = asyncio.create_task(self.stat_saver())
             except Exception as err:
                 error(exception=err)
                 sys.exit(1)
-        return self
+    
 
     async def close(self):
         # close stats queue 
@@ -529,9 +611,7 @@ class WG:
             self.stat_saver_task.cancel()
             debug('statsCacheTask cancelled')
             await self.stat_saver_task 
-        
-
-        
+                
         # close cacheDB
         if self.cache != None:
             # prune old cache records
@@ -540,7 +620,8 @@ class WG:
             await self.cache.close()
         
         if self.session != None:
-            await self.session.close()        
+            await self.session.close()   
+   
         return
 
     ## Class methods  ----------------------------------------------------------
@@ -649,6 +730,7 @@ class WG:
             error("JSON format error", err)
         return False
 
+
     @classmethod
     def chk_JSON_get_account_id(cls, json_resp: dict) -> bool:
         try:
@@ -702,6 +784,7 @@ class WG:
             debug("JSON check failed")
         return False
 
+
     @classmethod
     def chk_JSON_tank_stats(cls, json_resp: dict) -> bool:
         """"Check String for being a valid Tank list JSON file"""
@@ -744,6 +827,7 @@ class WG:
             error('Invalid tier', err)
         return None  
     
+
     def get_url_clan_info(self, server: str, clan_id: int) -> str:
         try:
             if server == None:
@@ -761,7 +845,7 @@ class WG:
         return self.get_url_player_tanks_stats(account_id, fields='tank_id')
 
 
-    def get_url_player_tanks_stats(self, account_id: int, tank_ids = [], fields = []) -> str: 
+    def get_url_player_tanks_stats(self, account_id: int, tank_ids: list = [], fields: list = []) -> str: 
         server = self.get_server(account_id)
         if server == None:
             return None        
@@ -823,6 +907,7 @@ class WG:
             if nick == None or server == None:
                 raise ValueError('Invalid nickname given: ' + nickname)
             url = self.get_url_account_id(nick, server)
+
             json_data = await get_url_JSON(self.session, url, self.chk_JSON_status)
             for res in json_data['data']:
                 if res['nickname'].lower() == nick.lower(): 
@@ -852,7 +937,7 @@ class WG:
                 #debug('JSON Response received: ' + str(json_data))
                 stats = json_data['data'][str(account_id)]
                 if cache:
-                    await self.save_stats('tank_stats', [account_id, tank_ids], stats)
+                    await self.put_2_statsQ('tank_stats', [account_id, tank_ids], stats)
                 return stats
         except Exception as err:
             error(exception=err)
@@ -884,7 +969,7 @@ class WG:
                 #debug('JSON Response received: ' + str(json_data))
                 stats = json_data['data'][str(account_id)]
                 if cache:
-                    await self.save_stats('player_stats', [account_id], stats)
+                    await self.put_2_statsQ('player_stats', [account_id], stats)
                 return stats
         except Exception as err:
             error(exception=err)
@@ -914,12 +999,13 @@ class WG:
         except KeyError as err:
             error('Key not found', err)
         return None
-        
+
+ 
     def get_tank_tier(self, tank_id: int):
         return self.get_tank_data(tank_id, 'tier')
 
 
-    async def save_stats(self, statsType: str, key: list, stats: list):
+    async def put_2_statsQ(self, statsType: str, key: list, stats: list):
         """Save stats to a async queue to be saved by the stat_saver -task"""
         if self.statsQ == None:
             return False
@@ -927,12 +1013,26 @@ class WG:
             await self.statsQ.put([ statsType, key, stats, NOW() ])
             return True
 
+
     async def stat_saver(self): 
         """Async task for saving stats into cache in background"""
 
         if self.statsQ == None:
             error('No statsQ defined')
             return None
+        try:
+            self.cache = await aiosqlite.connect(WG.CACHE_DB_FILE)
+            ## Create cache tables table
+            await self.cache.execute(WG.SQL_TANK_STATS_CREATE_TBL)
+            await self.cache.execute(WG.SQL_PLAYER_STATS_CREATE_TBL)
+            await self.cache.commit()
+            
+            async with self.cache.execute(WG.SQL_TANK_STATS_COUNT) as cursor:
+                debug('Cache contains: ' + str((await cursor.fetchone())[0]) + ' cached player tank stat records' )
+        except Exception as err:
+            error(exception=err)
+            sys.exit(1)
+
         while True:
             try:
                 stats = await self.statsQ.get()
@@ -1057,7 +1157,7 @@ class WG:
                 #debug('No cache DB')
                 raise StatsNotFound('No cache DB in use')
                       
-            async with self.cache.execute(WG.SQL_PLAYER_STATS_CACHED, (account_id, NOW() - WG.CACHE_GRACE_TIME) ) as cursor:
+            async with self.cache.execute(WG.SQL_PLAYER_STATS_CACHED, [account_id, NOW() - WG.CACHE_GRACE_TIME] ) as cursor:
                 row = await cursor.fetchone()
                 #debug('account_id: ' + str(account_id) + ': 1')
                 if row == None:
@@ -1066,18 +1166,18 @@ class WG:
                     raise StatsNotFound('No cached stats found')
                 
                 debug('Cached stats found')    
-                if row[3] == None:
+                if row[2] == None:
                     # None/null stats found in cache 
                     # i.e. stats have been requested, but not returned from WG API
                     return None
                 else:
                     # Return proper stats 
-                    return json.loads(row[3])
+                    return json.loads(row[2])
         except StatsNotFound as err:
             debug(exception=err)
             raise
         except Exception as err:
-            error('Error trying to look for cached stats', err)
+            error('Error trying to look for cached stats', exception=err)
         return None
 
 
@@ -1096,13 +1196,15 @@ class WoTinspector:
 
     REPLAY_N = 1
 
-    def __init__(self):
-        self.session = aiohttp.ClientSession()
+    def __init__(self, rate_limit: int = 30):
+        self.session = ThrottledClientSession(rate_limit=rate_limit)
+        
 
     async def close(self):
         if self.session != None:
             debug('Closing aiohttp session')
-            await self.session.close()        
+            await self.session.close()
+        
 
     async def get_tankopedia(self, filename = 'tanks.json'):
         """Retrieve Tankpedia from WoTinspector.com"""
@@ -1143,7 +1245,7 @@ class WoTinspector:
 
 
     async def get_replay_JSON(self, replay_id: str):
-        json_resp = await get_url_JSON(self.session, self.URL_REPLAY_INFO + replay_id, None)
+        json_resp = await get_url_JSON(self.session, self.URL_REPLAY_INFO + replay_id, chk_JSON_func=None)
         try:
             if self.chk_JSON_replay(json_resp):
                 return json_resp
@@ -1196,8 +1298,7 @@ class WoTinspector:
                         if json_resp.get('status', None) == None:
                             error(msg_str +' : ' + title + ' : Received invalid JSON')
                         elif (json_resp['status'] == 'ok'): 
-                            debug('Response data read')
-                            verbose_std(msg_str + title + ' posted')
+                            debug('Response data read. Status OK')                            
                             return json_resp	
                         elif (json_resp['status'] == 'error'):  
                             error(msg_str + json_resp['error']['message'] + ' : ' + title)
@@ -1211,6 +1312,11 @@ class WoTinspector:
             
         error(msg_str + ' Could not post replay: ' + title)
         return None
+
+
+    async def get_replay_listing(self, page: int = 0) -> aiohttp.ClientResponse:
+        url = self.get_url_replay_listing(page)
+        return await self.session.get(url)
 
     @classmethod
     def get_url_replay_listing(cls, page : int):
@@ -1258,8 +1364,8 @@ class BlitzStars:
     URL_ACTIVE_PLAYERS      = URL_BLITZSTARS +  '/api/playerstats/activeinlast30days'
 
 
-    def __init__(self):
-        self.session = aiohttp.ClientSession()
+    def __init__(self, rate_limit=30):
+        self.session = ThrottledClientSession(rate_limit=rate_limit)
 
 
     async def close(self):

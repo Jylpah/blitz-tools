@@ -1,16 +1,14 @@
-[GENERAL]
-## Find your WG account_id :  https://developers.wargaming.net/reference/all/wotb/account/list/
-#wg_id		= 0
+[OPTIONS]
+## You may set your preferred commandline param defaults here
+#opt_extended    = False
+#opt_hist        = False
+#opt_stat_func   = tank_tier
 
-# you are unlikely have MongoDB set up so just ignore these
-#[DATABASE]
-#db_server       = localhost
-#db_port         = 27017
-#db_auth         = admin
-#db_name 	    = BlitzStats
-#db_user         = USERNAME
-#db_password   	= PASSWORD
-#db_ssl			= True
-#db_cert_req		= 2
-#db_ssl_cert_file= cert.pem
-#db_ssl_ca_file  = ca.pem
+[WG]
+## Find your WG account_id :  https://developers.wargaming.net/reference/all/wotb/account/list/
+#wg_id		    = 0
+## WG API limits requests / sec to 10 for client apps
+## Check https://developers.wargaming.net/documentation/guide/getting-started/
+#wg_rate_limit   = 10
+
+
