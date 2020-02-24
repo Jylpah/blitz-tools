@@ -10,5 +10,5 @@
 ## WG API limits requests / sec to 10 for client apps
 ## Check https://developers.wargaming.net/documentation/guide/getting-started/
 #wg_rate_limit   = 10
-
+#wg_app_id       = XXXXXXXXXXX
 

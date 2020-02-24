@@ -471,7 +471,7 @@ class PlayerHistogram():
 ## main() -------------------------------------------------------------
 
 async def main(argv):
-	global wg, wi
+	global wg, wi, WG_APP_ID
 	# set the directory for the script
 	os.chdir(os.path.dirname(sys.argv[0]))
 
@@ -489,6 +489,7 @@ async def main(argv):
 
 	configWG 		= config['WG']
 	WG_ID			= configWG.getint('wg_id', None)
+	WG_APP_ID		= configWG.get('wg_app_id', WG_APP_ID)
 	WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', 10)
 
 	configDB 	= config['DATABASE']
