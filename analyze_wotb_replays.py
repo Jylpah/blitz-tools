@@ -478,12 +478,19 @@ async def main(argv):
 	## Read config
 	config = configparser.ConfigParser()
 	config.read(FILE_CONFIG)
-	configGeneral 	= config['GENERAL']
+
+	configOptions 	= config['OPTIONS']
 	# WG account id of the uploader: 
 	# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
-	WG_ID		= configGeneral.getint('wg_id', None)
-	USE_DB		= configGeneral.getboolean('use_DB', False)
-	
+	OPT_DB			= configOptions.getboolean('opt_DB', False)
+	OPT_EXTENDED 	= configOptions.getboolean('opt_extended', False)
+	OPT_HIST		= configOptions.getboolean('opt_hist', False)
+	OPT_STAT_FUNC	= configOptions.get('opt_stat_func', fallback='tank_tier')
+
+	configWG 		= config['WG']
+	WG_ID			= configWG.getint('wg_id', None)
+	WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', 10)
+
 	configDB 	= config['DATABASE']
 	DB_SERVER 	= configDB.get('db_server', 'localhost')
 	DB_PORT 	= configDB.getint('db_port', 27017)
@@ -502,15 +509,15 @@ async def main(argv):
 	parser.add_argument('--output', default='plain', choices=['json', 'plain', 'db'], help='Select output mode: JSON, plain text or database')
 	parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
 	parser.add_argument('-a', '--account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
-	parser.add_argument('-x', '--extended', action='store_true', default=False, help='Print Extended stats')
+	parser.add_argument('-x', '--extended', action='store_true', default=OPT_EXTENDED, help='Print Extended stats')
 	parser.add_argument('-X', '--extra_categories', choices=BattleRecordCategory.get_extra_categories(), default=None, nargs='*', help='Print Extended categories')
-	parser.add_argument('--hist', action='store_true', default=False, help='Print player histograms (WR/battles)')
-	parser.add_argument('--stat_func', default='tank_tier', choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
+	parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms (WR/battles)')
+	parser.add_argument('--stat_func', default=OPT_STAT_FUNC, choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
 	parser.add_argument('-u', '--url', action='store_true', default=False, help='Print replay URLs')
 	parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
 	parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default is "maps.json"')
 	parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
-	parser.add_argument('--db', action='store_true', default=USE_DB, help='Use DB - You are unlikely to have it')
+	parser.add_argument('--db', action='store_true', default=OPT_DB, help='Use DB - You are unlikely to have it')
 	parser.add_argument('--filters', type=str, default=None, help='Filters for DB based analyses. MongoDB find() filter JSON format.')
 	parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 	parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
@@ -521,8 +528,8 @@ async def main(argv):
 	bu.set_log_level(args.silent, args.verbose, args.debug)
 	bu.set_progress_step(250)  # Set the frequency of the progress dots. 
 	
-	wg = await WG.create(WG_APP_ID, args.tankfile, args.mapfile, True)
-	wi = WoTinspector()
+	wg = WG(WG_APP_ID, args.tankfile, args.mapfile, stats_cache=True, rate_limit=WG_RATE_LIMIT)
+	wi = WoTinspector(rate_limit=10)
 
 	if args.account != None:
 		args.account_id = await wg.get_account_id(args.account)
@@ -936,8 +943,8 @@ async def get_wg_player_stats(stat_id_str: str) -> dict:
 		account_id = int(stat_id_str)
 		
 		# 'battles' must always be there
-		hist_stats = [ 'all.' + x for x in histogram_fields.keys() ]
-		hist_stats.append('tank_id')
+		hist_stats = [ 'statistics.all.' + x for x in histogram_fields.keys() ]
+		hist_stats.append('account_id')
 
 		player_stats = await wg.get_player_stats(account_id, hist_stats)
 		#bu.debug('account_id: ' + str(account_id) + ' ' + str(player_stats))
