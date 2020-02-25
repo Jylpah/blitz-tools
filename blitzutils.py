@@ -437,7 +437,7 @@ class WG:
     URL_WG_ACCOUNT_ID        = 'account/list/?fields=account_id%2Cnickname&application_id='
     URL_WG_PLAYER_STATS      = 'account/info/?application_id='
     CACHE_DB_FILE           = '.blitzutils_cache.sqlite3' 
-    CACHE_GRACE_TIME        =  2*7*24*3600  # 2 weeks cache
+    CACHE_GRACE_TIME        =  30*24*3600  # 30 days cache
 
     # sql_create_player_stats_tbl = """CREATE TABLE IF NOT EXISTS player_stats (
     #                             account_id INTEGER NOT NULL,
