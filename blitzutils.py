@@ -116,6 +116,9 @@ class ThrottledClientSession(aiohttp.ClientSession):
         await self._allow()
         return await super()._request(*args,**kwargs)
 
+
+## Util funcs ------------------------------------
+
 def set_debug(debug: bool):
     global _log_level
     _log_level = DEBUG
