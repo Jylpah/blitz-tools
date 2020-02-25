@@ -483,9 +483,10 @@ async def main(argv):
 	# WG account id of the uploader: 
 	# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
 	OPT_DB			= configOptions.getboolean('opt_DB', False)
-	OPT_EXTENDED 	= configOptions.getboolean('opt_extended', False)
-	OPT_HIST		= configOptions.getboolean('opt_hist', False)
-	OPT_STAT_FUNC	= configOptions.get('opt_stat_func', fallback='tank_tier')
+	OPT_EXTENDED 	= configOptions.getboolean('opt_analyzer_extended', False)
+	OPT_HIST		= configOptions.getboolean('opt_analyzer_hist', False)
+	OPT_STAT_FUNC	= configOptions.get('opt_analyzer_stat_func', fallback='player')
+	OPT_WORKERS_N = configOptions.getint('opt_analyzer_workers', 10)
 
 	configWG 		= config['WG']
 	WG_ID			= configWG.getint('wg_id', None)
@@ -503,9 +504,7 @@ async def main(argv):
 	DB_PASSWD 	= configDB.get('db_password', "PASSWORD")
 	DB_CERT 	= configDB.get('db_ssl_cert_file', None)
 	DB_CA 		= configDB.get('db_ssl_ca_file', None)
-
-	TASK_N = 7
-
+	
 	parser = argparse.ArgumentParser(description='Analyze Blitz replay JSONs from WoTinspector.com')
 	parser.add_argument('--output', default='plain', choices=['json', 'plain', 'db'], help='Select output mode: JSON, plain text or database')
 	parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
@@ -569,7 +568,7 @@ async def main(argv):
 		scanner_task = asyncio.create_task(mk_replayQ(replayQ, args, db))
 		bu.debug('Replay scanner started')
 		# Start tasks to process the Queue
-		for i in range(TASK_N):
+		for i in range(OPT_WORKERS_N):
 			reader_tasks.append(asyncio.create_task(replay_reader(replayQ, i, args)))
 			bu.debug('ReplayReader ' + str(i) + ' started')
 
@@ -589,7 +588,7 @@ async def main(argv):
 			results.extend(res[0])
 			players.update(res[1])
 
-		(player_stats, stat_id_map) = await process_player_stats(players, TASK_N, args, db)
+		(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
 		bu.verbose('')
 		bu.debug('Number of player stats: ' + str(len(player_stats)))
 		teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
