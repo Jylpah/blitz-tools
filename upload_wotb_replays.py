@@ -14,7 +14,6 @@ FILE_CONFIG 	= 'blitzstats.ini'
 DEBUG 	= False
 VERBOSE = False
 SLEEP 		= 2
-N_WORKERS	= 5
 MAX_RETRIES = 3
 REPLAY_N 	= 0
 SKIPPED_N 	= 0
@@ -33,6 +32,9 @@ async def main(argv):
 	config = configparser.ConfigParser()
 	config.read(FILE_CONFIG)
 
+	configOptions 	= config['OPTIONS']
+	OPT_WORKERS_N = configOptions.getint('opt_uploader_workers', 5)
+
 	configWG 		= config['WG']
 	# WG account id of the uploader: 
 	# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
@@ -41,15 +43,12 @@ async def main(argv):
 	WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', 10)
 
 	parser = argparse.ArgumentParser(description='Post replays(s) to WoTinspector.com and retrieve battle data')
-	#parser.add_argument('--output', default='file', choices=['file', 'files', 'db'] , help='Select output mode: single/multiple files or database')
 	parser.add_argument('-id', dest='accountID', type=int, default=WG_ID, help='WG account_id')
 	parser.add_argument('-a', '--account', dest='account', type=str, default=None, help='Uploader\'s WG account name. Format: ACCOUNT_NAME@SERVER')
 	parser.add_argument('-t','--title', type=str, default=None, help='Title for replays. Use NN for continous numbering. Default is filename-based numbering')
 	parser.add_argument('-p', '--private', dest="private", action='store_true', default=False, help='Set replays private on WoTinspector.com')
-	parser.add_argument('--tasks', dest='N_tasks', type=int, default=N_WORKERS, help='Number of worker threads')
 	parser.add_argument('--tankopedia', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default: "tanks.json"')
 	parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default: "maps.json"')
-#	parser.add_argument('--db', action='store_true', default=USE_DB, help='Use DB - You are unlikely to have it')
 	parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 	parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
 	parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
@@ -76,8 +75,7 @@ async def main(argv):
 		# Make replay Queue
 		tasks.append(asyncio.create_task(mkReplayQ(queue, args.files, args.title)))
 		# Start tasks to process the Queue
-		for i in range(args.N_tasks):
-			#tasks.append(asyncio.create_task(replayWorker(queue, db, i, args.accountID, args.private)))
+		for i in range(OPT_WORKERS_N):
 			tasks.append(asyncio.create_task(replayWorker(queue, i, args.accountID, args.private)))
 			bu.debug('Task ' + str(i) + ' started')
 		
@@ -164,7 +162,6 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 
 		#bu.debug(msg_str + replay_json_fn)
 		try:
-			#if os.path.exists(replay_json_fn) and os.path.isfile(replay_json_fn):
 			if os.path.isfile(replay_json_fn):
 				async with aiofiles.open(replay_json_fn) as fp:
 					replay_json = json.loads(await fp.read())
