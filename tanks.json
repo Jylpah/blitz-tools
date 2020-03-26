@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 429
+        "count": 435
     },
     "data": {
         "1": {
@@ -872,9 +872,9 @@
             "tank_id": 3937,
             "nation": "japan",
             "tier": 10,
-            "is_premium": true,
+            "is_premium": false,
             "type": "AT-SPG",
-            "name": "Ho-Ri Type 3"
+            "name": "Ho-Ri Type III"
         },
         "3953": {
             "tank_id": 3953,
@@ -3435,6 +3435,54 @@
             "is_premium": true,
             "type": "lightTank",
             "name": "Vickers Light 105"
+        },
+        "3201": {
+            "tank_id": 3201,
+            "nation": "european",
+            "tier": 9,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "50TP prototyp"
+        },
+        "4193": {
+            "tank_id": 4193,
+            "nation": "japan",
+            "tier": 9,
+            "is_premium": false,
+            "type": "AT-SPG",
+            "name": "Ho-Ri Type II"
+        },
+        "4961": {
+            "tank_id": 4961,
+            "nation": "japan",
+            "tier": 8,
+            "is_premium": false,
+            "type": "AT-SPG",
+            "name": "Ho-Ri Type I"
+        },
+        "5217": {
+            "tank_id": 5217,
+            "nation": "japan",
+            "tier": 7,
+            "is_premium": false,
+            "type": "AT-SPG",
+            "name": "Chi-To SPG"
+        },
+        "20513": {
+            "tank_id": 20513,
+            "nation": "usa",
+            "tier": 8,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "T54E2"
+        },
+        "20769": {
+            "tank_id": 20769,
+            "nation": "usa",
+            "tier": 8,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "T25 Pilot Number 1"
         }
     },
     "userStr": {
@@ -3831,7 +3879,7 @@
         "It12_Prototipo_Standard_B": "Prototipo Standard B",
         "It13_Progetto_M35_mod_46": "Progetto M35 mod. 46",
         "It14_P44_Pantera": "P.44 Pantera",
-        "J20_Ho_Ri_type3": "Ho-Ri Type 3",
+        "J20_Ho_Ri_type3": "Ho-Ri Type III",
         "Oth16_KV_TG": "Smasher",
         "Oth17_BDT-5A": "Y5 T-34",
         "Oth18_BDT-5B": "Y5 Firefly",
@@ -3852,6 +3900,12 @@
         "R159_SU_130PM": "SU-130PM",
         "GB91_Super_Conqueror": "Super Conqueror",
         "GB93_Caernarvon_AX": "Caernarvon Action X",
-        "GB_Vickers_Light_105": "Vickers Light 105"
+        "GB_Vickers_Light_105": "Vickers Light 105",
+        "A111_T25_Pilot": "T25 Pilot Number 1",
+        "A124_T54E2": "T54E2",
+        "J21_Ho_Ri": "Ho-Ri Type II",
+        "J22_Ho_Ri_type96": "Ho-Ri Type I",
+        "J23_Chi_To_SPG": "Chi-To SPG",
+        "Pl08_50TP_prot": "50TP prototyp"
     }
 }
