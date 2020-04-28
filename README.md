@@ -30,5 +30,8 @@ python3.8 -m pip install motor aiohttp aioconsole aiofiles aiosqlite beautifulso
 4. Upload your replays. Run _python.exe .\upload_wotb_replays.py --help_ (Windows) or _./upload_wotb_replays.py --help_ (Linux)
 5. Analyze replays.  Run _python.exe .\analyze_wotb_replays.py --help_ (Windows) or _./analyze_wotb_replays.py --help_ (Linux)
 
+### Blitz releases
+
+[WoT Blitz releases](releases.md): launch dates and key content.
 
 You can reach me via email: Jylpah@gmail.com or [Discord](https://discordapp.com/): Jylpah#4662. Happy tanking and stats analysis!
