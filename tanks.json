@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 435
+        "count": 439
     },
     "data": {
         "1": {
@@ -3483,6 +3483,38 @@
             "is_premium": true,
             "type": "mediumTank",
             "name": "T25 Pilot Number 1"
+        },
+        "4449": {
+            "tank_id": 4449,
+            "nation": "japan",
+            "tier": 7,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "IS-2 Pravda SP"
+        },
+        "4705": {
+            "tank_id": 4705,
+            "nation": "japan",
+            "tier": 6,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Firefly Saunders SP"
+        },
+        "21025": {
+            "tank_id": 21025,
+            "nation": "usa",
+            "tier": 7,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "T26E3 Eagle 7"
+        },
+        "21249": {
+            "tank_id": 21249,
+            "nation": "ussr",
+            "tier": 6,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Thunder"
         }
     },
     "userStr": {
@@ -3906,6 +3938,10 @@
         "J21_Ho_Ri": "Ho-Ri Type II",
         "J22_Ho_Ri_type96": "Ho-Ri Type I",
         "J23_Chi_To_SPG": "Chi-To SPG",
-        "Pl08_50TP_prot": "50TP prototyp"
+        "Pl08_50TP_prot": "50TP prototyp",
+        "A121_T26E3": "T26E3 Eagle 7",
+        "Firefly_GuP": "Firefly Saunders SP",
+        "IS-2_GuP": "IS-2 Pravda SP",
+        "KV-1s-BP": "Thunder"
     }
 }
