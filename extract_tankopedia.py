@@ -2,11 +2,13 @@
 
 # Extract tankopedia data in WG API JSON format from Blitz app files (Android APK unzipped)
 
-import sys, argparse, json, os, inspect, aiohttp, asyncio, aiofiles, re, logging, time, xmltodict, collections
+import sys, argparse, json, os, inspect, aiohttp, asyncio, aiofiles, re, logging, time, xmltodict, collections, configparser
 import blitzutils as bu
 from blitzutils import WG
 
 logging.getLogger("asyncio").setLevel(logging.DEBUG)
+
+FILE_CONFIG 	= 'blitzstats.ini'
 
 BLITZAPP_STRINGS='/assets/Data/Strings/en.yaml'
 BLITZAPP_VEHICLES_DIR='/assets/Data/XML/item_defs/vehicles/'
@@ -19,9 +21,16 @@ async def main(argv):
     global wg
     # set the directory for the script
     os.chdir(os.path.dirname(sys.argv[0]))
-    
+
+    ## Read config
+    config = configparser.ConfigParser()
+    config.read(FILE_CONFIG)
+
+    configOptions 	= config['EXTRACT_TANKOPEDIA']
+    BLITZAPP_FOLDER = configOptions.get('blitz_app_dir', '.')
+
     parser = argparse.ArgumentParser(description='Extract Tankopedia data from Blitz game files')
-    parser.add_argument('blitz_app_base', type=str,  metavar="BLITZAPP_FOLDER", default=".", help='Base dir of the Blitz App files')
+    parser.add_argument('blitz_app_base', type=str, nargs='?', metavar="BLITZAPP_FOLDER", default=BLITZAPP_FOLDER, help='Base dir of the Blitz App files')
     parser.add_argument('tanks', type=str, default='tanks.json', nargs='?', metavar="TANKS_FILE", help='File to write Tankopedia')
     parser.add_argument('maps', type=str, default='maps.json', nargs='?', metavar='MAPS_FILE', help='File to write map names')
     arggroup = parser.add_mutually_exclusive_group()
