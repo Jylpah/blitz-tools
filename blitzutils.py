@@ -116,8 +116,10 @@ class ThrottledClientSession(aiohttp.ClientSession):
         await self._allow()
         return await super()._request(*args,**kwargs)
 
+## -----------------------------------------------------------
+#### Utils
+## -----------------------------------------------------------
 
-## Util funcs ------------------------------------
 
 def set_debug(debug: bool):
     global _log_level
@@ -565,8 +567,8 @@ class WG:
         'ru'    : range(0, int(5e8)),
         'eu'    : range(int(5e8), int(10e8)),
         'na'    : range(int(1e9),int(2e9)),
-        'asia'  : range(int(2e9),int(3e9)),
-        'china' : range(int(3e9),int(4e9))
+        'asia'  : range(int(2e9),int(31e8)),
+        'china' : range(int(31e8),int(4e9))
         }
 
     def __init__(self, WG_app_id : str = None, tankopedia_fn : str =  None, maps_fn : str = None, stats_cache: bool = False, rate_limit: int = 10):
@@ -633,7 +635,7 @@ class WG:
     def get_server(cls, account_id: int) -> str:
         """Get Realm/server of an account based on account ID"""
         if account_id >= 1e9:
-            if account_id >= 3e9:
+            if account_id >= 31e8:
                 debug('Chinese account/server: not stats available')
                 return None
             if account_id >= 2e9:
