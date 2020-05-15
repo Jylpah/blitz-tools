@@ -575,7 +575,7 @@ async def main(argv):
 		bu.debug('Waiting for the replay scanner to finish')
 		await asyncio.wait([scanner_task])
 		
-		bu.debug('Scanner finished. Waiting for replay readers to finish the queue')
+		# bu.debug('Scanner finished. Waiting for replay readers to finish the queue')
 		await replayQ.join()
 		await asyncio.sleep(0.1)
 		bu.debug('Replays read. Cancelling Readers and analyzing results')
@@ -587,6 +587,8 @@ async def main(argv):
 		for res in await asyncio.gather(*reader_tasks):
 			results.extend(res[0])
 			players.update(res[1])
+		if len(players) == 0:
+			raise Exception("No players found to fetch stats for. No replays found?")
 
 		(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
 		bu.verbose('')
@@ -1024,7 +1026,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 	"""Create queue of replays to post"""
 	p_replayfile = re.compile('.*\\.wotbreplay\\.json$')
 	files = args.files
-	
+	Nreplays = 0
 	if files[0] == 'db:':
 		if db == None:
 			bu.error('No database connection opened')
@@ -1044,6 +1046,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 			async for replay_json in cursor:
 				#bu.debug(json.dumps(replay_json, indent=2))
 				await queue.put(await mk_readerQ_item(replay_json))
+				Nreplays += 1
 			bu.debug('All the matching replays have been read from the DB')
 		except Exception as err:
 			bu.error(exception=err)
@@ -1069,8 +1072,9 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 					fn = fn[:-1] 
 				if os.path.isfile(fn) and (p_replayfile.match(fn) != None):
 					replay_json = await bu.open_JSON(fn, wi.chk_JSON_replay)
-					await queue.put(await mk_readerQ_item(fn))
+					await queue.put(await mk_readerQ_item(replay_json))
 					bu.debug('File added to queue: ' + fn)
+					Nreplays += 1
 				elif os.path.isdir(fn):
 					with os.scandir(fn) as dirEntry:
 						for entry in dirEntry:
@@ -1079,10 +1083,11 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 								replay_json = await bu.open_JSON(entry.path, wi.chk_JSON_replay)
 								await queue.put(await mk_readerQ_item(replay_json))
 								bu.debug('File added to queue: ' + entry.path)
+								Nreplays += 1
 			except Exception as err:
 				bu.error(exception=err)					
-	bu.debug('Finished: ' + str(queue.qsize())  + ' replays to process') 
-	return None
+	bu.verbose('Finished scanning replays: ' + str(Nreplays)  + ' replays to process') 
+	return Nreplays
 
 
 async def mk_readerQ_item(replay_json) -> list:
@@ -1175,8 +1180,12 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 				
 		for key in replay_summary_flds:
 			result[key] = replay_json['data']['summary'][key]
-
-		
+	
+	except Exception as err:
+		bu.error(exception=err)
+		return None
+	try:	
+		bu.debug('Part 2')
 		result['allies'] = set()
 		result['enemies'] = set()
 		btl_duration = 0
