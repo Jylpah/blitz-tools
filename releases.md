@@ -2,6 +2,7 @@
 
 | Release | Date     | Notes       | Inaccurate? |
 |:-------:|:--------:|-------------|-----|
+| 7.0 | 2020-06-17 | British LTs, graphics improvements, ATGM nerf, Sheridan nerf, map fixes |  |
 | 6.10 | 2020-04-29 | T92E1 nerf, Tier V-IX heavy HP buff, Battle Pass, map fixes |  |
 | 6.9 | 2020-03-25 | Japanese TDs, Tier X heavy HP buff |  |
 | 6.8 | 2020-02-19 | ATGM nerf, Hellas map |  |
