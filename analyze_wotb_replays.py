@@ -248,6 +248,7 @@ class BattleRecord():
 	# fields to display in results
 	_result_fields_default = [
 		'battles',
+		'battles%',
 		'win',
 		'damage_made',
 		'enemies_spotted',
@@ -260,7 +261,6 @@ class BattleRecord():
 	]
 
 	_result_fields_extended = [
-		'battles%',
 		'DR',
 		'KDR',
 		'hit_rate',
@@ -875,16 +875,32 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 				bu.print_progress()
 				# Analysing player performance based on their stats on the tier tanks they are playing 
 
-				stats[stat_id] = await stat_db_func(db, stat_id)				
-				bu.debug('get_db_' + args.stat_func + '_stats returned: ' + str(stats[stat_id]), workerID)
-
-				# no DB stats found, trying WG
-				if (stats[stat_id] == None):
+				# Try cache first
+				if (stat_id not in stats):
+					stats_tmp = None
 					pruned_stat_id = prune_stat_id(stat_id)
 					if (pruned_stat_id not in stats):
+						stats_tmp = await stat_wg_func(pruned_stat_id, cache_only = True)
+					else:
+						stat_id_remap[stat_id] = pruned_stat_id
+						queue.task_done()
+						continue
+
+					if (stats_tmp != None):
+						stats[pruned_stat_id] = stats_tmp
+						stat_id_remap[stat_id] = pruned_stat_id
+						queue.task_done()
+						continue
+					
+					# try DB
+					stats[stat_id] = await stat_db_func(db, stat_id)				
+					bu.debug('get_db_' + args.stat_func + '_stats returned: ' + str(stats[stat_id]), workerID)
+
+					# no DB stats found, trying WG AP
+					if (stats[stat_id] == None):							
 						stats[pruned_stat_id] = await stat_wg_func(pruned_stat_id)
-					stat_id_remap[stat_id] = pruned_stat_id
-					del stats[stat_id]
+						stat_id_remap[stat_id] = pruned_stat_id
+						del stats[stat_id]
 					
 			except KeyError as err:
 				bu.error('Key not found', err, workerID)
@@ -911,7 +927,7 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 	return (stats, stat_id_remap)
 	
 ## player stat functions: tank_tier
-async def get_wg_tank_tier_stats(stat_id_str: str) -> dict:
+async def get_wg_tank_tier_stats(stat_id_str: str, cache_only = False) -> dict:
 	"""Get player stats from WG. Returns WR per tier of tank_id"""
 	try:
 		(account_id, tier) = str2ints(stat_id_str)
@@ -921,7 +937,7 @@ async def get_wg_tank_tier_stats(stat_id_str: str) -> dict:
 		hist_stats = [ 'all.' + x for x in histogram_fields.keys() ]
 		hist_stats.append('tank_id')
 
-		player_stats = await wg.get_player_tank_stats(account_id, tier_tanks ,hist_stats)
+		player_stats = await wg.get_player_tank_stats(account_id, tier_tanks, hist_stats, cache_only = cache_only)
 		#bu.debug('account_id: ' + str(account_id) + ' ' + str(player_stats))
 
 		return await tank_stats_helper(player_stats)
@@ -993,7 +1009,7 @@ async def get_db_player_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, sta
 	return None
 
 
-async def get_wg_player_stats(stat_id_str: str) -> dict:
+async def get_wg_player_stats(stat_id_str: str, cache_only = False) -> dict:
 	"""Get player stats from WG. Returns WR per tier of tank_id"""
 	try:
 		account_id = int(stat_id_str)
@@ -1002,7 +1018,7 @@ async def get_wg_player_stats(stat_id_str: str) -> dict:
 		hist_stats = [ 'statistics.all.' + x for x in histogram_fields.keys() ]
 		hist_stats.append('account_id')
 
-		player_stats = await wg.get_player_stats(account_id, hist_stats)
+		player_stats = await wg.get_player_stats(account_id, hist_stats, cache_only = cache_only)
 		#bu.debug('account_id: ' + str(account_id) + ' ' + str(player_stats))
 
 		return await player_stats_helper(player_stats)
