@@ -23,12 +23,17 @@ async def main(argv):
     os.chdir(os.path.dirname(sys.argv[0]))
 
     ## Read config
-    config = configparser.ConfigParser()
-    config.read(FILE_CONFIG)
+    BLITZAPP_FOLDER = '.'
+    try:
+        if os.path.isfile(FILE_CONFIG):
+            config = configparser.ConfigParser()
+            config.read(FILE_CONFIG)
 
-    configOptions 	= config['EXTRACT_TANKOPEDIA']
-    BLITZAPP_FOLDER = configOptions.get('blitz_app_dir', '.')
-
+            configOptions 	= config['EXTRACT_TANKOPEDIA']
+            BLITZAPP_FOLDER = configOptions.get('blitz_app_dir', BLITZAPP_FOLDER)
+    except:
+        pass
+    
     parser = argparse.ArgumentParser(description='Extract Tankopedia data from Blitz game files')
     parser.add_argument('blitz_app_base', type=str, nargs='?', metavar="BLITZAPP_FOLDER", default=BLITZAPP_FOLDER, help='Base dir of the Blitz App files')
     parser.add_argument('tanks', type=str, default='tanks.json', nargs='?', metavar="TANKS_FILE", help='File to write Tankopedia')
@@ -186,6 +191,14 @@ async def get_tank_type(tagstr : str):
 
 ### main()
 if __name__ == "__main__":
-    
-   #asyncio.run(main(sys.argv[1:]), debug=True)
-   asyncio.run(main(sys.argv[1:]))
+    # To avoid 'Event loop is closed' RuntimeError due to compatibility issue with aiohttp
+    if sys.platform.startswith("win") and sys.version_info >= (3, 8):
+        try:
+            from asyncio import WindowsSelectorEventLoopPolicy
+        except ImportError:
+            pass
+        else:
+            if not isinstance(asyncio.get_event_loop_policy(), WindowsSelectorEventLoopPolicy):
+                asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
+    #asyncio.run(main(sys.argv[1:]), debug=True)
+    asyncio.run(main(sys.argv[1:]))

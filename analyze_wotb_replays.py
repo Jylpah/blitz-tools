@@ -486,6 +486,14 @@ class PlayerHistogram():
 		return None
 
 
+class ErrorCatchingArgumentParser(argparse.ArgumentParser):
+	def exit(self, status=0, message=None):
+		if status:
+			if message != None:
+				raise UserWarning(message)
+			else:
+				raise UserWarning()
+
 ## main() -------------------------------------------------------------
 
 async def main(argv):
@@ -517,147 +525,157 @@ async def main(argv):
 	DB_CERT 	= None
 	DB_CA 		= None
 	
-	## Read config
-	if os.path.isfile(FILE_CONFIG):
-		config = configparser.ConfigParser()
-		config.read(FILE_CONFIG)
-
-		try:
-			configOptions 	= config['OPTIONS']
-			# WG account id of the uploader: 
-			# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
-			OPT_DB			= configOptions.getboolean('opt_DB', OPT_DB)
-			OPT_EXTENDED 	= configOptions.getboolean('opt_analyzer_extended', OPT_EXTENDED)
-			OPT_HIST		= configOptions.getboolean('opt_analyzer_hist', OPT_HIST)
-			OPT_STAT_FUNC	= configOptions.get('opt_analyzer_stat_func', fallback=OPT_STAT_FUNC)
-			OPT_WORKERS_N 	= configOptions.getint('opt_analyzer_workers', OPT_WORKERS_N)
-		except configparser.NoSectionError as err:
-			bu.error(exception=err)
-
-		try:
-			configWG 		= config['WG']
-			WG_ID			= configWG.getint('wg_id', WG_ID)
-			WG_APP_ID		= configWG.get('wg_app_id', WG_APP_ID)
-			WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', WG_RATE_LIMIT)
-		except configparser.NoSectionError as err:
-			bu.error(exception=err)
-
-		try:
-			configDB 	= config['DATABASE']
-			DB_SERVER 	= configDB.get('db_server', DB_SERVER)
-			DB_PORT 	= configDB.getint('db_port', DB_PORT)
-			DB_SSL		= configDB.getboolean('db_ssl', DB_SSL)
-			DB_CERT_REQ = configDB.getint('db_ssl_req', DB_CERT_REQ)
-			DB_AUTH 	= configDB.get('db_auth', DB_AUTH)
-			DB_NAME 	= configDB.get('db_name', DB_NAME)
-			DB_USER		= configDB.get('db_user', DB_USER)
-			DB_PASSWD 	= configDB.get('db_password', DB_PASSWD)
-			DB_CERT 	= configDB.get('db_ssl_cert_file', DB_CERT)
-			DB_CA 		= configDB.get('db_ssl_ca_file', DB_CA)
-		except configparser.NoSectionError as err:
-			bu.error(exception=err)
-
-	
-	parser = argparse.ArgumentParser(description='Analyze Blitz replay JSONs from WoTinspector.com')
-	parser.add_argument('--output', default='plain', choices=['json', 'plain', 'db'], help='Select output mode: JSON, plain text or database')
-	parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
-	parser.add_argument('-a', '--account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
-	parser.add_argument('-x', '--extended', action='store_true', default=OPT_EXTENDED, help='Print Extended stats')
-	parser.add_argument('-X', '--extra_categories', choices=BattleRecordCategory.get_extra_categories(), default=None, nargs='*', help='Print Extended categories')
-	parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms (WR/battles)')
-	parser.add_argument('--stat_func', default=OPT_STAT_FUNC, choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
-	parser.add_argument('-u', '--url', action='store_true', default=False, help='Print replay URLs')
-	parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
-	parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default is "maps.json"')
-	parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
-	parser.add_argument('--db', action='store_true', default=OPT_DB, help='Use DB - You are unlikely to have it')
-	parser.add_argument('--filters', type=str, default=None, help='Filters for DB based analyses. MongoDB find() filter JSON format.')
-	parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
-	parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
-	parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
-	parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files/dirs to read. Use \'-\' for STDIN, "db:" for database')
-	
-	args = parser.parse_args()
-	bu.set_log_level(args.silent, args.verbose, args.debug)
-	bu.set_progress_step(250)  # Set the frequency of the progress dots. 
-	
-	wg = WG(WG_APP_ID, args.tankfile, args.mapfile, stats_cache=True, rate_limit=WG_RATE_LIMIT)
-	wi = WoTinspector(rate_limit=10)
-
-	if args.account != None:
-		args.account_id = await wg.get_account_id(args.account)
-		bu.debug('WG  account_id: ' + str(args.account_id))
-
-	BattleRecord.set_fields(args.extended)
-
-	#### Connect to MongoDB (TBD)
-	bu.debug('DB_SERVER: ' + DB_SERVER)
-	bu.debug('DB_PORT: ' + str(DB_PORT))
-	bu.debug('DB_SSL: ' + "True" if DB_SSL else "False")
-	bu.debug('DB_AUTH: ' + DB_AUTH)
-	bu.debug('DB_NAME: ' + DB_NAME)
-	
-	client = None
-	db = None
-	if args.db:
-		try:
-			client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ, ssl_certfile=DB_CERT, tlsCAFile=DB_CA)
-			db = client[DB_NAME]
-			args.account_id = None
-			bu.debug('Database connection initiated')
-		except Exception as err: 
-			bu.error("Could no initiate DB connection: Disabling DB", err) 
-			args.db = False
-			pass
-
-	if not(args.db):
-		bu.debug('No DB in use')
-
 	try:
-		replayQ  = asyncio.Queue(maxsize=1000)			
-		reader_tasks = []
-		# Make replay Queue
+		## Read config
+		if os.path.isfile(FILE_CONFIG):
+			config = configparser.ConfigParser()
+			config.read(FILE_CONFIG)
 
-		scanner_task = asyncio.create_task(mk_replayQ(replayQ, args, db))
-		bu.debug('Replay scanner started')
-		# Start tasks to process the Queue
-		for i in range(OPT_WORKERS_N):
-			reader_tasks.append(asyncio.create_task(replay_reader(replayQ, i, args)))
-			bu.debug('ReplayReader ' + str(i) + ' started')
+			try:
+				configOptions 	= config['OPTIONS']
+				# WG account id of the uploader: 
+				# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
+				OPT_DB			= configOptions.getboolean('opt_DB', OPT_DB)
+				OPT_EXTENDED 	= configOptions.getboolean('opt_analyzer_extended', OPT_EXTENDED)
+				OPT_HIST		= configOptions.getboolean('opt_analyzer_hist', OPT_HIST)
+				OPT_STAT_FUNC	= configOptions.get('opt_analyzer_stat_func', fallback=OPT_STAT_FUNC)
+				OPT_WORKERS_N 	= configOptions.getint('opt_analyzer_workers', OPT_WORKERS_N)
+			except configparser.NoSectionError as err:
+				bu.error(exception=err)
 
-		bu.debug('Waiting for the replay scanner to finish')
-		await asyncio.wait([scanner_task])
+			try:
+				configWG 		= config['WG']
+				WG_ID			= configWG.getint('wg_id', WG_ID)
+				WG_APP_ID		= configWG.get('wg_app_id', WG_APP_ID)
+				WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', WG_RATE_LIMIT)
+			except configparser.NoSectionError as err:
+				bu.error(exception=err)
+
+			try:
+				configDB 	= config['DATABASE']
+				DB_SERVER 	= configDB.get('db_server', DB_SERVER)
+				DB_PORT 	= configDB.getint('db_port', DB_PORT)
+				DB_SSL		= configDB.getboolean('db_ssl', DB_SSL)
+				DB_CERT_REQ = configDB.getint('db_ssl_req', DB_CERT_REQ)
+				DB_AUTH 	= configDB.get('db_auth', DB_AUTH)
+				DB_NAME 	= configDB.get('db_name', DB_NAME)
+				DB_USER		= configDB.get('db_user', DB_USER)
+				DB_PASSWD 	= configDB.get('db_password', DB_PASSWD)
+				DB_CERT 	= configDB.get('db_ssl_cert_file', DB_CERT)
+				DB_CA 		= configDB.get('db_ssl_ca_file', DB_CA)
+			except configparser.NoSectionError as err:
+				bu.error(exception=err)
+
+		parser = ErrorCatchingArgumentParser(description='Analyze Blitz replay JSONs from WoTinspector.com')
+
+		parser.add_argument('--output', default='plain', choices=['json', 'plain', 'db'], help='Select output mode: JSON, plain text or database')
+		parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
+		parser.add_argument('-a', '--account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
+		parser.add_argument('-x', '--extended', action='store_true', default=OPT_EXTENDED, help='Print Extended stats')
+		parser.add_argument('-X', '--extra_categories', choices=BattleRecordCategory.get_extra_categories(), default=None, nargs='*', help='Print Extended categories')
+		parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms (WR/battles)')
+		parser.add_argument('--stat_func', default=OPT_STAT_FUNC, choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
+		parser.add_argument('-u', '--url', action='store_true', default=False, help='Print replay URLs')
+		parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
+		parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default is "maps.json"')
+		parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
+		parser.add_argument('--db', action='store_true', default=OPT_DB, help='Use DB - You are unlikely to have it')
+		parser.add_argument('--filters', type=str, default=None, help='Filters for DB based analyses. MongoDB find() filter JSON format.')
+		parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
+		parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
+		parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
+		parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files/dirs to read. Use \'-\' for STDIN, "db:" for database')
 		
-		# bu.debug('Scanner finished. Waiting for replay readers to finish the queue')
-		await replayQ.join()
-		await asyncio.sleep(0.1)
-		bu.debug('Replays read. Cancelling Readers and analyzing results')
-		for task in reader_tasks:
-			task.cancel()
-			await asyncio.sleep(0.1)	
-		results = []
-		players = set()
-		for res in await asyncio.gather(*reader_tasks):
-			results.extend(res[0])
-			players.update(res[1])
-		if len(players) == 0:
-			raise Exception("No players found to fetch stats for. No replays found?")
+		try:
+			args = parser.parse_args()
+		except Exception as err:
+			raise
 
-		(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
-		bu.verbose('')
-		bu.debug('Number of player stats: ' + str(len(player_stats)))
-		teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
-		process_battle_results(teamresults, args)	
-		if args.hist: 
-			print('\nPlayer Histograms______', end='', flush=True)
-			process_player_dist(results, player_stats, stat_id_map)
-		bu.debug('Finished. Cleaning up..................')
+		bu.set_log_level(args.silent, args.verbose, args.debug)
+		bu.set_progress_step(250)  # Set the frequency of the progress dots. 
+		
+		wg = WG(WG_APP_ID, args.tankfile, args.mapfile, stats_cache=True, rate_limit=WG_RATE_LIMIT)
+		wi = WoTinspector(rate_limit=10)
+
+		if args.account != None:
+			args.account_id = await wg.get_account_id(args.account)
+			bu.debug('WG  account_id: ' + str(args.account_id))
+
+		BattleRecord.set_fields(args.extended)
+
+		#### Connect to MongoDB (TBD)
+		bu.debug('DB_SERVER: ' + DB_SERVER)
+		bu.debug('DB_PORT: ' + str(DB_PORT))
+		bu.debug('DB_SSL: ' + "True" if DB_SSL else "False")
+		bu.debug('DB_AUTH: ' + DB_AUTH)
+		bu.debug('DB_NAME: ' + DB_NAME)
+		
+		client = None
+		db = None
+		if args.db:
+			try:
+				client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ, ssl_certfile=DB_CERT, tlsCAFile=DB_CA)
+				db = client[DB_NAME]
+				args.account_id = None
+				bu.debug('Database connection initiated')
+			except Exception as err: 
+				bu.error("Could no initiate DB connection: Disabling DB", err) 
+				args.db = False
+				pass
+
+		if not(args.db):
+			bu.debug('No DB in use')
+
+		try:
+			replayQ  = asyncio.Queue(maxsize=1000)			
+			reader_tasks = []
+			# Make replay Queue
+
+			scanner_task = asyncio.create_task(mk_replayQ(replayQ, args, db))
+			bu.debug('Replay scanner started')
+			# Start tasks to process the Queue
+			for i in range(OPT_WORKERS_N):
+				reader_tasks.append(asyncio.create_task(replay_reader(replayQ, i, args)))
+				bu.debug('ReplayReader ' + str(i) + ' started')
+
+			bu.debug('Waiting for the replay scanner to finish')
+			await asyncio.wait([scanner_task])
+			
+			# bu.debug('Scanner finished. Waiting for replay readers to finish the queue')
+			await replayQ.join()
+			await asyncio.sleep(0.1)
+			bu.debug('Replays read. Cancelling Readers and analyzing results')
+			for task in reader_tasks:
+				task.cancel()
+				await asyncio.sleep(0.1)	
+			results = []
+			players = set()
+			for res in await asyncio.gather(*reader_tasks):
+				results.extend(res[0])
+				players.update(res[1])
+			if len(players) == 0:
+				raise Exception("No players found to fetch stats for. No replays found?")
+
+			(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
+			bu.verbose('')
+			bu.debug('Number of player stats: ' + str(len(player_stats)))
+			teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
+			process_battle_results(teamresults, args)	
+			if args.hist: 
+				print('\nPlayer Histograms______', end='', flush=True)
+				process_player_dist(results, player_stats, stat_id_map)
+			bu.debug('Finished. Cleaning up..................')
+		except Exception as err:
+			bu.error(exception=err)
+	except UserWarning as err:
+		bu.verbose(str(err))
+		pass
 	except Exception as err:
-		bu.error(exception=err)
+			bu.error(exception=err)
 	finally:
 		## Need to close the aiohttp.session since Python destructors do not support async methods... 
-		await wg.close()
-		await wi.close()
+		if wg != None: await wg.close()
+		if wi != None: await wi.close()
 	return None
 
 def process_player_dist(results: list, player_stats: dict, stat_id_map: dict):
@@ -1383,4 +1401,13 @@ def get_stat_id_player(stat_id_str: str) -> str:
 
 ### main()
 if __name__ == "__main__":
-   asyncio.run(main(sys.argv[1:]), debug=False)
+	# To avoid 'Event loop is closed' RuntimeError due to compatibility issue with aiohttp
+	if sys.platform.startswith("win") and sys.version_info >= (3, 8):
+		try:
+			from asyncio import WindowsSelectorEventLoopPolicy
+		except ImportError:
+			pass
+		else:
+			if not isinstance(asyncio.get_event_loop_policy(), WindowsSelectorEventLoopPolicy):
+				asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
+	asyncio.run(main(sys.argv[1:]), debug=False)
