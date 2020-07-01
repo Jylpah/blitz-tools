@@ -1,7 +1,7 @@
 #!/usr/bin/env python3.8
 
 import json, argparse, inspect, sys, os, base64, aiohttp, urllib, asyncio, aiofiles, aioconsole
-import logging, re, concurrent.futures, configparser, motor.motor_asyncio, ssl, pymongo
+import logging, re, concurrent.futures, configparser, motor.motor_asyncio, ssl
 import blitzutils as bu
 from blitzutils import WG
 from blitzutils import WoTinspector
