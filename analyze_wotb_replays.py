@@ -116,7 +116,8 @@ class BattleRecordCategory():
 		'battle_i'		
 		]
 
-	
+	total_battles = 0
+
 	RESULT_CAT_FRMT = '{:>20s}'
 	
 	@classmethod
@@ -163,16 +164,25 @@ class BattleRecordCategory():
 			else:
 				cat = self._result_categories[self.category_name][1][result[self.category_name]]
 			self.category[cat].record_result(result)
+			self.total_battles += 1
 			return True
 		except KeyError as err:
 			bu.error('Key not found', err)
 			bu.error('Category: ', str(cat))
-			bu.error(str(result))
+			bu.error(exception = err)
 		except Exception as err:
 			bu.error('Category: ', str(cat))
-			bu.error(str(err)) 
+			bu.error(exception = err) 
 		return False
 	
+
+	def calc_results(self):
+		try:
+			for sub_cat in self.get_sub_categories():
+				self.category[sub_cat].calc_results(self.total_battles)
+		except Exception as err:
+			bu.error(exception = err)
+
 
 	def print_results(self):
 		try:
@@ -183,7 +193,7 @@ class BattleRecordCategory():
 		except KeyError as err:
 			bu.error('Key not found', err)  
 		except Exception as err:
-			bu.error(str(err)) 
+			bu.error(exception = err) 
 		return None
 
 
@@ -213,6 +223,7 @@ class BattleRecord():
 	## Syntax: Check how the replay JSON files look. The algorithm is counting/recording fields
 	_result_fields = {
 		'battles'			: [ 'Battles', 'Number of battles', 8, '{:^8.0f}' ],
+		'battles%'			: [ '% Battles', 'Share of Battles',6, '{:6.0%}' ],
 		'win'				: [ 'WR', 'Win rate', 				6, '{:6.1%}' ],
 		'damage_made'		: [ 'DPB', 'Average Damage', 		5, '{:5.0f}' ],
 		'DR'				: [ 'DR', 'Damage Ratio', 			5, '{:5.1f}' ],
@@ -223,13 +234,13 @@ class BattleRecord():
 		'survived'			: [ 'Surv%', 'Survival rate', 					6, '{:6.1%}' ],
 		'time_alive%'		: [ 'T alive%', 'Percentage of time being alive in a battle', 8, '{:8.0%}' ], 
 		'top_tier'			: [ 'Top tier', 'Share of games as top tier', 					8, '{:8.0%}' ],
-		MISSING_STATS		: [ 'No stats', 'Players without stats avail', 	8, '{:8.1%}'], 
+		'player_wins'		: [ 'Player WR', 'Average WR of the player', 					9, '{:9.2%}' ],
+		'player_battles'	: [ 'Player Btls', 'Average number battles of the player', 		11, '{:11.0f}' ],
 		'allies_wins'		: [ 'Allies WR', 'Average WR of allies at the tier of their tank', 9, '{:9.2%}' ],
 		'enemies_wins'		: [ 'Enemies WR', 'Average WR of enemies at the tier of their tank', 10, '{:10.2%}' ],
 		'allies_battles'	: [ 'Allies Btls', 'Average number battles of the allies', 		11, '{:11.0f}' ],
 		'enemies_battles'	: [ 'Enemies Btls', 'Average number battles of the enemies', 	12, '{:12.0f}' ],
-		'player_wins'		: [ 'Player WR', 'Average WR of the player', 					9, '{:9.2%}' ],
-		'player_battles'	: [ 'Player Btls', 'Average number battles of the allies', 		11, '{:11.0f}' ]
+		MISSING_STATS		: [ 'No stats', 'Players without stats avail', 	8, '{:8.1%}']		
 	}
 
 	_team_fields = [ 'wins', 'battles' ]
@@ -242,7 +253,6 @@ class BattleRecord():
 		'enemies_spotted',
 		'top_tier',
 		'player_wins',
-#		'player_battles',
 		'allies_wins',
 		'enemies_wins',
 		'allies_battles',
@@ -250,17 +260,21 @@ class BattleRecord():
 	]
 
 	_result_fields_extended = [
+		'battles%',
 		'DR',
 		'KDR',
 		'hit_rate',
 		'pen_rate',
 		'survived',
 		'time_alive%',
+		'player_battles',
 		MISSING_STATS
 	]
 
 	_result_counts = [
-		'battles', MISSING_STATS, 'mastery_badge'
+		'battles', 
+		MISSING_STATS, 
+		'mastery_badge'
 	]
 	_result_ratios = {
 		'KDR'				: [ 'enemies_destroyed', 'destroyed' ],
@@ -275,8 +289,7 @@ class BattleRecord():
 	result_fields 	= list()
 	avg_fields 		= set()
 	ratio_fields 	= set()
-	
-	
+		
 	RESULT_CAT_HEADER_FRMT = '{:_<20s}'
 
 
@@ -289,11 +302,13 @@ class BattleRecord():
 			else:
 				cls.result_fields  = cls._result_fields_default
 			cls.result_fields_ratio = set(cls._result_ratios.keys()) & set(cls.result_fields)
-		
+
+			# sort results fields according to _results_fields		
+			cls.result_fields.sort(key = lambda i: list(cls._result_fields.keys()).index(i)) 
+			
 			cls.avg_fields = set(cls.result_fields)
-			for field in cls._result_counts:
-				if field in cls.avg_fields:
-					cls.avg_fields.remove(field)
+			for field in (set(cls._result_counts) & cls.avg_fields):
+				cls.avg_fields.remove(field)
 			cls.avg_fields.difference_update(set(cls._result_ratios.keys()))
 			for ratio in cls.result_fields_ratio:
 				cls.ratio_fields.add(cls._result_ratios[ratio][0])
@@ -366,7 +381,7 @@ class BattleRecord():
 		return False
 
 
-	def calc_results(self):
+	def calc_results(self, total_battles: int = None):
 		if self.results_ready == True: 
 			return True
 		if not self.ratios_ready:
@@ -375,6 +390,7 @@ class BattleRecord():
 			for field in self.avg_fields:
 				self.results[field] = self.results[field] / max(self.battles,1)
 			self.results['battles'] = self.battles
+			self.results['battles%'] = self.battles / total_battles
 			self.results[MISSING_STATS] = self.missing_stats / max(self.n_players, 1)
 			self.results_ready = True
 			return True
@@ -401,7 +417,7 @@ class BattleRecord():
 
 	def get_results(self):
 		if not self.results_ready:
-			self.calc_results()
+			bu.error('Stats have not been calculated yet. call calc_results() before get_results()')
 		results = []
 		try:
 			for field in self.result_fields:
@@ -691,8 +707,7 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 			urls[result['title']] = result['url']
 
 	for cat in cats:
-		for sub_cat in categories[cat].get_sub_categories():
-			categories[cat].category[sub_cat].calc_results()
+		categories[cat].calc_results()
 		print('')
 		categories[cat].print_results()
 	if url:
