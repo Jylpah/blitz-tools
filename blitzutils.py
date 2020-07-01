@@ -1172,6 +1172,8 @@ class WG:
                     await self.store_tank_stats(key, stats_data, update_time)
                 elif stats_type == 'player_stats':
                     await self.store_player_stats(key, stats_data, update_time)
+                elif stats_type == 'player_achievements':
+                    await self.store_player_achievements(key, stats_data, update_time)
                 else: 
                     error('Function to saves stats type \'' + stats_type + '\' is not implemented yet')
             
@@ -1236,7 +1238,7 @@ class WG:
             return False
 
 
-    async def store_player_achivements(self, key: list , stats_data: list, update_time: int):
+    async def store_player_achievements(self, key: list , stats_data: list, update_time: int):
         """Save player stats into cache"""
         try:
             account_id  = key[0]
@@ -1245,7 +1247,7 @@ class WG:
             else:
                 await self.cache.execute(WG.SQL_PLAYER_ACHIEVEMENTS_UPDATE, (account_id, update_time, None))
             await self.cache.commit()
-            debug('Cached player achivements saved for account_id: ' + str(account_id) )
+            debug('Cached player achievements saved for account_id: ' + str(account_id) )
             return True
         except Exception as err:
             error(exception=err)
