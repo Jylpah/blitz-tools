@@ -94,6 +94,7 @@ class BattleRecordCategory():
 		'tank_tier'			: [ 'Tank Tier', 'number' ],
 		'top_tier'			: [ 'Tier', ['Bottom tier', 'Top tier']],
 		'mastery_badge'		: [ 'Battle Medal', ['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
+		'team_result'		: [ 'Team Result', 'string' ],
 		'tank_name'			: [ 'Tank', 'string' ],
 		'map_name'			: [ 'Map', 'string' ],
 		'battle_i'			: [ 'Battle #', 'number']
@@ -111,6 +112,7 @@ class BattleRecordCategory():
 	_result_categories_extended = [
 		'tank_name',
 		'map_name', 
+		'team_result',
 		'battle_i'		
 		]
 
@@ -475,35 +477,70 @@ async def main(argv):
 	# set the directory for the script
 	os.chdir(os.path.dirname(sys.argv[0]))
 
+	## Default options:
+	OPT_DB			= False
+	OPT_EXTENDED 	= False
+	OPT_HIST		= False
+	OPT_STAT_FUNC	= 'player'
+	OPT_WORKERS_N 	= 10
+	
+	WG_ID			= None
+	#WG_APP_ID		= WG_APP_ID
+	WG_RATE_LIMIT	= 10  ## WG standard. Do not edit unless you have your
+						  ## own server app ID, it will REDUCE the performance
+	
+	## VERY unlikely you have a DB set up
+	DB_SERVER 	= 'localhost'
+	DB_PORT 	= 27017
+	DB_SSL		= False
+	DB_CERT_REQ = ssl.CERT_NONE
+	DB_AUTH 	= 'admin'
+	DB_NAME 	= 'BlitzStats'
+	DB_USER		= 'mongouser'
+	DB_PASSWD 	= "PASSWORD"
+	DB_CERT 	= None
+	DB_CA 		= None
+	
 	## Read config
-	config = configparser.ConfigParser()
-	config.read(FILE_CONFIG)
+	if os.path.isfile(FILE_CONFIG):
+		config = configparser.ConfigParser()
+		config.read(FILE_CONFIG)
 
-	configOptions 	= config['OPTIONS']
-	# WG account id of the uploader: 
-	# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
-	OPT_DB			= configOptions.getboolean('opt_DB', False)
-	OPT_EXTENDED 	= configOptions.getboolean('opt_analyzer_extended', False)
-	OPT_HIST		= configOptions.getboolean('opt_analyzer_hist', False)
-	OPT_STAT_FUNC	= configOptions.get('opt_analyzer_stat_func', fallback='player')
-	OPT_WORKERS_N = configOptions.getint('opt_analyzer_workers', 10)
+		try:
+			configOptions 	= config['OPTIONS']
+			# WG account id of the uploader: 
+			# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
+			OPT_DB			= configOptions.getboolean('opt_DB', OPT_DB)
+			OPT_EXTENDED 	= configOptions.getboolean('opt_analyzer_extended', OPT_EXTENDED)
+			OPT_HIST		= configOptions.getboolean('opt_analyzer_hist', OPT_HIST)
+			OPT_STAT_FUNC	= configOptions.get('opt_analyzer_stat_func', fallback=OPT_STAT_FUNC)
+			OPT_WORKERS_N 	= configOptions.getint('opt_analyzer_workers', OPT_WORKERS_N)
+		except configparser.NoSectionError as err:
+			bu.error(exception=err)
 
-	configWG 		= config['WG']
-	WG_ID			= configWG.getint('wg_id', None)
-	WG_APP_ID		= configWG.get('wg_app_id', WG_APP_ID)
-	WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', 10)
+		try:
+			configWG 		= config['WG']
+			WG_ID			= configWG.getint('wg_id', WG_ID)
+			WG_APP_ID		= configWG.get('wg_app_id', WG_APP_ID)
+			WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', WG_RATE_LIMIT)
+		except configparser.NoSectionError as err:
+			bu.error(exception=err)
 
-	configDB 	= config['DATABASE']
-	DB_SERVER 	= configDB.get('db_server', 'localhost')
-	DB_PORT 	= configDB.getint('db_port', 27017)
-	DB_SSL		= configDB.getboolean('db_ssl', False)
-	DB_CERT_REQ = configDB.getint('db_ssl_req', ssl.CERT_NONE)
-	DB_AUTH 	= configDB.get('db_auth', 'admin')
-	DB_NAME 	= configDB.get('db_name', 'BlitzStats')
-	DB_USER		= configDB.get('db_user', 'mongouser')
-	DB_PASSWD 	= configDB.get('db_password', "PASSWORD")
-	DB_CERT 	= configDB.get('db_ssl_cert_file', None)
-	DB_CA 		= configDB.get('db_ssl_ca_file', None)
+		try:
+			configDB 	= config['DATABASE']
+			DB_SERVER 	= configDB.get('db_server', DB_SERVER)
+			DB_PORT 	= configDB.getint('db_port', DB_PORT)
+			DB_SSL		= configDB.getboolean('db_ssl', DB_SSL)
+			DB_CERT_REQ = configDB.getint('db_ssl_req', DB_CERT_REQ)
+			DB_AUTH 	= configDB.get('db_auth', DB_AUTH)
+			DB_NAME 	= configDB.get('db_name', DB_NAME)
+			DB_USER		= configDB.get('db_user', DB_USER)
+			DB_PASSWD 	= configDB.get('db_password', DB_PASSWD)
+			DB_CERT 	= configDB.get('db_ssl_cert_file', DB_CERT)
+			DB_CA 		= configDB.get('db_ssl_ca_file', DB_CA)
+		except configparser.NoSectionError as err:
+			bu.error(exception=err)
+
 	
 	parser = argparse.ArgumentParser(description='Analyze Blitz replay JSONs from WoTinspector.com')
 	parser.add_argument('--output', default='plain', choices=['json', 'plain', 'db'], help='Select output mode: JSON, plain text or database')
@@ -790,7 +827,9 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 					result['enemies_' + str(stat)] = enemies_stats[stat] / n_enemies[stat]
 				else:
 					bu.debug('No enemies stats for: ' + str(result))
-				
+
+			# Steamroller stats
+			result['team_result'] = str(result['allies_survived']) + '-' + str(result['enemies_survived'])
 				
 			result[N_PLAYERS] = n_players
 			result[MISSING_STATS] = missing_stats
@@ -1188,6 +1227,8 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		bu.debug('Part 2')
 		result['allies'] = set()
 		result['enemies'] = set()
+		result['allies_survived']  = 0 	# for steamroller stats
+		result['enemies_survived']  = 0	# for steamroller stats
 		btl_duration = 0
 		btl_tier = 0
 		protagonist_tank  = None
@@ -1215,6 +1256,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 				else:
 					tmp['survived'] 	= 1
 					tmp['destroyed'] 	= 0
+					result['allies_survived'] += 1
 				for key in tmp.keys():
 					result[key] = tmp[key]				
 
@@ -1222,11 +1264,19 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 				tmp_account_id 	= player['dbid']
 				tmp_tank_id 	= player['vehicle_descr']
 				tmp_battletime	= result['battle_start_timestamp']
+				if player['death_reason'] == -1:
+					survived = True
+				else:
+					survived = False
 				
 				if player['dbid'] in replay_json['data']['summary']['allies']: 
 					result['allies'].add(get_stat_id(tmp_account_id, tmp_tank_id, tmp_battletime))
+					if survived:
+						result['allies_survived'] += 1
 				else:
 					result['enemies'].add(get_stat_id(tmp_account_id, tmp_tank_id, tmp_battletime))
+					if survived:
+						result['enemies_survived'] += 1
 
 		## Rather use 'player' than incomprehensible 'protagonist'...		
 		result['player'] = get_stat_id(protagonist, protagonist_tank, result['battle_start_timestamp'])
