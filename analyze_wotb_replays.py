@@ -568,7 +568,7 @@ async def main(argv):
 
 		parser = ErrorCatchingArgumentParser(description='Analyze Blitz replay JSONs from WoTinspector.com')
 
-		parser.add_argument('--output', default='plain', choices=['json', 'plain', 'db'], help='Select output mode: JSON, plain text or database')
+		parser.add_argument('--output', default='plain', choices=['plain', 'db'], help='Select output mode: plain text or database')
 		parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
 		parser.add_argument('-a', '--account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 		parser.add_argument('-x', '--extended', action='store_true', default=OPT_EXTENDED, help='Print Extended stats')
