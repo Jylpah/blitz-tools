@@ -926,7 +926,7 @@ class WG:
         return None
       
 
-    async def get_player_tank_stats(self, account_id: int, tank_ids = [], fields = [], cache=True) -> dict:
+    async def get_player_tank_stats(self, account_id: int, tank_ids = [], fields = [], cache=True, cache_only = False) -> dict:
         """Get player's stats (WR, # of battles) in a tank or all tanks (empty tank_ids[])"""
         try:
             stats = None
@@ -936,6 +936,8 @@ class WG:
                 stats = await self.get_cached_tank_stats(account_id, tank_ids, fields)
                 if stats != None:
                     return stats
+                if cache_only: 
+                    return None
 
             # Cached stats not found, fetching new ones
             url = self.get_url_player_tanks_stats(account_id, tank_ids, fields)
@@ -951,7 +953,7 @@ class WG:
         return None
 
    
-    async def get_player_stats(self, account_id: int, fields = [], cache=True) -> dict:
+    async def get_player_stats(self, account_id: int, fields = [], cache=True, cache_only = False) -> dict:
         """Get player's global stats """
         try:
             #debug('account_id: ' + str(account_id) )
@@ -964,6 +966,9 @@ class WG:
                 return stats
 
         except StatsNotFound as err:
+            if cache_only: 
+               return None
+            
             # No cached stats found, need to retrieve
             debug(exception=err)
             pass

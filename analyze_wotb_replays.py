@@ -94,6 +94,7 @@ class BattleRecordCategory():
 		'tank_tier'			: [ 'Tank Tier', 'number' ],
 		'top_tier'			: [ 'Tier', ['Bottom tier', 'Top tier']],
 		'mastery_badge'		: [ 'Battle Medal', ['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
+		'team_result'		: [ 'Team Result', 'string' ],
 		'tank_name'			: [ 'Tank', 'string' ],
 		'map_name'			: [ 'Map', 'string' ],
 		'battle_i'			: [ 'Battle #', 'number']
@@ -111,10 +112,12 @@ class BattleRecordCategory():
 	_result_categories_extended = [
 		'tank_name',
 		'map_name', 
+		'team_result',
 		'battle_i'		
 		]
 
-	
+	total_battles = 0
+
 	RESULT_CAT_FRMT = '{:>20s}'
 	
 	@classmethod
@@ -161,16 +164,25 @@ class BattleRecordCategory():
 			else:
 				cat = self._result_categories[self.category_name][1][result[self.category_name]]
 			self.category[cat].record_result(result)
+			self.total_battles += 1
 			return True
 		except KeyError as err:
 			bu.error('Key not found', err)
 			bu.error('Category: ', str(cat))
-			bu.error(str(result))
+			bu.error(exception = err)
 		except Exception as err:
 			bu.error('Category: ', str(cat))
-			bu.error(str(err)) 
+			bu.error(exception = err) 
 		return False
 	
+
+	def calc_results(self):
+		try:
+			for sub_cat in self.get_sub_categories():
+				self.category[sub_cat].calc_results(self.total_battles)
+		except Exception as err:
+			bu.error(exception = err)
+
 
 	def print_results(self):
 		try:
@@ -181,7 +193,7 @@ class BattleRecordCategory():
 		except KeyError as err:
 			bu.error('Key not found', err)  
 		except Exception as err:
-			bu.error(str(err)) 
+			bu.error(exception = err) 
 		return None
 
 
@@ -211,6 +223,7 @@ class BattleRecord():
 	## Syntax: Check how the replay JSON files look. The algorithm is counting/recording fields
 	_result_fields = {
 		'battles'			: [ 'Battles', 'Number of battles', 8, '{:^8.0f}' ],
+		'battles%'			: [ '% Battles', 'Share of Battles',6, '{:6.0%}' ],
 		'win'				: [ 'WR', 'Win rate', 				6, '{:6.1%}' ],
 		'damage_made'		: [ 'DPB', 'Average Damage', 		5, '{:5.0f}' ],
 		'DR'				: [ 'DR', 'Damage Ratio', 			5, '{:5.1f}' ],
@@ -221,13 +234,13 @@ class BattleRecord():
 		'survived'			: [ 'Surv%', 'Survival rate', 					6, '{:6.1%}' ],
 		'time_alive%'		: [ 'T alive%', 'Percentage of time being alive in a battle', 8, '{:8.0%}' ], 
 		'top_tier'			: [ 'Top tier', 'Share of games as top tier', 					8, '{:8.0%}' ],
-		MISSING_STATS		: [ 'No stats', 'Players without stats avail', 	8, '{:8.1%}'], 
+		'player_wins'		: [ 'Player WR', 'Average WR of the player', 					9, '{:9.2%}' ],
+		'player_battles'	: [ 'Player Btls', 'Average number battles of the player', 		11, '{:11.0f}' ],
 		'allies_wins'		: [ 'Allies WR', 'Average WR of allies at the tier of their tank', 9, '{:9.2%}' ],
 		'enemies_wins'		: [ 'Enemies WR', 'Average WR of enemies at the tier of their tank', 10, '{:10.2%}' ],
 		'allies_battles'	: [ 'Allies Btls', 'Average number battles of the allies', 		11, '{:11.0f}' ],
 		'enemies_battles'	: [ 'Enemies Btls', 'Average number battles of the enemies', 	12, '{:12.0f}' ],
-		'player_wins'		: [ 'Player WR', 'Average WR of the player', 					9, '{:9.2%}' ],
-		'player_battles'	: [ 'Player Btls', 'Average number battles of the allies', 		11, '{:11.0f}' ]
+		MISSING_STATS		: [ 'No stats', 'Players without stats avail', 	8, '{:8.1%}']		
 	}
 
 	_team_fields = [ 'wins', 'battles' ]
@@ -235,12 +248,12 @@ class BattleRecord():
 	# fields to display in results
 	_result_fields_default = [
 		'battles',
+		'battles%',
 		'win',
 		'damage_made',
 		'enemies_spotted',
 		'top_tier',
 		'player_wins',
-#		'player_battles',
 		'allies_wins',
 		'enemies_wins',
 		'allies_battles',
@@ -254,11 +267,14 @@ class BattleRecord():
 		'pen_rate',
 		'survived',
 		'time_alive%',
+		'player_battles',
 		MISSING_STATS
 	]
 
 	_result_counts = [
-		'battles', MISSING_STATS, 'mastery_badge'
+		'battles', 
+		MISSING_STATS, 
+		'mastery_badge'
 	]
 	_result_ratios = {
 		'KDR'				: [ 'enemies_destroyed', 'destroyed' ],
@@ -273,8 +289,7 @@ class BattleRecord():
 	result_fields 	= list()
 	avg_fields 		= set()
 	ratio_fields 	= set()
-	
-	
+		
 	RESULT_CAT_HEADER_FRMT = '{:_<20s}'
 
 
@@ -287,11 +302,13 @@ class BattleRecord():
 			else:
 				cls.result_fields  = cls._result_fields_default
 			cls.result_fields_ratio = set(cls._result_ratios.keys()) & set(cls.result_fields)
-		
+
+			# sort results fields according to _results_fields		
+			cls.result_fields.sort(key = lambda i: list(cls._result_fields.keys()).index(i)) 
+			
 			cls.avg_fields = set(cls.result_fields)
-			for field in cls._result_counts:
-				if field in cls.avg_fields:
-					cls.avg_fields.remove(field)
+			for field in (set(cls._result_counts) & cls.avg_fields):
+				cls.avg_fields.remove(field)
 			cls.avg_fields.difference_update(set(cls._result_ratios.keys()))
 			for ratio in cls.result_fields_ratio:
 				cls.ratio_fields.add(cls._result_ratios[ratio][0])
@@ -364,7 +381,7 @@ class BattleRecord():
 		return False
 
 
-	def calc_results(self):
+	def calc_results(self, total_battles: int = None):
 		if self.results_ready == True: 
 			return True
 		if not self.ratios_ready:
@@ -373,6 +390,7 @@ class BattleRecord():
 			for field in self.avg_fields:
 				self.results[field] = self.results[field] / max(self.battles,1)
 			self.results['battles'] = self.battles
+			self.results['battles%'] = self.battles / total_battles
 			self.results[MISSING_STATS] = self.missing_stats / max(self.n_players, 1)
 			self.results_ready = True
 			return True
@@ -399,7 +417,7 @@ class BattleRecord():
 
 	def get_results(self):
 		if not self.results_ready:
-			self.calc_results()
+			bu.error('Stats have not been calculated yet. call calc_results() before get_results()')
 		results = []
 		try:
 			for field in self.result_fields:
@@ -468,6 +486,14 @@ class PlayerHistogram():
 		return None
 
 
+class ErrorCatchingArgumentParser(argparse.ArgumentParser):
+	def exit(self, status=0, message=None):
+		if status:
+			if message != None:
+				raise UserWarning(message)
+			else:
+				raise UserWarning()
+
 ## main() -------------------------------------------------------------
 
 async def main(argv):
@@ -475,136 +501,181 @@ async def main(argv):
 	# set the directory for the script
 	os.chdir(os.path.dirname(sys.argv[0]))
 
-	## Read config
-	config = configparser.ConfigParser()
-	config.read(FILE_CONFIG)
-
-	configOptions 	= config['OPTIONS']
-	# WG account id of the uploader: 
-	# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
-	OPT_DB			= configOptions.getboolean('opt_DB', False)
-	OPT_EXTENDED 	= configOptions.getboolean('opt_analyzer_extended', False)
-	OPT_HIST		= configOptions.getboolean('opt_analyzer_hist', False)
-	OPT_STAT_FUNC	= configOptions.get('opt_analyzer_stat_func', fallback='player')
-	OPT_WORKERS_N = configOptions.getint('opt_analyzer_workers', 10)
-
-	configWG 		= config['WG']
-	WG_ID			= configWG.getint('wg_id', None)
-	WG_APP_ID		= configWG.get('wg_app_id', WG_APP_ID)
-	WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', 10)
-
-	configDB 	= config['DATABASE']
-	DB_SERVER 	= configDB.get('db_server', 'localhost')
-	DB_PORT 	= configDB.getint('db_port', 27017)
-	DB_SSL		= configDB.getboolean('db_ssl', False)
-	DB_CERT_REQ = configDB.getint('db_ssl_req', ssl.CERT_NONE)
-	DB_AUTH 	= configDB.get('db_auth', 'admin')
-	DB_NAME 	= configDB.get('db_name', 'BlitzStats')
-	DB_USER		= configDB.get('db_user', 'mongouser')
-	DB_PASSWD 	= configDB.get('db_password', "PASSWORD")
-	DB_CERT 	= configDB.get('db_ssl_cert_file', None)
-	DB_CA 		= configDB.get('db_ssl_ca_file', None)
+	## Default options:
+	OPT_DB			= False
+	OPT_EXTENDED 	= False
+	OPT_HIST		= False
+	OPT_STAT_FUNC	= 'player'
+	OPT_WORKERS_N 	= 10
 	
-	parser = argparse.ArgumentParser(description='Analyze Blitz replay JSONs from WoTinspector.com')
-	parser.add_argument('--output', default='plain', choices=['json', 'plain', 'db'], help='Select output mode: JSON, plain text or database')
-	parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
-	parser.add_argument('-a', '--account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
-	parser.add_argument('-x', '--extended', action='store_true', default=OPT_EXTENDED, help='Print Extended stats')
-	parser.add_argument('-X', '--extra_categories', choices=BattleRecordCategory.get_extra_categories(), default=None, nargs='*', help='Print Extended categories')
-	parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms (WR/battles)')
-	parser.add_argument('--stat_func', default=OPT_STAT_FUNC, choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
-	parser.add_argument('-u', '--url', action='store_true', default=False, help='Print replay URLs')
-	parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
-	parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default is "maps.json"')
-	parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
-	parser.add_argument('--db', action='store_true', default=OPT_DB, help='Use DB - You are unlikely to have it')
-	parser.add_argument('--filters', type=str, default=None, help='Filters for DB based analyses. MongoDB find() filter JSON format.')
-	parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
-	parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
-	parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
-	parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files/dirs to read. Use \'-\' for STDIN, "db:" for database')
+	WG_ID			= None
+	#WG_APP_ID		= WG_APP_ID
+	WG_RATE_LIMIT	= 10  ## WG standard. Do not edit unless you have your
+						  ## own server app ID, it will REDUCE the performance
 	
-	args = parser.parse_args()
-	bu.set_log_level(args.silent, args.verbose, args.debug)
-	bu.set_progress_step(250)  # Set the frequency of the progress dots. 
+	## VERY unlikely you have a DB set up
+	DB_SERVER 	= 'localhost'
+	DB_PORT 	= 27017
+	DB_SSL		= False
+	DB_CERT_REQ = ssl.CERT_NONE
+	DB_AUTH 	= 'admin'
+	DB_NAME 	= 'BlitzStats'
+	DB_USER		= 'mongouser'
+	DB_PASSWD 	= "PASSWORD"
+	DB_CERT 	= None
+	DB_CA 		= None
 	
-	wg = WG(WG_APP_ID, args.tankfile, args.mapfile, stats_cache=True, rate_limit=WG_RATE_LIMIT)
-	wi = WoTinspector(rate_limit=10)
-
-	if args.account != None:
-		args.account_id = await wg.get_account_id(args.account)
-		bu.debug('WG  account_id: ' + str(args.account_id))
-
-	BattleRecord.set_fields(args.extended)
-
-	#### Connect to MongoDB (TBD)
-	bu.debug('DB_SERVER: ' + DB_SERVER)
-	bu.debug('DB_PORT: ' + str(DB_PORT))
-	bu.debug('DB_SSL: ' + "True" if DB_SSL else "False")
-	bu.debug('DB_AUTH: ' + DB_AUTH)
-	bu.debug('DB_NAME: ' + DB_NAME)
-	
-	client = None
-	db = None
-	if args.db:
-		try:
-			client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ, ssl_certfile=DB_CERT, tlsCAFile=DB_CA)
-			db = client[DB_NAME]
-			args.account_id = None
-			bu.debug('Database connection initiated')
-		except Exception as err: 
-			bu.error("Could no initiate DB connection: Disabling DB", err) 
-			args.db = False
-			pass
-
-	if not(args.db):
-		bu.debug('No DB in use')
-
 	try:
-		replayQ  = asyncio.Queue(maxsize=1000)			
-		reader_tasks = []
-		# Make replay Queue
+		## Read config
+		if os.path.isfile(FILE_CONFIG):
+			config = configparser.ConfigParser()
+			config.read(FILE_CONFIG)
 
-		scanner_task = asyncio.create_task(mk_replayQ(replayQ, args, db))
-		bu.debug('Replay scanner started')
-		# Start tasks to process the Queue
-		for i in range(OPT_WORKERS_N):
-			reader_tasks.append(asyncio.create_task(replay_reader(replayQ, i, args)))
-			bu.debug('ReplayReader ' + str(i) + ' started')
+			try:
+				configOptions 	= config['OPTIONS']
+				# WG account id of the uploader: 
+				# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
+				OPT_DB			= configOptions.getboolean('opt_DB', OPT_DB)
+				OPT_EXTENDED 	= configOptions.getboolean('opt_analyzer_extended', OPT_EXTENDED)
+				OPT_HIST		= configOptions.getboolean('opt_analyzer_hist', OPT_HIST)
+				OPT_STAT_FUNC	= configOptions.get('opt_analyzer_stat_func', fallback=OPT_STAT_FUNC)
+				OPT_WORKERS_N 	= configOptions.getint('opt_analyzer_workers', OPT_WORKERS_N)
+			except configparser.NoSectionError as err:
+				bu.error(exception=err)
 
-		bu.debug('Waiting for the replay scanner to finish')
-		await asyncio.wait([scanner_task])
+			try:
+				configWG 		= config['WG']
+				WG_ID			= configWG.getint('wg_id', WG_ID)
+				WG_APP_ID		= configWG.get('wg_app_id', WG_APP_ID)
+				WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', WG_RATE_LIMIT)
+			except configparser.NoSectionError as err:
+				bu.error(exception=err)
+
+			try:
+				configDB 	= config['DATABASE']
+				DB_SERVER 	= configDB.get('db_server', DB_SERVER)
+				DB_PORT 	= configDB.getint('db_port', DB_PORT)
+				DB_SSL		= configDB.getboolean('db_ssl', DB_SSL)
+				DB_CERT_REQ = configDB.getint('db_ssl_req', DB_CERT_REQ)
+				DB_AUTH 	= configDB.get('db_auth', DB_AUTH)
+				DB_NAME 	= configDB.get('db_name', DB_NAME)
+				DB_USER		= configDB.get('db_user', DB_USER)
+				DB_PASSWD 	= configDB.get('db_password', DB_PASSWD)
+				DB_CERT 	= configDB.get('db_ssl_cert_file', DB_CERT)
+				DB_CA 		= configDB.get('db_ssl_ca_file', DB_CA)
+			except configparser.NoSectionError as err:
+				bu.error(exception=err)
+
+		parser = ErrorCatchingArgumentParser(description='Analyze Blitz replay JSONs from WoTinspector.com')
+
+		parser.add_argument('--output', default='plain', choices=['plain', 'db'], help='Select output mode: plain text or database')
+		parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
+		parser.add_argument('-a', '--account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
+		parser.add_argument('-x', '--extended', action='store_true', default=OPT_EXTENDED, help='Print Extended stats')
+		parser.add_argument('-X', '--extra_categories', choices=BattleRecordCategory.get_extra_categories(), default=None, nargs='*', help='Print Extended categories')
+		parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms (WR/battles)')
+		parser.add_argument('--stat_func', default=OPT_STAT_FUNC, choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
+		parser.add_argument('-u', '--url', action='store_true', default=False, help='Print replay URLs')
+		parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
+		parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default is "maps.json"')
+		parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
+		parser.add_argument('--db', action='store_true', default=OPT_DB, help='Use DB - You are unlikely to have it')
+		parser.add_argument('--filters', type=str, default=None, help='Filters for DB based analyses. MongoDB find() filter JSON format.')
+		parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
+		parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
+		parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
+		parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files/dirs to read. Use \'-\' for STDIN, "db:" for database')
 		
-		# bu.debug('Scanner finished. Waiting for replay readers to finish the queue')
-		await replayQ.join()
-		await asyncio.sleep(0.1)
-		bu.debug('Replays read. Cancelling Readers and analyzing results')
-		for task in reader_tasks:
-			task.cancel()
-			await asyncio.sleep(0.1)	
-		results = []
-		players = set()
-		for res in await asyncio.gather(*reader_tasks):
-			results.extend(res[0])
-			players.update(res[1])
-		if len(players) == 0:
-			raise Exception("No players found to fetch stats for. No replays found?")
+		try:
+			args = parser.parse_args()
+		except Exception as err:
+			raise
 
-		(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
-		bu.verbose('')
-		bu.debug('Number of player stats: ' + str(len(player_stats)))
-		teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
-		process_battle_results(teamresults, args)	
-		if args.hist: 
-			print('\nPlayer Histograms______', end='', flush=True)
-			process_player_dist(results, player_stats, stat_id_map)
-		bu.debug('Finished. Cleaning up..................')
+		bu.set_log_level(args.silent, args.verbose, args.debug)
+		bu.set_progress_step(250)  # Set the frequency of the progress dots. 
+		
+		wg = WG(WG_APP_ID, args.tankfile, args.mapfile, stats_cache=True, rate_limit=WG_RATE_LIMIT)
+		wi = WoTinspector(rate_limit=10)
+
+		if args.account != None:
+			args.account_id = await wg.get_account_id(args.account)
+			bu.debug('WG  account_id: ' + str(args.account_id))
+
+		BattleRecord.set_fields(args.extended)
+
+		#### Connect to MongoDB (TBD)
+		bu.debug('DB_SERVER: ' + DB_SERVER)
+		bu.debug('DB_PORT: ' + str(DB_PORT))
+		bu.debug('DB_SSL: ' + "True" if DB_SSL else "False")
+		bu.debug('DB_AUTH: ' + DB_AUTH)
+		bu.debug('DB_NAME: ' + DB_NAME)
+		
+		client = None
+		db = None
+		if args.db:
+			try:
+				client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ, ssl_certfile=DB_CERT, tlsCAFile=DB_CA)
+				db = client[DB_NAME]
+				args.account_id = None
+				bu.debug('Database connection initiated')
+			except Exception as err: 
+				bu.error("Could no initiate DB connection: Disabling DB", err) 
+				args.db = False
+				pass
+
+		if not(args.db):
+			bu.debug('No DB in use')
+
+		try:
+			replayQ  = asyncio.Queue(maxsize=1000)			
+			reader_tasks = []
+			# Make replay Queue
+
+			scanner_task = asyncio.create_task(mk_replayQ(replayQ, args, db))
+			bu.debug('Replay scanner started')
+			# Start tasks to process the Queue
+			for i in range(OPT_WORKERS_N):
+				reader_tasks.append(asyncio.create_task(replay_reader(replayQ, i, args)))
+				bu.debug('ReplayReader ' + str(i) + ' started')
+
+			bu.debug('Waiting for the replay scanner to finish')
+			await asyncio.wait([scanner_task])
+			
+			# bu.debug('Scanner finished. Waiting for replay readers to finish the queue')
+			await replayQ.join()
+			await asyncio.sleep(0.1)
+			bu.debug('Replays read. Cancelling Readers and analyzing results')
+			for task in reader_tasks:
+				task.cancel()
+				await asyncio.sleep(0.1)	
+			results = []
+			players = set()
+			for res in await asyncio.gather(*reader_tasks):
+				results.extend(res[0])
+				players.update(res[1])
+			if len(players) == 0:
+				raise Exception("No players found to fetch stats for. No replays found?")
+
+			(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
+			bu.verbose('')
+			bu.debug('Number of player stats: ' + str(len(player_stats)))
+			teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
+			process_battle_results(teamresults, args)	
+			if args.hist: 
+				print('\nPlayer Histograms______', end='', flush=True)
+				process_player_dist(results, player_stats, stat_id_map)
+			bu.debug('Finished. Cleaning up..................')
+		except Exception as err:
+			bu.error(exception=err)
+	except UserWarning as err:
+		bu.verbose(str(err))
+		pass
 	except Exception as err:
-		bu.error(exception=err)
+			bu.error(exception=err)
 	finally:
 		## Need to close the aiohttp.session since Python destructors do not support async methods... 
-		await wg.close()
-		await wi.close()
+		if wg != None: await wg.close()
+		if wi != None: await wi.close()
 	return None
 
 def process_player_dist(results: list, player_stats: dict, stat_id_map: dict):
@@ -654,8 +725,7 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 			urls[result['title']] = result['url']
 
 	for cat in cats:
-		for sub_cat in categories[cat].get_sub_categories():
-			categories[cat].category[sub_cat].calc_results()
+		categories[cat].calc_results()
 		print('')
 		categories[cat].print_results()
 	if url:
@@ -790,7 +860,9 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 					result['enemies_' + str(stat)] = enemies_stats[stat] / n_enemies[stat]
 				else:
 					bu.debug('No enemies stats for: ' + str(result))
-				
+
+			# Steamroller stats
+			result['team_result'] = str(result['allies_survived']) + '-' + str(result['enemies_survived'])
 				
 			result[N_PLAYERS] = n_players
 			result[MISSING_STATS] = missing_stats
@@ -821,16 +893,32 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 				bu.print_progress()
 				# Analysing player performance based on their stats on the tier tanks they are playing 
 
-				stats[stat_id] = await stat_db_func(db, stat_id)				
-				bu.debug('get_db_' + args.stat_func + '_stats returned: ' + str(stats[stat_id]), workerID)
-
-				# no DB stats found, trying WG
-				if (stats[stat_id] == None):
+				# Try cache first
+				if (stat_id not in stats):
+					stats_tmp = None
 					pruned_stat_id = prune_stat_id(stat_id)
 					if (pruned_stat_id not in stats):
+						stats_tmp = await stat_wg_func(pruned_stat_id, cache_only = True)
+					else:
+						stat_id_remap[stat_id] = pruned_stat_id
+						queue.task_done()
+						continue
+
+					if (stats_tmp != None):
+						stats[pruned_stat_id] = stats_tmp
+						stat_id_remap[stat_id] = pruned_stat_id
+						queue.task_done()
+						continue
+					
+					# try DB
+					stats[stat_id] = await stat_db_func(db, stat_id)				
+					bu.debug('get_db_' + args.stat_func + '_stats returned: ' + str(stats[stat_id]), workerID)
+
+					# no DB stats found, trying WG AP
+					if (stats[stat_id] == None):							
 						stats[pruned_stat_id] = await stat_wg_func(pruned_stat_id)
-					stat_id_remap[stat_id] = pruned_stat_id
-					del stats[stat_id]
+						stat_id_remap[stat_id] = pruned_stat_id
+						del stats[stat_id]
 					
 			except KeyError as err:
 				bu.error('Key not found', err, workerID)
@@ -857,7 +945,7 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 	return (stats, stat_id_remap)
 	
 ## player stat functions: tank_tier
-async def get_wg_tank_tier_stats(stat_id_str: str) -> dict:
+async def get_wg_tank_tier_stats(stat_id_str: str, cache_only = False) -> dict:
 	"""Get player stats from WG. Returns WR per tier of tank_id"""
 	try:
 		(account_id, tier) = str2ints(stat_id_str)
@@ -867,7 +955,7 @@ async def get_wg_tank_tier_stats(stat_id_str: str) -> dict:
 		hist_stats = [ 'all.' + x for x in histogram_fields.keys() ]
 		hist_stats.append('tank_id')
 
-		player_stats = await wg.get_player_tank_stats(account_id, tier_tanks ,hist_stats)
+		player_stats = await wg.get_player_tank_stats(account_id, tier_tanks, hist_stats, cache_only = cache_only)
 		#bu.debug('account_id: ' + str(account_id) + ' ' + str(player_stats))
 
 		return await tank_stats_helper(player_stats)
@@ -939,7 +1027,7 @@ async def get_db_player_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, sta
 	return None
 
 
-async def get_wg_player_stats(stat_id_str: str) -> dict:
+async def get_wg_player_stats(stat_id_str: str, cache_only = False) -> dict:
 	"""Get player stats from WG. Returns WR per tier of tank_id"""
 	try:
 		account_id = int(stat_id_str)
@@ -948,7 +1036,7 @@ async def get_wg_player_stats(stat_id_str: str) -> dict:
 		hist_stats = [ 'statistics.all.' + x for x in histogram_fields.keys() ]
 		hist_stats.append('account_id')
 
-		player_stats = await wg.get_player_stats(account_id, hist_stats)
+		player_stats = await wg.get_player_stats(account_id, hist_stats, cache_only = cache_only)
 		#bu.debug('account_id: ' + str(account_id) + ' ' + str(player_stats))
 
 		return await player_stats_helper(player_stats)
@@ -1188,6 +1276,8 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		bu.debug('Part 2')
 		result['allies'] = set()
 		result['enemies'] = set()
+		result['allies_survived']  = 0 	# for steamroller stats
+		result['enemies_survived']  = 0	# for steamroller stats
 		btl_duration = 0
 		btl_tier = 0
 		protagonist_tank  = None
@@ -1215,6 +1305,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 				else:
 					tmp['survived'] 	= 1
 					tmp['destroyed'] 	= 0
+					result['allies_survived'] += 1
 				for key in tmp.keys():
 					result[key] = tmp[key]				
 
@@ -1222,11 +1313,19 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 				tmp_account_id 	= player['dbid']
 				tmp_tank_id 	= player['vehicle_descr']
 				tmp_battletime	= result['battle_start_timestamp']
+				if player['death_reason'] == -1:
+					survived = True
+				else:
+					survived = False
 				
 				if player['dbid'] in replay_json['data']['summary']['allies']: 
 					result['allies'].add(get_stat_id(tmp_account_id, tmp_tank_id, tmp_battletime))
+					if survived:
+						result['allies_survived'] += 1
 				else:
 					result['enemies'].add(get_stat_id(tmp_account_id, tmp_tank_id, tmp_battletime))
+					if survived:
+						result['enemies_survived'] += 1
 
 		## Rather use 'player' than incomprehensible 'protagonist'...		
 		result['player'] = get_stat_id(protagonist, protagonist_tank, result['battle_start_timestamp'])
@@ -1302,4 +1401,13 @@ def get_stat_id_player(stat_id_str: str) -> str:
 
 ### main()
 if __name__ == "__main__":
-   asyncio.run(main(sys.argv[1:]), debug=False)
+	# To avoid 'Event loop is closed' RuntimeError due to compatibility issue with aiohttp
+	if sys.platform.startswith("win") and sys.version_info >= (3, 8):
+		try:
+			from asyncio import WindowsSelectorEventLoopPolicy
+		except ImportError:
+			pass
+		else:
+			if not isinstance(asyncio.get_event_loop_policy(), WindowsSelectorEventLoopPolicy):
+				asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
+	asyncio.run(main(sys.argv[1:]), debug=False)

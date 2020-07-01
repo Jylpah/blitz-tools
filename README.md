@@ -24,7 +24,7 @@ Python scripts to analyze WoT Blitz replays and stats. All the scripts require [
 
 ```
 # Remember to run the command with a Python interpreter >= 3.7
-python3.8 -m pip install motor aiohttp aioconsole aiofiles aiosqlite beautifulsoup4 lxml xmltodict progress 
+python -m pip install motor aiohttp aioconsole aiofiles aiosqlite beautifulsoup4 lxml xmltodict progress 
 ```
 
 4. Upload your replays. Run _python.exe .\upload_wotb_replays.py --help_ (Windows) or _./upload_wotb_replays.py --help_ (Linux)
@@ -34,4 +34,8 @@ python3.8 -m pip install motor aiohttp aioconsole aiofiles aiosqlite beautifulso
 
 [WoT Blitz releases](releases.md): launch dates and key content.
 
-You can reach me via email: Jylpah@gmail.com or [Discord](https://discordapp.com/): Jylpah#4662. Happy tanking and stats analysis!
+### Notes
+
+Even though the code has an option to use MongoDB, you should not bother with that. The MongoDB support is solely for my own purposes and you do not need MongoDB to run the scripts. 
+
+You can reach me via email: [Jylpah@gmail.com](mailto:Jylpah@gmail.com) or [Discord](https://discordapp.com/): Jylpah#4662. Happy tanking and stats analysis!
