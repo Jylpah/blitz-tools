@@ -19,7 +19,7 @@ Python scripts to analyze WoT Blitz replays and stats. All the scripts require [
 ### Quick instructions
 
 1. Install [Python 3.8](https://www.python.org/downloads/) on to your computer/laptop
-1. Download all the files including the [maps.json](maps.json) and [tanks.json](tanks.json) files
+1. Download all the files including the [maps.json](maps.json) and [tanks.json](tanks.json) files. The recommended way to do this is to use [GitHub Dekstop](https://desktop.github.com/) or do _git pull_
 1. Install the required Python modules: motor, aiohttp, aioconsole, aiofiles, aiosqlite, beautifulsoup4, lxml, xmltodict, progress
 
 ```
