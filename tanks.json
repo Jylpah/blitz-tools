@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 439
+        "count": 445
     },
     "data": {
         "1": {
@@ -3178,7 +3178,7 @@
             "tier": 6,
             "is_premium": true,
             "type": "heavyTank",
-            "name": "Kuro Mori Mine"
+            "name": "Tiger Kuromorimine SP"
         },
         "63601": {
             "tank_id": 63601,
@@ -3432,7 +3432,7 @@
             "tank_id": 19537,
             "nation": "uk",
             "tier": 10,
-            "is_premium": true,
+            "is_premium": false,
             "type": "lightTank",
             "name": "Vickers Light 105"
         },
@@ -3515,6 +3515,54 @@
             "is_premium": true,
             "type": "heavyTank",
             "name": "Thunder"
+        },
+        "4481": {
+            "tank_id": 4481,
+            "nation": "european",
+            "tier": 10,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Kranvagn"
+        },
+        "4737": {
+            "tank_id": 4737,
+            "nation": "european",
+            "tier": 8,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "EMIL 1951"
+        },
+        "4993": {
+            "tank_id": 4993,
+            "nation": "european",
+            "tier": 6,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "P.43/06 anniversario"
+        },
+        "19793": {
+            "tank_id": 19793,
+            "nation": "uk",
+            "tier": 9,
+            "is_premium": false,
+            "type": "lightTank",
+            "name": "Vickers Cruiser"
+        },
+        "20049": {
+            "tank_id": 20049,
+            "nation": "uk",
+            "tier": 8,
+            "is_premium": false,
+            "type": "lightTank",
+            "name": "FV301"
+        },
+        "20993": {
+            "tank_id": 20993,
+            "nation": "ussr",
+            "tier": 8,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "T-2020"
         }
     },
     "userStr": {
@@ -3762,7 +3810,7 @@
         "PzV": "Panther I",
         "PzVI": "Tiger I",
         "PzVIB_Tiger_II": "Tiger II",
-        "PzVI_GuP": "Kuro Mori Mine",
+        "PzVI_GuP": "Tiger Kuromorimine SP",
         "PzVI_Tiger_P": "Tiger (P)",
         "PzV_PzIV": "Pz.Kpfw. V/IV",
         "Pz_II_AusfG": "Pz.Kpfw. II Ausf. G",
@@ -3942,6 +3990,12 @@
         "A121_T26E3": "T26E3 Eagle 7",
         "Firefly_GuP": "Firefly Saunders SP",
         "IS-2_GuP": "IS-2 Pravda SP",
-        "KV-1s-BP": "Thunder"
+        "KV-1s-BP": "Thunder",
+        "GB_FV301": "FV301",
+        "GB_Vickers_Cruiser": "Vickers Cruiser",
+        "It10_P43_BD": "P.43/06 anniversario",
+        "R63_ST_IBD": "T-2020",
+        "S16_Kranvagn": "Kranvagn",
+        "S25_EMIL_51": "EMIL 1951"
     }
 }
