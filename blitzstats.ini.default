@@ -7,7 +7,9 @@
 [WG]
 ## Find your WG account_id :  https://developers.wargaming.net/reference/all/wotb/account/list/
 #wg_id		    = 0
-## WG API limits requests / sec to 10 for client apps
+## WG API limits requests / sec to 10 for mobile apps. 
+## You can register your "own" server app and 
+## upgrade the rate limit to 20 requests / sec.
 ## Check https://developers.wargaming.net/documentation/guide/getting-started/
-#wg_app_id       = XXXXXXXXXXX
+# wg_app_id       = XXXXXXXXXXX
 
