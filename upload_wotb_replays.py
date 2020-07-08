@@ -28,21 +28,37 @@ async def main(argv):
 	# set the directory for the script
 	os.chdir(os.path.dirname(sys.argv[0]))
 
-	## Read config
-	config = configparser.ConfigParser()
-	config.read(FILE_CONFIG)
+	# options defaults
+	OPT_WORKERS_N  = 5
+	WG_ID = None
+	WG_RATE_LIMIT = 10
 
-	configOptions 	= config['OPTIONS']
-	OPT_WORKERS_N = configOptions.getint('opt_uploader_workers', 5)
+	try:
+		## Read config
+		if os.path.isfile(FILE_CONFIG):
+			config = configparser.ConfigParser()
+			config.read(FILE_CONFIG)
 
-	configWG 		= config['WG']
-	# WG account id of the uploader: 
-	# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
-	WG_ID			= configWG.getint('wg_id', None)
-	## WG API Rules limit 10 request / sec. Higher rate of requests will return errors ==> extra delay
-	WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', 10)
+			try:
+				configOptions 	= config['OPTIONS']
+				OPT_WORKERS_N = configOptions.getint('opt_uploader_workers', OPT_WORKERS_N)
+			except (KeyError, configparser.NoSectionError) as err:
+				bu.debug("No section 'OPTIONS' found in configuration file: " + FILE_CONFIG)
+				
+			try:
+				configWG 		= config['WG']
+				# WG account id of the uploader: 
+				# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
+				WG_ID			= configWG.getint('wg_id', WG_ID)
+				## WG API Rules limit 10 request / sec. Higher rate of requests will return errors ==> extra delay
+				WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', WG_RATE_LIMIT)
+			except (KeyError, configparser.NoSectionError) as err:
+				bu.debug("No section 'WG' found in configuration file: " + FILE_CONFIG)
 
-	parser = argparse.ArgumentParser(description='Post replays(s) to WoTinspector.com and retrieve battle data')
+	except Exception as err:
+		bu.error(exception=err)
+
+	parser = argparse.ArgumentParser(description='Post replays(s) to WoTinspector.com and retrieve replay data as JSON')
 	parser.add_argument('-id', dest='accountID', type=int, default=WG_ID, help='WG account_id')
 	parser.add_argument('-a', '--account', dest='account', type=str, default=None, help='Uploader\'s WG account name. Format: ACCOUNT_NAME@SERVER')
 	parser.add_argument('-t','--title', type=str, default=None, help='Title for replays. Use NN for continous numbering. Default is filename-based numbering')
