@@ -521,7 +521,7 @@ async def main(argv):
 	DB_AUTH 	= 'admin'
 	DB_NAME 	= 'BlitzStats'
 	DB_USER		= 'mongouser'
-	DB_PASSWD 	= "PASSWORD"
+	DB_PASSWD 	= 'PASSWORD'
 	DB_CERT 	= None
 	DB_CA 		= None
 	
@@ -566,7 +566,7 @@ async def main(argv):
 			except configparser.NoSectionError as err:
 				bu.error(exception=err)
 
-		parser = ErrorCatchingArgumentParser(description='Analyze Blitz replay JSONs from WoTinspector.com')
+		parser = ErrorCatchingArgumentParser(description='Analyze Blitz replay JSON files from WoTinspector.com. Use \'upload_wotb_replays.py\' to upload the replay files first.')
 
 		parser.add_argument('--output', default='plain', choices=['plain', 'db'], help='Select output mode: plain text or database')
 		parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
