@@ -3,7 +3,7 @@ Python scripts to analyze WoT Blitz replays and stats. All the scripts require [
 
 ### Replays
 * [upload_wotb_replays.py](upload_wotb_replays.py): An asynchronous replay uploader. 
-* [analyze_wotb_replays.py](analyze_wotb_replays.py): A tool to calculate statistics of a set of replays. **Upload the replays first** with [upload_wotb_replays.py](upload_wotb_replays.py) and then calculate the statistics. 
+* [analyze_wotb_replays.py](analyze_wotb_replays.py): A tool to calculate statistics of a set of replays. **Upload the replays first** with [upload_wotb_replays.py](upload_wotb_replays.py) and then calculate the statistics with analyze_wotb_replays.py based on the resulting **.json** files. 
 
 ### Tank data
 * [get_tankopedia.py](get_tankopedia.py): Get the lastest tankopedia data from wotinspector.com. The script fetches only a limited set of data. You may edit to your needs. 
@@ -28,7 +28,7 @@ python -m pip install motor aiohttp aioconsole aiofiles aiosqlite beautifulsoup4
 
 4. Upload your replays. 
 ```
-# Windows
+# Windows, run directly from Command Prompt or Powershell
 # Check the options
 python.exe .\upload_wotb_replays.py --help
 
@@ -43,7 +43,7 @@ python.exe .\upload_wotb_replays.py 20200223_0122__jylpah_T-54_grossberg.wotbrep
 ```
 5. Analyze replays. 
 ```
-# Windows
+# Windows, run directly from Command Prompt or Powershell
 python.exe .\analyze_wotb_replays.py --help
 
 # Syntax
@@ -60,8 +60,9 @@ python.exe .\analyze_wotb_replays.py 20200223_0122__jylpah_T-54_grossberg.wotbre
 
 [WoT Blitz releases](releases.md): launch dates and key content.
 
-### Notes
+### Other
 
-Even though the code has an option to use MongoDB, you should not bother with that. The MongoDB support is solely for my own purposes and you do not need MongoDB to run the scripts. 
+* Please remember to run the scripts from command line, not from the Python interpreter. On Windows open Command Prompt or Powershell. 
+* Even though the code has an option to use MongoDB, you should not bother with that. The MongoDB support is solely for my own purposes and you do not need MongoDB to run the scripts. 
 
 You can reach me via email: [Jylpah@gmail.com](mailto:Jylpah@gmail.com) or [Discord](https://discordapp.com/): Jylpah#4662. Happy tanking and stats analysis!
