@@ -63,6 +63,7 @@ python.exe .\analyze_wotb_replays.py 20200223_0122__jylpah_T-54_grossberg.wotbre
 ### Other
 
 * Please remember to run the scripts from command line, not from the Python interpreter. On Windows open Command Prompt or Powershell. 
+* [GitHub Desktop](https://desktop.github.com/) is the recommended way of downloading the scripts you can update the scripts easily via git/GitHub Deskop. To prevent GitHub Desktop from uploading your other files to github.com, you can "ignore" the files by right-clicking a file on GitHub Desktop or by manually editing the _.gitignore_ file.
 * Even though the code has an option to use MongoDB, you should not bother with that. The MongoDB support is solely for my own purposes and you do not need MongoDB to run the scripts. 
 
 You can reach me via email: [Jylpah@gmail.com](mailto:Jylpah@gmail.com) or [Discord](https://discordapp.com/): Jylpah#4662. Happy tanking and stats analysis!
