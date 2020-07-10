@@ -3,7 +3,7 @@ Python scripts to analyze WoT Blitz replays and stats. All the scripts require [
 
 ### Replays
 * [upload_wotb_replays.py](upload_wotb_replays.py): An asynchronous replay uploader. 
-* [analyze_wotb_replays.py](analyze_wotb_replays.py): A tool to calculate statistics of a set of replays. Upload the replays first with [upload_wotb_replays.py](upload_wotb_replays.py) and then calculate the statistics. 
+* [analyze_wotb_replays.py](analyze_wotb_replays.py): A tool to calculate statistics of a set of replays. **Upload the replays first** with [upload_wotb_replays.py](upload_wotb_replays.py) and then calculate the statistics with analyze_wotb_replays.py based on the resulting **.json** files. 
 
 ### Tank data
 * [get_tankopedia.py](get_tankopedia.py): Get the lastest tankopedia data from wotinspector.com. The script fetches only a limited set of data. You may edit to your needs. 
@@ -19,23 +19,51 @@ Python scripts to analyze WoT Blitz replays and stats. All the scripts require [
 ### Quick instructions
 
 1. Install [Python 3.8](https://www.python.org/downloads/) on to your computer/laptop
-1. Download all the files including the [maps.json](maps.json) and [tanks.json](tanks.json) files. The recommended way to do this is to use [GitHub Dekstop](https://desktop.github.com/) or do _git pull_
-1. Install the required Python modules: motor, aiohttp, aioconsole, aiofiles, aiosqlite, beautifulsoup4, lxml, xmltodict, progress
-
+2. Install the required Python modules: motor, aiohttp, aioconsole, aiofiles, aiosqlite, beautifulsoup4, lxml, xmltodict, progress
 ```
 # Remember to run the command with a Python interpreter >= 3.7
 python -m pip install motor aiohttp aioconsole aiofiles aiosqlite beautifulsoup4 lxml xmltodict progress 
 ```
+3. Download all the files including the [maps.json](maps.json) and [tanks.json](tanks.json) files. A recommened way is to install [GitHub Desktop](https://desktop.github.com/) and clone the repository via _git_. This makes it easy to receive the updates. 
 
-4. Upload your replays. Run _python.exe .\upload_wotb_replays.py --help_ (Windows) or _./upload_wotb_replays.py --help_ (Linux)
-5. Analyze replays.  Run _python.exe .\analyze_wotb_replays.py --help_ (Windows) or _./analyze_wotb_replays.py --help_ (Linux)
+4. Upload your replays. 
+```
+# Windows, run directly from Command Prompt or Powershell
+# Check the options
+python.exe .\upload_wotb_replays.py --help
+
+# Syntax
+python.exe .\upload_wotb_replays.py REPLAY_FILE.wotbreplay
+
+# example
+python.exe .\upload_wotb_replays.py 20200223_0122__jylpah_T-54_grossberg.wotbreplay
+
+# Linux
+./upload_wotb_replays.py --help
+```
+5. Analyze replays. 
+```
+# Windows, run directly from Command Prompt or Powershell
+python.exe .\analyze_wotb_replays.py --help
+
+# Syntax
+python.exe .\analyze_wotb_replays.py REPLAY_FILE.wotbreplay.json
+
+# Example
+python.exe .\analyze_wotb_replays.py 20200223_0122__jylpah_T-54_grossberg.wotbreplay.json
+
+# Linux
+./analyze_wotb_replays.py --help
+```
 
 ### Blitz releases
 
 [WoT Blitz releases](releases.md): launch dates and key content.
 
-### Notes
+### Other
 
-Even though the code has an option to use MongoDB, you should not bother with that. The MongoDB support is solely for my own purposes and you do not need MongoDB to run the scripts. 
+* Please remember to run the scripts from command line, not from the Python interpreter. On Windows open Command Prompt or Powershell. 
+* [GitHub Desktop](https://desktop.github.com/) is the recommended way of downloading the scripts you can update the scripts easily via git/GitHub Deskop. To prevent GitHub Desktop from uploading your other files to github.com, you can "ignore" the files by right-clicking a file on GitHub Desktop or by manually editing the _.gitignore_ file.
+* Even though the code has an option to use MongoDB, you should not bother with that. The MongoDB support is solely for my own purposes and you do not need MongoDB to run the scripts. 
 
 You can reach me via email: [Jylpah@gmail.com](mailto:Jylpah@gmail.com) or [Discord](https://discordapp.com/): Jylpah#4662. Happy tanking and stats analysis!

@@ -9,7 +9,7 @@ from progress.counter import Counter
 from decimal import Decimal
 
 MAX_RETRIES= 3
-SLEEP = 3
+SLEEP = 1.5
 
 LOG_LEVELS = { 'silent': 0, 'normal': 1, 'verbose': 2, 'debug': 3 }
 SILENT  = 0
@@ -210,6 +210,13 @@ def verbose_std(msg = "", id = None) -> bool:
         return True
     return False
 
+def warning(msg = "", id = None) -> bool:
+    """Print a warning message"""
+    if _log_level >= NORMAL:
+        _print_log_msg('', 'Warning: ' + msg, None, id)        
+        return True
+    return False
+
 def debug(msg = "", id = None, exception = None, force: bool = False) -> bool:
     """print a conditional debug message"""
     if (_log_level >= DEBUG) or force:
@@ -341,6 +348,13 @@ def NOW() -> int:
     return int(time.time())
 
 
+def rebase_file_args(current_dir, files):
+    """REbase file command line params after moving working dir to the script's dir""" 
+    if (files[0] == '-') or (files[0] == 'db:'):
+        return files
+    else:
+        return [ os.path.join(current_dir, fn) for fn in files ]
+
 async def read_int_list(filename: str) -> list():
     """Read file to a list and return list of integers in the input file"""
     
@@ -444,6 +458,40 @@ def bld_dict_hierarcy(d : dict, key : str, value) -> dict:
     except Exception as err:
         error('Unexpected Exception', err)
     return None
+
+def  get_JSON_keypath(keypath: str, key: str):
+    if keypath == None:
+        return key
+    else:
+        return '.'.join([keypath, key])
+
+def get_JSON_value(json, key : str = None, keys : list = None, keypath = None):
+    if keys == None:
+        keys = key.split('.')   
+    
+    if len(keys) == 0:
+        return json
+
+    key = keys.pop(0)
+    if type(json) == dict:
+        if key in json:
+            return get_JSON_value(json[key], keys=keys, keypath=get_JSON_keypath(keypath, key))
+        else:
+            raise KeyError('Key: '+ get_JSON_keypath(keypath, key) + ' not found')
+    
+    if type(json) == list:
+        p = re.compile(r'^\[(\d+)\]$')
+        m = p.match(key)
+        if len(m.groups()) != 1:
+            raise KeyError('Invalid key given: ' + get_JSON_keypath(keypath, key))
+        ndx = m.group(1)
+        try:
+            return get_JSON_value(json[ndx], keys=keys, keypath=get_JSON_keypath(keypath, key))
+        except IndexError:
+            raise KeyError('JSON array index out of range: ' + get_JSON_keypath(keypath, key))
+    
+    raise KeyError('Key not found: ' + get_JSON_keypath(keypath, keys[0]))
+
 
 ## -----------------------------------------------------------
 #### Class SlowBar 
@@ -1365,9 +1413,11 @@ class WoTinspector:
     URL_WI          = 'https://replays.wotinspector.com'
     URL_REPLAY_LIST = URL_WI + '/en/sort/ut/page/'
     URL_REPLAY_DL   = URL_WI + '/en/download/'  
+    URL_REPLAY_VIEW = URL_WI +'/en/view/'
     URL_REPLAY_UL   = 'https://api.wotinspector.com/replay/upload?'
     URL_REPLAY_INFO = 'https://api.wotinspector.com/replay/upload?details=full&key='
-    URL_TANK_DB     ="https://wotinspector.com/static/armorinspector/tank_db_blitz.js"
+    
+    URL_TANK_DB     = "https://wotinspector.com/static/armorinspector/tank_db_blitz.js"
 
     REPLAY_N = 1
 
@@ -1462,40 +1512,43 @@ class WoTinspector:
             error(msg_str + 'Unexpected Exception', err)
             return None
 
+        json_resp  = None
         for retry in range(MAX_RETRIES):
             debug(msg_str + 'Posting: ' + title + ' Try #: ' + str(retry + 1) + '/' + str(MAX_RETRIES) )
             try:
                 async with self.session.post(url, headers=headers, data=payload) as resp:
                     debug(msg_str + 'HTTP response: '+ str(resp.status))
                     if resp.status == 200:								
-                        debug('HTTP POST 200 = Success. Reading response data')
+                        debug(msg_str + 'HTTP POST 200 = Success. Reading response data')
                         json_resp = await resp.json()
-                        if json_resp.get('status', None) == None:
-                            error(msg_str +' : ' + title + ' : Received invalid JSON')
-                        elif (json_resp['status'] == 'ok'): 
-                            debug('Response data read. Status OK')                            
+                        if self.chk_JSON_replay(json_resp):
+                            debug(msg_str + 'Response data read. Status OK')                            
                             return json_resp	
-                        elif (json_resp['status'] == 'error'):  
-                            error(msg_str + json_resp['error']['message'] + ' : ' + title)
-                        else:
-                            error(msg_str + ' Unspecified error: ' + title)											
+                        debug(msg_str +' : ' + title + ' : Receive invalid JSON')                        										
                     else:
                         debug(msg_str + 'Got HTTP/' + str(resp.status))
             except Exception as err:
-                error(exception=err)
+                debug(msg_str, exception=err)
             await asyncio.sleep(SLEEP)
             
-        error(msg_str + ' Could not post replay: ' + title)
-        return None
+        debug(msg_str + ' Could not post replay: ' + title)
+        return json_resp
 
 
     async def get_replay_listing(self, page: int = 0) -> aiohttp.ClientResponse:
         url = self.get_url_replay_listing(page)
         return await self.session.get(url)
 
+
     @classmethod
     def get_url_replay_listing(cls, page : int):
         return cls.URL_REPLAY_LIST + str(page) + '?vt=#filters'
+
+
+    @classmethod
+    def get_url_replay_view(cls, replay_id):
+        return cls.URL_REPLAY_VIEW + replay_id
+
 
     @classmethod
     def get_replay_links(cls, doc: str):
@@ -1513,22 +1566,26 @@ class WoTinspector:
             error(exception=err)
         return replay_links
     
+
     @classmethod
     def get_replay_id(cls, url):
         return url.rsplit('/', 1)[-1]
+
 
     @classmethod
     def chk_JSON_replay(cls, json_resp):
         """"Check String for being a valid JSON file"""
         try:
-            if ('status' in json_resp) and json_resp['status'] == 'ok' and ('data' in json_resp) and json_resp['data'] != None:
+            if ('status' in json_resp) and json_resp['status'] == 'ok' and \
+                (get_JSON_value(json_resp, key='data.summary.exp_base') != None) :
                 debug("JSON check OK")
                 return True 
         except KeyError as err:
-            error('Key not found', err)
+            debug('Replay JSON check failed', exception=err)
         except:
-            debug("JSON check failed: " + str(json_resp))
+            debug("Replay JSON check failed: " + str(json_resp))
         return False      
+
 
 class BlitzStars:
 
