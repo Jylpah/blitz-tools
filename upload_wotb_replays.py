@@ -95,9 +95,11 @@ async def main(argv):
 		files = list()
 		for fn in args.files:
 			files.append(os.path.join(current_dir, fn))
+		args.files = files
+
 		tasks = []
 		# Make replay Queue
-		tasks.append(asyncio.create_task(mkReplayQ(queue, files, args.title)))
+		tasks.append(asyncio.create_task(mkReplayQ(queue, args.files, args.title)))
 		# Start tasks to process the Queue
 		for i in range(OPT_WORKERS_N):
 			tasks.append(asyncio.create_task(replayWorker(queue, i, args.accountID, args.private)))
@@ -194,7 +196,7 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 						bu.verbose_std(msg_str + title + ' has already been posted. Skipping.' )
 					else:
 						os.remove(replay_json_fn)
-						bu.debug("Replay JSON not valid: Deleting " + replay_json_fn)
+						bu.debug(msg_str + "Replay JSON not valid: Deleting " + replay_json_fn, id=workerID)
 					SKIPPED_N += 1						
 					queue.task_done()						
 					continue
@@ -215,13 +217,13 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 							if not bu.debug(msg_str + 'Replay saved OK: ' + filename):
 								bu.verbose_std(msg_str + title + ' posted')
 						else:
-							bu.warning('Replay file is not valid: ' + filename)
+							bu.warning(msg_str +'Replay file is not valid: ' + filename)
 							ERROR_N += 1
 					else:
 						bu.error(msg_str + 'Error saving replay: ' + filename)
 						ERROR_N += 1
 				else:
-					bu.error('Replay file is not valid: ' + filename)
+					bu.error(msg_str + 'Replay file is not valid: ' + filename)
 					ERROR_N += 1	
 		except Exception as err:
 			bu.error(msg_str + 'Unexpected Exception: ' + str(type(err)) + ' : ' + str(err) )
