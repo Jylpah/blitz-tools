@@ -508,8 +508,11 @@ async def main(argv):
 	OPT_STAT_FUNC	= 'player'
 	OPT_WORKERS_N 	= 10
 	
-	WG_ID			= None
-	#WG_APP_ID		= WG_APP_ID
+	WG_ACCOUNT 		= None 	# format: nick@server, where server is either 'eu', 'ru', 'na', 'asia' or 'china'. 
+	  					 	# China is not supported since WG API stats are not available there
+	WG_ID			= None  # WG account_id in integer format. 
+							# WG_ACCOUNT will be used to retrieve the account_id, but it can be set directly too
+	# WG_APP_ID		= WG_APP_ID
 	WG_RATE_LIMIT	= 10  ## WG standard. Do not edit unless you have your
 						  ## own server app ID, it will REDUCE the performance
 	
@@ -532,45 +535,49 @@ async def main(argv):
 			config.read(FILE_CONFIG)
 
 			try:
-				configOptions 	= config['OPTIONS']
-				# WG account id of the uploader: 
-				# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
-				OPT_DB			= configOptions.getboolean('opt_DB', OPT_DB)
-				OPT_EXTENDED 	= configOptions.getboolean('opt_analyzer_extended', OPT_EXTENDED)
-				OPT_HIST		= configOptions.getboolean('opt_analyzer_hist', OPT_HIST)
-				OPT_STAT_FUNC	= configOptions.get('opt_analyzer_stat_func', fallback=OPT_STAT_FUNC)
-				OPT_WORKERS_N 	= configOptions.getint('opt_analyzer_workers', OPT_WORKERS_N)
-			except configparser.NoSectionError as err:
+				if 'OPTIONS' in config.sections():
+					configOptions 	= config['OPTIONS']
+					# WG account id of the uploader: 
+					# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
+					OPT_DB			= configOptions.getboolean('opt_DB', OPT_DB)
+					OPT_EXTENDED 	= configOptions.getboolean('opt_analyzer_extended', OPT_EXTENDED)
+					OPT_HIST		= configOptions.getboolean('opt_analyzer_hist', OPT_HIST)
+					OPT_STAT_FUNC	= configOptions.get('opt_analyzer_stat_func', fallback=OPT_STAT_FUNC)
+					OPT_WORKERS_N 	= configOptions.getint('opt_analyzer_workers', OPT_WORKERS_N)
+			except (KeyError, configparser.NoSectionError) as err:
 				bu.error(exception=err)
 
 			try:
-				configWG 		= config['WG']
-				WG_ID			= configWG.getint('wg_id', WG_ID)
-				WG_APP_ID		= configWG.get('wg_app_id', WG_APP_ID)
-				WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', WG_RATE_LIMIT)
-			except configparser.NoSectionError as err:
+				if 'WG' in config.sections():
+					configWG 		= config['WG']
+					WG_ID			= configWG.getint('wg_id', WG_ID)
+					WG_ACCOUNT		= configWG.get('wg_account', WG_ACCOUNT)
+					WG_APP_ID		= configWG.get('wg_app_id', WG_APP_ID)
+					WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', WG_RATE_LIMIT)
+			except (KeyError, configparser.NoSectionError) as err:
 				bu.error(exception=err)
 
 			try:
-				configDB 	= config['DATABASE']
-				DB_SERVER 	= configDB.get('db_server', DB_SERVER)
-				DB_PORT 	= configDB.getint('db_port', DB_PORT)
-				DB_SSL		= configDB.getboolean('db_ssl', DB_SSL)
-				DB_CERT_REQ = configDB.getint('db_ssl_req', DB_CERT_REQ)
-				DB_AUTH 	= configDB.get('db_auth', DB_AUTH)
-				DB_NAME 	= configDB.get('db_name', DB_NAME)
-				DB_USER		= configDB.get('db_user', DB_USER)
-				DB_PASSWD 	= configDB.get('db_password', DB_PASSWD)
-				DB_CERT 	= configDB.get('db_ssl_cert_file', DB_CERT)
-				DB_CA 		= configDB.get('db_ssl_ca_file', DB_CA)
-			except configparser.NoSectionError as err:
+				if 'DATABASE' in config.sections():
+					configDB 	= config['DATABASE']
+					DB_SERVER 	= configDB.get('db_server', DB_SERVER)
+					DB_PORT 	= configDB.getint('db_port', DB_PORT)
+					DB_SSL		= configDB.getboolean('db_ssl', DB_SSL)
+					DB_CERT_REQ = configDB.getint('db_ssl_req', DB_CERT_REQ)
+					DB_AUTH 	= configDB.get('db_auth', DB_AUTH)
+					DB_NAME 	= configDB.get('db_name', DB_NAME)
+					DB_USER		= configDB.get('db_user', DB_USER)
+					DB_PASSWD 	= configDB.get('db_password', DB_PASSWD)
+					DB_CERT 	= configDB.get('db_ssl_cert_file', DB_CERT)
+					DB_CA 		= configDB.get('db_ssl_ca_file', DB_CA)
+			except (KeyError, configparser.NoSectionError)  as err:
 				bu.error(exception=err)
 
 		parser = ErrorCatchingArgumentParser(description='Analyze Blitz replay JSON files from WoTinspector.com. Use \'upload_wotb_replays.py\' to upload the replay files first.')
 
 		parser.add_argument('--output', default='plain', choices=['plain', 'db'], help='Select output mode: plain text or database')
 		parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
-		parser.add_argument('-a', '--account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
+		parser.add_argument('-a', '--account', type=str, default=WG_ACCOUNT, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 		parser.add_argument('-x', '--extended', action='store_true', default=OPT_EXTENDED, help='Print Extended stats')
 		parser.add_argument('-X', '--extra_categories', choices=BattleRecordCategory.get_extra_categories(), default=None, nargs='*', help='Print Extended categories')
 		parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms (WR/battles)')
