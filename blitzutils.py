@@ -348,6 +348,10 @@ def NOW() -> int:
     return int(time.time())
 
 
+def rebase_file_args(current_dir, files):
+    """REbase file command line params after moving working dir to the script's dir""" 
+    return [ os.path.join(current_dir, fn) for fn in files ]
+
 async def read_int_list(filename: str) -> list():
     """Read file to a list and return list of integers in the input file"""
     
