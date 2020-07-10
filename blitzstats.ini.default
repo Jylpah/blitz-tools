@@ -5,8 +5,14 @@
 #opt_analyzer_stat_func   = player
 
 [WG]
+
 ## Find your WG account_id :  https://developers.wargaming.net/reference/all/wotb/account/list/
-#wg_id		    = 0
+# wg_id		    = 0
+
+## wg_account format: nick@server, where server is either 'eu', 'ru', 'na', 'asia' or 'china'. 
+## China is not supported since WG API stats are not available there
+# wg_account    = your_nick@eu
+
 ## WG API limits requests / sec to 10 for mobile apps. 
 ## You can register your "own" server app and 
 ## upgrade the rate limit to 20 requests / sec.

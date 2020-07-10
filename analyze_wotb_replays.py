@@ -74,9 +74,9 @@ replay_details_flds = [
 ## Syntax: key == stat field in https://api.wotblitz.eu/wotb/tanks/stats/  (all.KEY)
 ## Value array [ 'Stat Title', [ 0, data buckets ....], scaling_factor_for_bucket_values, 'print_format' ]
 histogram_fields = {
-	'wins'				: [ 'Win rate', [0, .35, .40, .45, .5, .55, .60, .65, 1], 100, '{:.0f}%' ],
-	'damage_dealt'		: [ 'Avg. Dmg.', [0, .25e3, .5e3, 1e3, 1.5e3, 2e3,2.5e3,3e3,100e3], 1, '{:.0f}' ],
-	'battles'			: [ 'Battles', 	[0, 1e3, 3e3, 5e3, 10e3, 15e3, 25e3, 50e3, 5e7], .001, '{:.0f}k']	# battles is a mandatory stat to include
+	'wins'				: [ 'Win rate', 	[0, .35, .40, .45, .48, .5, .52, .55, .60, .65, .70, 1], 100, '{:.0f}%' ],
+	'damage_dealt'		: [ 'Avg. Dmg.', 	[0, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 100e3], 1, '{:.0f}' ],
+	'battles'			: [ 'Battles', 		[0, 1000, 2500, 5000, 7000, 10e3, 15e3, 25e3, 50e3, 5e7], .001, '{:.0f}k']	# battles is a mandatory stat to include
 	}
 
 
@@ -499,6 +499,7 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
 async def main(argv):
 	global wg, wi, WG_APP_ID
 	# set the directory for the script
+	current_dir = os.getcwd()
 	os.chdir(os.path.dirname(sys.argv[0]))
 
 	## Default options:
@@ -508,8 +509,11 @@ async def main(argv):
 	OPT_STAT_FUNC	= 'player'
 	OPT_WORKERS_N 	= 10
 	
-	WG_ID			= None
-	#WG_APP_ID		= WG_APP_ID
+	WG_ACCOUNT 		= None 	# format: nick@server, where server is either 'eu', 'ru', 'na', 'asia' or 'china'. 
+	  					 	# China is not supported since WG API stats are not available there
+	WG_ID			= None  # WG account_id in integer format. 
+							# WG_ACCOUNT will be used to retrieve the account_id, but it can be set directly too
+	# WG_APP_ID		= WG_APP_ID
 	WG_RATE_LIMIT	= 10  ## WG standard. Do not edit unless you have your
 						  ## own server app ID, it will REDUCE the performance
 	
@@ -532,45 +536,49 @@ async def main(argv):
 			config.read(FILE_CONFIG)
 
 			try:
-				configOptions 	= config['OPTIONS']
-				# WG account id of the uploader: 
-				# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
-				OPT_DB			= configOptions.getboolean('opt_DB', OPT_DB)
-				OPT_EXTENDED 	= configOptions.getboolean('opt_analyzer_extended', OPT_EXTENDED)
-				OPT_HIST		= configOptions.getboolean('opt_analyzer_hist', OPT_HIST)
-				OPT_STAT_FUNC	= configOptions.get('opt_analyzer_stat_func', fallback=OPT_STAT_FUNC)
-				OPT_WORKERS_N 	= configOptions.getint('opt_analyzer_workers', OPT_WORKERS_N)
-			except configparser.NoSectionError as err:
+				if 'OPTIONS' in config.sections():
+					configOptions 	= config['OPTIONS']
+					# WG account id of the uploader: 
+					# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
+					OPT_DB			= configOptions.getboolean('opt_DB', OPT_DB)
+					OPT_EXTENDED 	= configOptions.getboolean('opt_analyzer_extended', OPT_EXTENDED)
+					OPT_HIST		= configOptions.getboolean('opt_analyzer_hist', OPT_HIST)
+					OPT_STAT_FUNC	= configOptions.get('opt_analyzer_stat_func', fallback=OPT_STAT_FUNC)
+					OPT_WORKERS_N 	= configOptions.getint('opt_analyzer_workers', OPT_WORKERS_N)
+			except (KeyError, configparser.NoSectionError) as err:
 				bu.error(exception=err)
 
 			try:
-				configWG 		= config['WG']
-				WG_ID			= configWG.getint('wg_id', WG_ID)
-				WG_APP_ID		= configWG.get('wg_app_id', WG_APP_ID)
-				WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', WG_RATE_LIMIT)
-			except configparser.NoSectionError as err:
+				if 'WG' in config.sections():
+					configWG 		= config['WG']
+					WG_ID			= configWG.getint('wg_id', WG_ID)
+					WG_ACCOUNT		= configWG.get('wg_account', WG_ACCOUNT)
+					WG_APP_ID		= configWG.get('wg_app_id', WG_APP_ID)
+					WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', WG_RATE_LIMIT)
+			except (KeyError, configparser.NoSectionError) as err:
 				bu.error(exception=err)
 
 			try:
-				configDB 	= config['DATABASE']
-				DB_SERVER 	= configDB.get('db_server', DB_SERVER)
-				DB_PORT 	= configDB.getint('db_port', DB_PORT)
-				DB_SSL		= configDB.getboolean('db_ssl', DB_SSL)
-				DB_CERT_REQ = configDB.getint('db_ssl_req', DB_CERT_REQ)
-				DB_AUTH 	= configDB.get('db_auth', DB_AUTH)
-				DB_NAME 	= configDB.get('db_name', DB_NAME)
-				DB_USER		= configDB.get('db_user', DB_USER)
-				DB_PASSWD 	= configDB.get('db_password', DB_PASSWD)
-				DB_CERT 	= configDB.get('db_ssl_cert_file', DB_CERT)
-				DB_CA 		= configDB.get('db_ssl_ca_file', DB_CA)
-			except configparser.NoSectionError as err:
+				if 'DATABASE' in config.sections():
+					configDB 	= config['DATABASE']
+					DB_SERVER 	= configDB.get('db_server', DB_SERVER)
+					DB_PORT 	= configDB.getint('db_port', DB_PORT)
+					DB_SSL		= configDB.getboolean('db_ssl', DB_SSL)
+					DB_CERT_REQ = configDB.getint('db_ssl_req', DB_CERT_REQ)
+					DB_AUTH 	= configDB.get('db_auth', DB_AUTH)
+					DB_NAME 	= configDB.get('db_name', DB_NAME)
+					DB_USER		= configDB.get('db_user', DB_USER)
+					DB_PASSWD 	= configDB.get('db_password', DB_PASSWD)
+					DB_CERT 	= configDB.get('db_ssl_cert_file', DB_CERT)
+					DB_CA 		= configDB.get('db_ssl_ca_file', DB_CA)
+			except (KeyError, configparser.NoSectionError)  as err:
 				bu.error(exception=err)
 
 		parser = ErrorCatchingArgumentParser(description='Analyze Blitz replay JSON files from WoTinspector.com. Use \'upload_wotb_replays.py\' to upload the replay files first.')
 
 		parser.add_argument('--output', default='plain', choices=['plain', 'db'], help='Select output mode: plain text or database')
 		parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
-		parser.add_argument('-a', '--account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
+		parser.add_argument('-a', '--account', type=str, default=WG_ACCOUNT, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 		parser.add_argument('-x', '--extended', action='store_true', default=OPT_EXTENDED, help='Print Extended stats')
 		parser.add_argument('-X', '--extra_categories', choices=BattleRecordCategory.get_extra_categories(), default=None, nargs='*', help='Print Extended categories')
 		parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms (WR/battles)')
@@ -622,9 +630,11 @@ async def main(argv):
 				bu.error("Could no initiate DB connection: Disabling DB", err) 
 				args.db = False
 				pass
-
-		if not(args.db):
+		else:
 			bu.debug('No DB in use')
+
+		# rebase file arguments due to moving the working directory to the script location
+		args.files = bu.rebase_file_args(current_dir, args.files)
 
 		try:
 			replayQ  = asyncio.Queue(maxsize=1000)			
@@ -1149,7 +1159,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 				
 				if (p_replayfile.match(line) != None):
 					replay_json = await bu.open_JSON(line, wi.chk_JSON_replay)			
-					await queue.put(await mk_readerQ_item(replay_json))
+					await queue.put(await mk_readerQ_item(replay_json, line))
 			except Exception as err:
 				bu.error(exception=err)
 	else:
@@ -1160,7 +1170,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 					fn = fn[:-1] 
 				if os.path.isfile(fn) and (p_replayfile.match(fn) != None):
 					replay_json = await bu.open_JSON(fn, wi.chk_JSON_replay)
-					await queue.put(await mk_readerQ_item(replay_json))
+					await queue.put(await mk_readerQ_item(replay_json, fn))
 					bu.debug('File added to queue: ' + fn)
 					Nreplays += 1
 				elif os.path.isdir(fn):
@@ -1169,7 +1179,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 							if entry.is_file() and (p_replayfile.match(entry.name) != None): 
 								bu.debug(entry.name)
 								replay_json = await bu.open_JSON(entry.path, wi.chk_JSON_replay)
-								await queue.put(await mk_readerQ_item(replay_json))
+								await queue.put(await mk_readerQ_item(replay_json, entry.name))
 								bu.debug('File added to queue: ' + entry.path)
 								Nreplays += 1
 			except Exception as err:
@@ -1178,28 +1188,29 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 	return Nreplays
 
 
-async def mk_readerQ_item(replay_json) -> list:
+async def mk_readerQ_item(replay_json, filename : str = None) -> list:
 	"""Make an item to replay queue"""
 	global REPLAY_N
 	REPLAY_N +=1
-	return [replay_json, REPLAY_N]
+	return [replay_json, REPLAY_N, os.path.basename(filename) ]
 
 
 async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Namespace):
 	"""Async Worker to process the replay queue"""
 	#global SKIPPED_N
-	# account_id = args.account_id
 	results = []
 	playerstanks = set()
 	try:
 		while True:
 			item = await queue.get()
-			replay_json = item[0]
-			replayID = item[1]
+			replay_json 	= item[0]
+			replayID 		= item[1]
+			replay_file 	= item[2]
 
 			try:
+				msg_str = 'Replay[' + str(replayID) + ']: ' 
 				if replay_json == None:
-					bu.verbose('Replay[' + str(replayID) + ']: is empty. Skipping.' )
+					bu.warning(msg_str + 'Invalid replay. Skipping: '  + (replay_file if replay_file != None else '') )
 					#SKIPPED_N += 1
 					queue.task_done()
 					continue
@@ -1209,7 +1220,7 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 				result = await read_replay_JSON(replay_json, args)
 				bu.print_progress()
 				if result == None:
-					bu.debug('Replay[' + str(replayID) + ']: Invalid replay', id=readerID)
+					bu.warning(msg_str + 'Invalid replay' + (replay_file if replay_file != None else '') )
 					queue.task_done()
 					continue
 				
