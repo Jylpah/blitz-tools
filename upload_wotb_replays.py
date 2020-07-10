@@ -92,10 +92,8 @@ async def main(argv):
 
 	try:
 		queue  = asyncio.Queue()	
-		files = list()
-		for fn in args.files:
-			files.append(os.path.join(current_dir, fn))
-		args.files = files
+		# rebase file arguments due to moving the working directory to the script location
+		args.files = bu.rebase_file_args(current_dir, args.files)
 
 		tasks = []
 		# Make replay Queue

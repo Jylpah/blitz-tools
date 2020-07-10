@@ -499,6 +499,7 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
 async def main(argv):
 	global wg, wi, WG_APP_ID
 	# set the directory for the script
+	current_dir = os.getcwd()
 	os.chdir(os.path.dirname(sys.argv[0]))
 
 	## Default options:
@@ -629,9 +630,11 @@ async def main(argv):
 				bu.error("Could no initiate DB connection: Disabling DB", err) 
 				args.db = False
 				pass
-
-		if not(args.db):
+		else:
 			bu.debug('No DB in use')
+
+		# rebase file arguments due to moving the working directory to the script location
+		args.files = bu.rebase_file_args(current_dir, args.files)
 
 		try:
 			replayQ  = asyncio.Queue(maxsize=1000)			
@@ -1205,8 +1208,9 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 			replayID = item[1]
 
 			try:
+				msg_str = 'Replay[' + str(replayID) + ']:' 
 				if replay_json == None:
-					bu.verbose('Replay[' + str(replayID) + ']: is empty. Skipping.' )
+					bu.verbose(msg_str + 'Replay is empty. Skipping.' )
 					#SKIPPED_N += 1
 					queue.task_done()
 					continue
