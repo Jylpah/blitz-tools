@@ -1159,7 +1159,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 				
 				if (p_replayfile.match(line) != None):
 					replay_json = await bu.open_JSON(line, wi.chk_JSON_replay)			
-					await queue.put(await mk_readerQ_item(replay_json))
+					await queue.put(await mk_readerQ_item(replay_json, line))
 			except Exception as err:
 				bu.error(exception=err)
 	else:
@@ -1170,7 +1170,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 					fn = fn[:-1] 
 				if os.path.isfile(fn) and (p_replayfile.match(fn) != None):
 					replay_json = await bu.open_JSON(fn, wi.chk_JSON_replay)
-					await queue.put(await mk_readerQ_item(replay_json))
+					await queue.put(await mk_readerQ_item(replay_json, fn))
 					bu.debug('File added to queue: ' + fn)
 					Nreplays += 1
 				elif os.path.isdir(fn):
@@ -1179,7 +1179,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 							if entry.is_file() and (p_replayfile.match(entry.name) != None): 
 								bu.debug(entry.name)
 								replay_json = await bu.open_JSON(entry.path, wi.chk_JSON_replay)
-								await queue.put(await mk_readerQ_item(replay_json))
+								await queue.put(await mk_readerQ_item(replay_json, fn))
 								bu.debug('File added to queue: ' + entry.path)
 								Nreplays += 1
 			except Exception as err:
@@ -1188,11 +1188,11 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 	return Nreplays
 
 
-async def mk_readerQ_item(replay_json) -> list:
+async def mk_readerQ_item(replay_json, filename : str = None) -> list:
 	"""Make an item to replay queue"""
 	global REPLAY_N
 	REPLAY_N +=1
-	return [replay_json, REPLAY_N]
+	return [replay_json, REPLAY_N, os.path.basename(filename) ]
 
 
 async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Namespace):
@@ -1203,13 +1203,14 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 	try:
 		while True:
 			item = await queue.get()
-			replay_json = item[0]
-			replayID = item[1]
+			replay_json 	= item[0]
+			replayID 		= item[1]
+			replay_file 	= item[2]
 
 			try:
 				msg_str = 'Replay[' + str(replayID) + ']: ' 
 				if replay_json == None:
-					bu.warning(msg_str + 'Invalid replay. Skipping.' )
+					bu.warning(msg_str + 'Invalid replay. Skipping: '  + (replay_file if replay_file != None else '') )
 					#SKIPPED_N += 1
 					queue.task_done()
 					continue
@@ -1219,7 +1220,7 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 				result = await read_replay_JSON(replay_json, args)
 				bu.print_progress()
 				if result == None:
-					bu.warning(msg_str + 'Invalid replay', id=readerID)
+					bu.warning(msg_str + 'Invalid replay' + (replay_file if replay_file != None else '') )
 					queue.task_done()
 					continue
 				
