@@ -1198,7 +1198,6 @@ async def mk_readerQ_item(replay_json) -> list:
 async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Namespace):
 	"""Async Worker to process the replay queue"""
 	#global SKIPPED_N
-	# account_id = args.account_id
 	results = []
 	playerstanks = set()
 	try:
@@ -1208,9 +1207,9 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 			replayID = item[1]
 
 			try:
-				msg_str = 'Replay[' + str(replayID) + ']:' 
+				msg_str = 'Replay[' + str(replayID) + ']: ' 
 				if replay_json == None:
-					bu.verbose(msg_str + 'Replay is empty. Skipping.' )
+					bu.warning(msg_str + 'Invalid replay. Skipping.' )
 					#SKIPPED_N += 1
 					queue.task_done()
 					continue
@@ -1220,7 +1219,7 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 				result = await read_replay_JSON(replay_json, args)
 				bu.print_progress()
 				if result == None:
-					bu.debug('Replay[' + str(replayID) + ']: Invalid replay', id=readerID)
+					bu.warning(msg_str + 'Invalid replay', id=readerID)
 					queue.task_done()
 					continue
 				
