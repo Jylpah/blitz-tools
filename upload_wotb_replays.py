@@ -25,42 +25,48 @@ wi = None
 
 async def main(argv):
 	global wg, wi
+	current_dir = os.getcwd()
 	# set the directory for the script
 	os.chdir(os.path.dirname(sys.argv[0]))
-
+	
 	# options defaults
-	OPT_WORKERS_N  = 5
-	WG_ID = None
-	WG_RATE_LIMIT = 10
+	OPT_WORKERS_N  	= 5
+	WG_ID 			= None
+	WG_ACCOUNT 		= None 	# format: nick@server, where server is either 'eu', 'ru', 'na', 'asia' or 'china'. 
+	  					# China is not supported since WG API stats are not available there
+	WG_RATE_LIMIT 	= 10
 
 	try:
 		## Read config
 		if os.path.isfile(FILE_CONFIG):
+			bu.debug('Reading config file: ' + FILE_CONFIG)
 			config = configparser.ConfigParser()
 			config.read(FILE_CONFIG)
-
 			try:
-				configOptions 	= config['OPTIONS']
-				OPT_WORKERS_N = configOptions.getint('opt_uploader_workers', OPT_WORKERS_N)
+				if 'OPTIONS' in config.sections():
+					configOptions 	= config['OPTIONS']
+					OPT_WORKERS_N = configOptions.getint('opt_uploader_workers', OPT_WORKERS_N)
 			except (KeyError, configparser.NoSectionError) as err:
-				bu.debug("No section 'OPTIONS' found in configuration file: " + FILE_CONFIG)
+				bu.error(exception=err)
 				
 			try:
-				configWG 		= config['WG']
-				# WG account id of the uploader: 
-				# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
-				WG_ID			= configWG.getint('wg_id', WG_ID)
-				## WG API Rules limit 10 request / sec. Higher rate of requests will return errors ==> extra delay
-				WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', WG_RATE_LIMIT)
+				if 'WG' in config.sections():
+					configWG 		= config['WG']
+					# WG account id of the uploader: 
+					# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
+					WG_ID			= configWG.getint('wg_id', WG_ID)
+					WG_ACCOUNT		= configWG.get('wg_account', WG_ACCOUNT)
+					## WG API Rules limit 10 request / sec. Higher rate of requests will return errors ==> extra delay
+					WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', WG_RATE_LIMIT)
 			except (KeyError, configparser.NoSectionError) as err:
-				bu.debug("No section 'WG' found in configuration file: " + FILE_CONFIG)
-
+				bu.error(exception=err)
+		
 	except Exception as err:
 		bu.error(exception=err)
 
 	parser = argparse.ArgumentParser(description='Post replays(s) to WoTinspector.com and retrieve replay data as JSON')
 	parser.add_argument('-id', dest='accountID', type=int, default=WG_ID, help='WG account_id')
-	parser.add_argument('-a', '--account', dest='account', type=str, default=None, help='Uploader\'s WG account name. Format: ACCOUNT_NAME@SERVER')
+	parser.add_argument('-a', '--account', dest='account', type=str, default=WG_ACCOUNT, help='Uploader\'s WG account name. Format: ACCOUNT_NAME@SERVER')
 	parser.add_argument('-t','--title', type=str, default=None, help='Title for replays. Use NN for continous numbering. Default is filename-based numbering')
 	parser.add_argument('-p', '--private', dest="private", action='store_true', default=False, help='Set replays private on WoTinspector.com')
 	parser.add_argument('--tankopedia', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default: "tanks.json"')
@@ -86,10 +92,12 @@ async def main(argv):
 
 	try:
 		queue  = asyncio.Queue()	
-		
+		files = list()
+		for fn in args.files:
+			files.append(os.path.join(current_dir, fn))
 		tasks = []
 		# Make replay Queue
-		tasks.append(asyncio.create_task(mkReplayQ(queue, args.files, args.title)))
+		tasks.append(asyncio.create_task(mkReplayQ(queue, files, args.title)))
 		# Start tasks to process the Queue
 		for i in range(OPT_WORKERS_N):
 			tasks.append(asyncio.create_task(replayWorker(queue, i, args.accountID, args.private)))
@@ -104,7 +112,7 @@ async def main(argv):
 			task.cancel()
 		bu.debug('Waiting for workers to cancel')
 		await asyncio.gather(*tasks, return_exceptions=True)
-		bu.verbose(str(REPLAY_N) + ' replays: ' + str(REPLAY_N - SKIPPED_N - ERROR_N) + ' uploaded, ' + str(SKIPPED_N) + ' skipped, ' + str(ERROR_N) + ' errors')
+		bu.verbose_std(str(REPLAY_N) + ' replays: ' + str(REPLAY_N - SKIPPED_N - ERROR_N) + ' uploaded, ' + str(SKIPPED_N) + ' skipped, ' + str(ERROR_N) + ' errors')
 				
 	except KeyboardInterrupt:
 		print('Ctrl-c pressed ...')
@@ -203,11 +211,18 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 				json_resp = await wi.post_replay(await fp.read(), filename, account_id, title, priv, N)
 				if json_resp != None:
 					if (await bu.save_JSON(replay_json_fn,json_resp)):
-						if not bu.debug(msg_str + 'Replay saved OK: ' + filename):
-							bu.verbose_std(msg_str + title + ' posted')
+						if wi.chk_JSON_replay(json_resp):
+							if not bu.debug(msg_str + 'Replay saved OK: ' + filename):
+								bu.verbose_std(msg_str + title + ' posted')
+						else:
+							bu.warning('Replay file is not valid: ' + filename)
+							ERROR_N += 1
 					else:
 						bu.error(msg_str + 'Error saving replay: ' + filename)
-						ERROR_N += 1					
+						ERROR_N += 1
+				else:
+					bu.error('Replay file is not valid: ' + filename)
+					ERROR_N += 1	
 		except Exception as err:
 			bu.error(msg_str + 'Unexpected Exception: ' + str(type(err)) + ' : ' + str(err) )
 		bu.debug(msg_str + 'Marking task done')
