@@ -1413,9 +1413,11 @@ class WoTinspector:
     URL_WI          = 'https://replays.wotinspector.com'
     URL_REPLAY_LIST = URL_WI + '/en/sort/ut/page/'
     URL_REPLAY_DL   = URL_WI + '/en/download/'  
+    URL_REPLAY_VIEW = URL_WI +'/en/view/'
     URL_REPLAY_UL   = 'https://api.wotinspector.com/replay/upload?'
     URL_REPLAY_INFO = 'https://api.wotinspector.com/replay/upload?details=full&key='
-    URL_TANK_DB     ="https://wotinspector.com/static/armorinspector/tank_db_blitz.js"
+    
+    URL_TANK_DB     = "https://wotinspector.com/static/armorinspector/tank_db_blitz.js"
 
     REPLAY_N = 1
 
@@ -1544,6 +1546,11 @@ class WoTinspector:
 
 
     @classmethod
+    def get_url_replay_view(cls, replay_id):
+        return cls.URL_REPLAY_VIEW + replay_id
+
+
+    @classmethod
     def get_replay_links(cls, doc: str):
         """Get replay download links from WoTinspector.com replay listing page"""
         try:
@@ -1578,6 +1585,7 @@ class WoTinspector:
         except:
             debug("Replay JSON check failed: " + str(json_resp))
         return False      
+
 
 class BlitzStars:
 
