@@ -74,9 +74,9 @@ replay_details_flds = [
 ## Syntax: key == stat field in https://api.wotblitz.eu/wotb/tanks/stats/  (all.KEY)
 ## Value array [ 'Stat Title', [ 0, data buckets ....], scaling_factor_for_bucket_values, 'print_format' ]
 histogram_fields = {
-	'wins'				: [ 'Win rate', [0, .35, .40, .45, .5, .55, .60, .65, 1], 100, '{:.0f}%' ],
-	'damage_dealt'		: [ 'Avg. Dmg.', [0, .25e3, .5e3, 1e3, 1.5e3, 2e3,2.5e3,3e3,100e3], 1, '{:.0f}' ],
-	'battles'			: [ 'Battles', 	[0, 1e3, 3e3, 5e3, 10e3, 15e3, 25e3, 50e3, 5e7], .001, '{:.0f}k']	# battles is a mandatory stat to include
+	'wins'				: [ 'Win rate', 	[0, .35, .40, .45, .5, .55, .60, .65, .70, 1], 100, '{:.0f}%' ],
+	'damage_dealt'		: [ 'Avg. Dmg.', 	[0, 250, 500, 750, 1000, 1350, 1500,1750, 2000, 2250, 2500, 2750, 3000, 100e3], 1, '{:.0f}' ],
+	'battles'			: [ 'Battles', 		[0, 1000, 2500, 5000, 7500, 10e3, 15e3, 25e3, 50e3, 5e7], .001, '{:.0f}k']	# battles is a mandatory stat to include
 	}
 
 
