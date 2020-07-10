@@ -1179,7 +1179,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 							if entry.is_file() and (p_replayfile.match(entry.name) != None): 
 								bu.debug(entry.name)
 								replay_json = await bu.open_JSON(entry.path, wi.chk_JSON_replay)
-								await queue.put(await mk_readerQ_item(replay_json, fn))
+								await queue.put(await mk_readerQ_item(replay_json, entry.name))
 								bu.debug('File added to queue: ' + entry.path)
 								Nreplays += 1
 			except Exception as err:
