@@ -75,7 +75,7 @@ replay_details_flds = [
 ## Value array [ 'Stat Title', [ 0, data buckets ....], scaling_factor_for_bucket_values, 'print_format' ]
 histogram_fields = {
 	'wins'				: [ 'Win rate', 	[0, .35, .40, .45, .48, .5, .52, .55, .60, .65, .70, 1], 100, '{:.0f}%' ],
-	'damage_dealt'		: [ 'Avg. Dmg.', 	[0, 250, 500, 750, 1000, 1350, 1500,1750, 2000, 2250, 2500, 2750, 3000, 100e3], 1, '{:.0f}' ],
+	'damage_dealt'		: [ 'Avg. Dmg.', 	[0, 200, 300, 400, 500, 750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 100e3], 1, '{:.0f}' ],
 	'battles'			: [ 'Battles', 		[0, 1000, 2500, 5000, 7000, 10e3, 15e3, 25e3, 50e3, 5e7], .001, '{:.0f}k']	# battles is a mandatory stat to include
 	}
 
