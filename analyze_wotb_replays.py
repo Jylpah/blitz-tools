@@ -551,6 +551,16 @@ async def main(argv):
 				bu.error(exception=err)
 
 			try:
+				if 'ANALYZER' in config.sections():
+					configAnalyzer	= config['ANALYZER']
+					histogram_fields_str = configAnalyzer.get('histogram_buckets', None)
+					if histogram_fields_str != None:
+						set_histogram_buckets(json.loads(histogram_fields_str))
+
+			except (KeyError, configparser.NoSectionError) as err:
+				bu.error(exception=err)
+
+			try:
 				if 'WG' in config.sections():
 					configWG 		= config['WG']
 					WG_ID			= configWG.getint('wg_id', WG_ID)
@@ -689,6 +699,17 @@ async def main(argv):
 		if wg != None: await wg.close()
 		if wi != None: await wi.close()
 	return None
+
+
+def set_histogram_buckets(json: dict):
+	global histogram_fields
+	try:
+		for field in json.keys():
+			histogram_fields[field][1] = json[field]
+	except (KeyError, Exception) as err:
+		bu.error(exception=err)
+	return histogram_fields
+
 
 def process_player_dist(results: list, player_stats: dict, stat_id_map: dict):
 	"""Process player distribution"""
