@@ -1138,10 +1138,10 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 				bu.debug(str(args.filters))
 				filters = json.loads(args.filters)
 				bu.debug(json.dumps(filters, indent=2))
-				cursor = dbc.find(filters, {'_id': 0 })
+				cursor = dbc.find(filters)
 			else:
 				# select all
-				cursor = dbc.find({}, {})
+				cursor = dbc.find({})
 			bu.debug('Reading replays...')	
 			async for replay_json in cursor:
 				_id = replay_json['_id']
@@ -1257,7 +1257,8 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 	#db = args.db
 	result = {}
 	try:
-		if (replay_json['data']['summary']['mastery_badge'] == None) or (replay_json['data']['summary']['battle_result'] < 0):
+		# bu.debug(str(replay_json))
+		if not wi.chk_JSON_replay(replay_json):
 			bu.debug('Invalid replay')
 			return None
 		

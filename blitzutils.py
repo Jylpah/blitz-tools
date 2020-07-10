@@ -350,7 +350,10 @@ def NOW() -> int:
 
 def rebase_file_args(current_dir, files):
     """REbase file command line params after moving working dir to the script's dir""" 
-    return [ os.path.join(current_dir, fn) for fn in files ]
+    if (files[0] == '-') or (files[0] == 'db:'):
+        return files
+    else:
+        return [ os.path.join(current_dir, fn) for fn in files ]
 
 async def read_int_list(filename: str) -> list():
     """Read file to a list and return list of integers in the input file"""
