@@ -27,6 +27,8 @@ REPLAY_I = 0
 STAT_TANK_BATTLE_MIN = 100
 BATTLE_TIME_BUCKET = 3600*24*14
 
+RE_SRC_IS_DB = re.compile(r'^DB:')
+
 ## For different player stat functions (global stats, tank tier stats, etc)
 # 1st function = for forming stat_id, 2nd for DB stats query, 3rd for WG API stats query
 STAT_FUNC	= {
@@ -1139,11 +1141,12 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 				cursor = dbc.find(filters, {'_id': 0 })
 			else:
 				# select all
-				cursor = dbc.find({}, {'_id': 0 })
+				cursor = dbc.find({}, {})
 			bu.debug('Reading replays...')	
 			async for replay_json in cursor:
-				#bu.debug(json.dumps(replay_json, indent=2))
-				await queue.put(await mk_readerQ_item(replay_json))
+				_id = replay_json['_id']
+				del(replay_json['_id'])
+				await queue.put(await mk_readerQ_item(replay_json, 'DB: _id = ' + _id))
 				Nreplays += 1
 			bu.debug('All the matching replays have been read from the DB')
 		except Exception as err:
@@ -1191,8 +1194,13 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 async def mk_readerQ_item(replay_json, filename : str = None) -> list:
 	"""Make an item to replay queue"""
 	global REPLAY_N
-	REPLAY_N +=1
-	return [replay_json, REPLAY_N, os.path.basename(filename) ]
+	REPLAY_N +=1	
+	if filename == None:
+		return [replay_json, REPLAY_N, '' ]
+	elif RE_SRC_IS_DB.match(filename) != None:
+		return [replay_json, REPLAY_N, filename ]
+	else:
+		return [replay_json, REPLAY_N, os.path.basename(filename) ]
 
 
 async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Namespace):
