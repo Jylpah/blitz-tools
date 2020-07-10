@@ -9,7 +9,7 @@ from progress.counter import Counter
 from decimal import Decimal
 
 MAX_RETRIES= 3
-SLEEP = 3
+SLEEP = 1.5
 
 LOG_LEVELS = { 'silent': 0, 'normal': 1, 'verbose': 2, 'debug': 3 }
 SILENT  = 0
