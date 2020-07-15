@@ -2,6 +2,7 @@
 
 | Release | Date     | Notes       | Inaccurate? |
 |:-------:|:--------:|-------------|-----|
+| 7.1 | 2020-07-15 | New Yukon map, IS-6, KV-4, Patton 48 armor buff, Grille DPM buff, SP IC, AMZ 13 75, M41 Bulldog mobility buff  |  |
 | 7.0 | 2020-06-17 | British LTs, graphics improvements, ATGM nerf, Sheridan nerf, map fixes |  |
 | 6.10 | 2020-04-29 | T92E1 nerf, Tier V-IX heavy HP buff, Battle Pass, map fixes |  |
 | 6.9 | 2020-03-25 | Japanese TDs, Tier X heavy HP buff |  |
