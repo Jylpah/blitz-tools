@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 447
+        "count": 449
     },
     "data": {
         "1": {
@@ -37,12 +37,12 @@
             "name": "Type 59"
         },
         "81": {
-            "is_premium": false,
-            "name": "Vickers Medium Mk. I",
-            "nation": "uk",
             "tank_id": 81,
+            "nation": "uk",
             "tier": 1,
-            "type": "mediumTank"
+            "is_premium": false,
+            "type": "mediumTank",
+            "name": "Vickers Medium Mk. I"
         },
         "113": {
             "tank_id": 113,
@@ -117,12 +117,12 @@
             "name": "Tiger I"
         },
         "545": {
-            "is_premium": false,
-            "name": "T1 Cunningham",
-            "nation": "usa",
             "tank_id": 545,
+            "nation": "usa",
             "tier": 1,
-            "type": "lightTank"
+            "is_premium": false,
+            "type": "lightTank",
+            "name": "T1 Cunningham"
         },
         "577": {
             "tank_id": 577,
@@ -418,7 +418,7 @@
             "tier": 7,
             "is_premium": true,
             "type": "AT-SPG",
-            "name": "Helsing H0"
+            "name": "Helsing"
         },
         "1665": {
             "tank_id": 1665,
@@ -757,12 +757,12 @@
             "name": "Black Prince"
         },
         "3329": {
-            "is_premium": false,
-            "name": "MS-1",
-            "nation": "ussr",
             "tank_id": 3329,
+            "nation": "ussr",
             "tier": 1,
-            "type": "lightTank"
+            "is_premium": false,
+            "type": "lightTank",
+            "name": "MS-1"
         },
         "3345": {
             "tank_id": 3345,
@@ -872,9 +872,9 @@
             "tank_id": 3937,
             "nation": "japan",
             "tier": 10,
-            "is_premium": true,
+            "is_premium": false,
             "type": "AT-SPG",
-            "name": "Ho-Ri Type 3"
+            "name": "Ho-Ri Type III"
         },
         "3953": {
             "tank_id": 3953,
@@ -3178,7 +3178,7 @@
             "tier": 6,
             "is_premium": true,
             "type": "heavyTank",
-            "name": "Kuro Mori Mine"
+            "name": "Tiger Kuromorimine SP"
         },
         "63601": {
             "tank_id": 63601,
@@ -3186,7 +3186,7 @@
             "tier": 7,
             "is_premium": true,
             "type": "mediumTank",
-            "name": "T6 Dracula"
+            "name": "Dracula"
         },
         "63841": {
             "tank_id": 63841,
@@ -3194,7 +3194,7 @@
             "tier": 5,
             "is_premium": true,
             "type": "mediumTank",
-            "name": "Panzer IV Anko Special"
+            "name": "Panzer IV Ankou Special"
         },
         "64001": {
             "tank_id": 64001,
@@ -3285,12 +3285,12 @@
             "name": "IS-6 Fearless"
         },
         "64785": {
-            "is_premium": false,
-            "name": "Pz.Kpfw. II",
-            "nation": "germany",
             "tank_id": 64785,
-            "tier": 2,
-            "type": "lightTank"
+            "nation": "germany",
+            "tier": 1,
+            "is_premium": false,
+            "type": "lightTank",
+            "name": "Pz.Kpfw. II"
         },
         "64801": {
             "tank_id": 64801,
@@ -3317,20 +3317,20 @@
             "name": "MS-1"
         },
         "65041": {
-            "is_premium": false,
-            "name": "Leichttraktor",
-            "nation": "germany",
             "tank_id": 65041,
+            "nation": "germany",
             "tier": 1,
-            "type": "lightTank"
+            "is_premium": false,
+            "type": "lightTank",
+            "name": "Leichttraktor"
         },
         "65057": {
-            "is_premium": false,
-            "name": "T1 Cunningham",
-            "nation": "usa",
             "tank_id": 65057,
+            "nation": "usa",
             "tier": 1,
-            "type": "lightTank"
+            "is_premium": false,
+            "type": "lightTank",
+            "name": "T1 Cunningham"
         },
         "65105": {
             "tank_id": 65105,
@@ -3341,20 +3341,20 @@
             "name": "Vickers Medium Mk. I"
         },
         "65281": {
-            "is_premium": false,
-            "name": "MS-1",
-            "nation": "ussr",
             "tank_id": 65281,
+            "nation": "ussr",
             "tier": 1,
-            "type": "lightTank"
+            "is_premium": false,
+            "type": "lightTank",
+            "name": "MS-1"
         },
         "65297": {
-            "is_premium": false,
-            "name": "Leichttraktor",
-            "nation": "germany",
             "tank_id": 65297,
+            "nation": "germany",
             "tier": 1,
-            "type": "lightTank"
+            "is_premium": false,
+            "type": "lightTank",
+            "name": "Leichttraktor"
         },
         "65313": {
             "tank_id": 65313,
@@ -3373,12 +3373,12 @@
             "name": "Type 62"
         },
         "65361": {
-            "is_premium": false,
-            "name": "Vickers Medium Mk. I",
-            "nation": "uk",
             "tank_id": 65361,
+            "nation": "uk",
             "tier": 1,
-            "type": "mediumTank"
+            "is_premium": false,
+            "type": "mediumTank",
+            "name": "Vickers Medium Mk. I"
         },
         "65377": {
             "tank_id": 65377,
@@ -3432,7 +3432,7 @@
             "tank_id": 19537,
             "nation": "uk",
             "tier": 10,
-            "is_premium": true,
+            "is_premium": false,
             "type": "lightTank",
             "name": "Vickers Light 105"
         },
@@ -3579,6 +3579,22 @@
             "is_premium": true,
             "type": "mediumTank",
             "name": "T-44-85"
+        },
+        "4417": {
+            "tank_id": 4417,
+            "nation": "france",
+            "tier": 10,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "AMX M4 mle. 54"
+        },
+        "17217": {
+            "tank_id": 17217,
+            "nation": "france",
+            "tier": 6,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Eraser BP44"
         }
     },
     "userStr": {
@@ -4014,6 +4030,8 @@
         "S16_Kranvagn": "Kranvagn",
         "S25_EMIL_51": "EMIL 1951",
         "GB94_Centurion_Mk5-1_RAAC": "Centurion Mk. 5/1 RAAC",
-        "R98_T44_85": "T-44-85"
+        "R98_T44_85": "T-44-85",
+        "ARL_44BP": "Eraser BP44",
+        "F82_AMX_M4_Mle1949_Ter": "AMX M4 mle. 54"
     }
 }
