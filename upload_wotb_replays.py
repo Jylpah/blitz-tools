@@ -1,7 +1,7 @@
 #!/usr/bin/env python3.8
 
-import json, argparse, inspect, sys, os, base64, aiohttp, urllib, asyncio, aiofiles, aioconsole
-import logging, re, concurrent.futures, configparser, motor.motor_asyncio, ssl
+import json, argparse, inspect, sys, os, io, base64, aiohttp, urllib, asyncio, aiofiles, aioconsole
+import logging, re, concurrent.futures, configparser, motor.motor_asyncio, ssl, zipfile
 import blitzutils as bu
 from blitzutils import WG
 from blitzutils import WoTinspector
@@ -67,7 +67,7 @@ async def main(argv):
 	parser = argparse.ArgumentParser(description='Post replays(s) to WoTinspector.com and retrieve replay data as JSON')
 	parser.add_argument('-id', dest='accountID', type=int, default=WG_ID, help='WG account_id')
 	parser.add_argument('-a', '--account', dest='account', type=str, default=WG_ACCOUNT, help='Uploader\'s WG account name. Format: ACCOUNT_NAME@SERVER')
-	parser.add_argument('-t','--title', type=str, default=None, help='Title for replays. Use NN for continous numbering. Default is filename-based numbering')
+	parser.add_argument('-t','--title', type=str, default=None, help='Title for replays. Use "NN" for continous numbering. Default is automatic naming')
 	parser.add_argument('-p', '--private', dest="private", action='store_true', default=False, help='Set replays private on WoTinspector.com')
 	parser.add_argument('--tankopedia', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default: "tanks.json"')
 	parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default: "maps.json"')
@@ -231,7 +231,7 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 	return None
 
 
-def getTitle(replayfile: str, title: str, i : int) -> str:
+def getTitle_old(replayfile: str, title: str, i : int) -> str:
 	global wg
 
 	if title == None:
@@ -269,6 +269,39 @@ def getTitle(replayfile: str, title: str, i : int) -> str:
 		title.replace('NN', str(i))	
 	return title 
 
+
+def getTitle(replayfile: str, title: str, i : int) -> str:
+	global wg
+	if title == None:
+		try:
+			filename = os.path.basename(replayfile)	
+			bu.debug(filename)
+			player = None
+			tank = None
+			map_name = None
+
+			with zipfile.ZipFile(replayfile, 'r') as archive:
+				# bu.debug('Replay file: ' + replayfile + ' opened')
+				with io.TextIOWrapper(archive.open('meta.json')) as meta:
+					# bu.debug('Replay file\'s metadata: opened')
+					try:
+						metadata_json = json.load(meta)
+						#player = metadata_json['playerName']
+						tank = wg.get_tank_name(metadata_json['playerVehicleName'])
+						map_name = wg.get_map_name(metadata_json['mapName'])
+						bu.debug('Tank: ' + tank +  ' Map: ' + map_name)
+					except Exception as err:
+						bu.error(exception = err)
+			if (tank != None) and  (map_name != None):
+				title = tank + ' @ ' + map_name
+			else:
+				title = re.sub('\\.wotbreplay$', '', filename)
+		except Exception as err:
+			bu.error(err)
+	else:
+		title.replace('NN', str(i))	
+	bu.debug('Returning: '  + title)
+	return title 
 
 ### main() -------------------------------------------
 if __name__ == "__main__":
