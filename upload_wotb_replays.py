@@ -1,7 +1,7 @@
 #!/usr/bin/env python3.8
 
 import json, argparse, inspect, sys, os, base64, aiohttp, urllib, asyncio, aiofiles, aioconsole
-import logging, re, concurrent.futures, configparser, motor.motor_asyncio, ssl
+import logging, re, concurrent.futures, configparser, motor.motor_asyncio, ssl, zipfile
 import blitzutils as bu
 from blitzutils import WG
 from blitzutils import WoTinspector
@@ -231,7 +231,7 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 	return None
 
 
-def getTitle(replayfile: str, title: str, i : int) -> str:
+def getTitle_old(replayfile: str, title: str, i : int) -> str:
 	global wg
 
 	if title == None:
@@ -269,6 +269,33 @@ def getTitle(replayfile: str, title: str, i : int) -> str:
 		title.replace('NN', str(i))	
 	return title 
 
+
+def getTitle(replayfile: str, title: str, i : int) -> str:
+	global wg
+
+	if title == None:
+		try:
+			filename = os.path.basename(replayfile)	
+			bu.debug(filename)
+			player = None
+			tank = None
+			map_name = None
+
+			with zipfile.ZipFile(replayfile, 'r') as rp_archive:
+				with rp_archive.open('meta.json') as rp_metadata:
+					metadata_json = json.loads(rp_metadata)
+					player = metadata_json['playerName']
+					tank = wg.get_tank_name(metadata_json['playerVehicleName'])
+					map_name = wg.get_map_name(metadata_json['mapName'])
+			if (player != None) and (tank != None) and  (map_name != None):
+				title = tank + ' @ ' + map_name
+			else:
+				title = re.sub('\\.wotbreplay$', '', filename)
+		except Exception as err:
+			bu.error(err)
+	else:
+		title.replace('NN', str(i))	
+	return title 
 
 ### main() -------------------------------------------
 if __name__ == "__main__":
