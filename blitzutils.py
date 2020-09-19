@@ -760,14 +760,24 @@ class WG:
 
 
     @classmethod
-    def get_map(cls, map_str: str) -> str:
+    def get_map_name(cls, map_str: str) -> str:
         """Return map name from short map string in replays"""
         try:
             return cls.maps[map_str]
         except:
             error('Map ' + map_str + ' not found')
-        return None
+        return map_str
     
+
+    @classmethod
+    def get_tank_name(cls, tank_str: str) -> str:
+        """Return tnak name from short tank string in replays"""
+        try:
+            return cls.tanks["userStr"][tank_str]
+        except:
+            error('Tank ' + tank_str + ' not found')
+        return tank_str
+
 
     @classmethod
     def get_map_user_strs(cls) -> str:
