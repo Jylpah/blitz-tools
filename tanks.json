@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 449
+        "count": 457
     },
     "data": {
         "1": {
@@ -3520,7 +3520,7 @@
             "tank_id": 4481,
             "nation": "european",
             "tier": 10,
-            "is_premium": true,
+            "is_premium": false,
             "type": "heavyTank",
             "name": "Kranvagn"
         },
@@ -3595,6 +3595,70 @@
             "is_premium": true,
             "type": "heavyTank",
             "name": "Eraser BP44"
+        },
+        "3457": {
+            "tank_id": 3457,
+            "nation": "european",
+            "tier": 8,
+            "is_premium": false,
+            "type": "heavyTank",
+            "name": "Emil I"
+        },
+        "3713": {
+            "tank_id": 3713,
+            "nation": "european",
+            "tier": 6,
+            "is_premium": false,
+            "type": "mediumTank",
+            "name": "Strv 74"
+        },
+        "3969": {
+            "tank_id": 3969,
+            "nation": "european",
+            "tier": 7,
+            "is_premium": false,
+            "type": "mediumTank",
+            "name": "Leo"
+        },
+        "4225": {
+            "tank_id": 4225,
+            "nation": "european",
+            "tier": 9,
+            "is_premium": false,
+            "type": "heavyTank",
+            "name": "Emil II"
+        },
+        "7793": {
+            "tank_id": 7793,
+            "nation": "other",
+            "tier": 7,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Annihilator"
+        },
+        "8049": {
+            "tank_id": 8049,
+            "nation": "other",
+            "tier": 5,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Spike"
+        },
+        "21761": {
+            "tank_id": 21761,
+            "nation": "ussr",
+            "tier": 8,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "STG"
+        },
+        "22033": {
+            "tank_id": 22033,
+            "nation": "germany",
+            "tier": 6,
+            "is_premium": true,
+            "type": "lightTank",
+            "name": "Agent"
         }
     },
     "userStr": {
@@ -4032,6 +4096,14 @@
         "GB94_Centurion_Mk5-1_RAAC": "Centurion Mk. 5/1 RAAC",
         "R98_T44_85": "T-44-85",
         "ARL_44BP": "Eraser BP44",
-        "F82_AMX_M4_Mle1949_Ter": "AMX M4 mle. 54"
+        "F82_AMX_M4_Mle1949_Ter": "AMX M4 mle. 54",
+        "Oth25_HWT20_FalconFire": "Annihilator",
+        "Oth26_StrvM42HW": "Spike",
+        "R146_STG": "STG",
+        "S07_Strv_74": "Strv 74",
+        "S13_Leo": "Leo",
+        "S17_EMIL_1952E2": "Emil II",
+        "S18_EMIL_1951E1": "Emil I",
+        "VK2801_BP": "Agent"
     }
 }
