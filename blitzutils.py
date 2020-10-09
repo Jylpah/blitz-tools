@@ -18,7 +18,7 @@ VERBOSE = 2
 DEBUG   = 3
 _log_level  = NORMAL
 LOG         = False
-LOG_FILE    = None
+LOGGER      = None
 
 ## Progress display
 _progress_N = 100
@@ -121,6 +121,58 @@ class ThrottledClientSession(aiohttp.ClientSession):
         return await super()._request(*args,**kwargs)
 
 
+class AsyncLogger():
+    """Async file logger"""
+    def __init__(self) -> None: 
+        self._queue = asyncio.Queue()
+        self._task = None
+        self._file = None
+
+
+    async def open(self, logfn: str = None):
+        """Set logging to file"""
+        if logfn == None:
+            logfn = 'LOG_' + _randomword(6) + '.log'
+        try:
+            self._file = await aiofiles.open(logfn, mode='a')
+            self._task = asyncio.create_task(self.logger())
+            return True
+        except Exception as err:
+            error('Error opening file: ' + logfn, err)
+            self._file = None
+        return False
+
+
+    async def logger(self):
+        """Async file logger"""
+        if self._file == None:
+            error('No log file defined')
+            return False 
+        while True:
+            try:
+                msg = await self._queue.get()
+                await self._file.write(msg + '\n')
+                self._queue.task_done()
+            except asyncio.CancelledError as err:
+                return None
+            except Exception as err:
+                error(exception=err)
+            
+
+    def log(self, msg: str  = ''):
+        self._queue.put_nowait(msg)
+        
+
+    async def close(self):
+        try:
+            ## empty queue & close
+            await self._queue.join()
+            self._task.cancel()
+            self._file.close()
+        except Exception as err:
+            error('Error closing log file', err)
+        return None 
+        
 ## -----------------------------------------------------------
 #### Utils
 ## -----------------------------------------------------------
@@ -164,31 +216,27 @@ def get_log_level_str() -> str:
     error('Unknown log level: ' + str(_log_level))
 
 
-def set_file_logging(log2file: bool, logfn = None):
+async def set_file_logging(logfn = None):
     """Set logging to file"""
-    global LOG, LOG_FILE
-    LOG = log2file
-    if log2file:
-        if logfn == None:
-            logfn = 'LOG_' + _randomword(6) + '.log'
-        try:
-            LOG_FILE = open(logfn, mode='a')
-        except Exception as err:
-            error('Error opening file: ' + logfn, err)
-            LOG = False
-            return None
+    global LOG, LOGGER
+    LOG = True
+    if logfn == None:
+        logfn = 'LOG_' + _randomword(6) + '.log'
+    try:
+        LOGGER = AsyncLogger()
+        await LOGGER.open(logfn)
+    except Exception as err:
+        error('Error starting logger: ' + logfn, err)
+        LOG = False
+        LOGGER = None
     return LOG
 
 
-def close_file_logging():
-    global LOG_FILE
-    if LOG_FILE != None:
-        try:
-            LOG_FILE.close()
-        except Exception as err:
-           error('Error closing log file', err)
-           return False 
-    return True
+async def close_file_logging():
+    global LOG, LOGGER
+    LOG=False
+    await LOGGER.close()
+    LOGGER = None
 
 def _randomword(length):
    letters = string.ascii_lowercase
@@ -197,42 +245,41 @@ def _randomword(length):
 
 def verbose(msg = "", id = None) -> bool:
     """Print a message"""
-    if _log_level >= VERBOSE:
-        _print_log_msg('', msg, None, id)  
-        return True
-    return False
+    return _print_log_msg('', msg, exception=None, id=id, print_msg= (_log_level >= VERBOSE) )  
 
 
 def verbose_std(msg = "", id = None) -> bool:
     """Print a message"""
-    if _log_level >= NORMAL:
-        _print_log_msg('', msg, None, id)        
-        return True
-    return False
+    return _print_log_msg('', msg, exception=None, id=id, print_msg= (_log_level >= NORMAL) )  
 
-def warning(msg = "", id = None) -> bool:
+
+def warning(msg = "", id = None, force: bool = False) -> bool:
     """Print a warning message"""
-    if _log_level >= NORMAL:
-        _print_log_msg('', 'Warning: ' + msg, None, id)        
-        return True
-    return False
+    return _print_log_msg('Warning', msg, None, id, print_msg= (force or (_log_level >= NORMAL)) )        
+
 
 def debug(msg = "", id = None, exception = None, force: bool = False) -> bool:
     """print a conditional debug message"""
     if (_log_level >= DEBUG) or force:
-        _print_log_msg('DEBUG', msg, exception, id)
-        return True
+        return _print_log_msg('DEBUG', msg, exception, id)
     return False
 
 
 def error(msg = "", exception = None, id = None) -> bool:
     """Print an error message"""
-    _print_log_msg('ERROR', msg, exception, id)
-    return True
+    return _print_log_msg('ERROR', msg, exception, id)
 
 
-def _print_log_msg(prefix = 'LOG', msg = '', exception = None, id = None):
+def log(msg = "", id = None, exception = None) -> bool:
+    """print a conditional debug message"""
+    return _print_log_msg('LOG', msg=msg, exception=exception, id=id, print_msg=(_log_level >= DEBUG))
+
+
+def _print_log_msg(prefix = 'LOG', msg = '', exception = None, id = None, print_msg : bool = True):
     # Use empty prefix to determine standard verbose messages
+    if not (print_msg or LOG):
+        return False
+    retval = False
     if prefix != '':
         curframe = inspect.currentframe()
         calframe = inspect.getouterframes(curframe)
@@ -247,15 +294,19 @@ def _print_log_msg(prefix = 'LOG', msg = '', exception = None, id = None):
         exception_msg = ' : Exception: ' + str(type(exception)) + ' : ' + str(exception)
 
     msg = prefix + msg + exception_msg
-    print(msg)
-    _log_msg(msg)
-    return None
+    if print_msg: 
+        print(msg)
+        retval = True
+    if _log_msg(msg):
+        retval = True
+    return retval
 
 
 def _log_msg(msg =''):
-    if LOG_FILE != None:
-        LOG_FILE.write(msg + '\n')
-    return None
+    if LOG and (LOGGER != None):
+        LOGGER.log(msg)        
+        return True
+    return False
 
 
 def set_progress_step(n: int):
@@ -350,10 +401,14 @@ def NOW() -> int:
 
 def rebase_file_args(current_dir, files):
     """REbase file command line params after moving working dir to the script's dir""" 
-    if (files[0] == '-') or (files[0] == 'db:'):
-        return files
-    else:
-        return [ os.path.join(current_dir, fn) for fn in files ]
+    if isinstance(files, list):    
+        if (files[0] == '-') or (files[0] == 'db:'):
+            return files
+        else:
+            return [ os.path.join(current_dir, fn) for fn in files ]
+    elif isinstance(files, str):
+        return os.path.join(current_dir, files)
+
 
 async def read_int_list(filename: str) -> list():
     """Read file to a list and return list of integers in the input file"""
@@ -430,12 +485,11 @@ async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func =
                 await asyncio.sleep(SLEEP)    
 
             except aiohttp.ClientError as err:
-                debug("Could not retrieve URL: " + url)
-                debug(str(err))
+                debug("Could not retrieve URL: " + url, exception=err)
             except asyncio.CancelledError as err:
-                debug('Queue gets cancelled while still working.')        
+                debug('Queue gets cancelled while still working.', exception=err)        
             except Exception as err:
-                debug('Unexpected Exception', err)
+                debug('Unexpected Exception', exception=err)
         debug("Could not retrieve URL: " + url)
         return None
 
@@ -766,7 +820,7 @@ class WG:
             return cls.maps[map_str]
         except:
             error('Map ' + map_str + ' not found')
-        return map_str
+        return None
     
 
     @classmethod
@@ -1127,6 +1181,9 @@ class WG:
         try:
             account_ids = set(account_ids)
             stats = dict()
+            if len(account_ids) == 0:
+                debug('Zero account_ids given')
+                return None
 
             # try cached stats first:
             if cache:
