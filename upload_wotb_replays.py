@@ -276,7 +276,6 @@ def getTitle(replayfile: str, title: str, i : int) -> str:
 		try:
 			filename = os.path.basename(replayfile)	
 			bu.debug(filename)
-			player = None
 			tank = None
 			map_name = None
 
