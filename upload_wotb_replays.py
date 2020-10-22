@@ -287,7 +287,7 @@ def getTitle(replayfile: str, title: str, i : int) -> str:
 						metadata_json = json.load(meta)
 						#player = metadata_json['playerName']
 						tank = wg.get_tank_name(metadata_json['playerVehicleName'])
-						map_name = wg.get_map_name(metadata_json['mapName'])
+						map_name = wg.get_map(metadata_json['mapName'])
 						bu.debug('Tank: ' + tank +  ' Map: ' + map_name)
 					except Exception as err:
 						bu.error(exception = err)

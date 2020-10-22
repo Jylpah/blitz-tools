@@ -886,6 +886,16 @@ class WG:
 
 
     @classmethod
+    def get_tank_name(cls, tank_str: str) -> str:
+        """Return tank name from short tank string in replays"""
+        try:
+            return cls.tanks["userStr"][tank_str]
+        except:
+            error('Tank ' + tank_str + ' not found')
+        return tank_str
+
+
+    @classmethod
     def get_tank_user_strs(cls) -> str:
         return cls.tanks["userStr"].keys()
 
