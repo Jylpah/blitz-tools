@@ -37,47 +37,83 @@ class ThrottledClientSession(aiohttp.ClientSession):
     """Rate-throttled client session class inherited from aiohttp.ClientSession)""" 
     MIN_SLEEP = 0.1
 
-    def __init__(self, rate_limit: float =None, *args,**kwargs) -> None: 
+    def __init__(self, rate_limit: float = None, *args,**kwargs) -> None: 
         super().__init__(*args,**kwargs)
-        self.rate_limit = rate_limit
+        self.rate_limit = None
         self._fillerTask = None
         self._queue = None
+        self._start_time = None
+        self._count = 0
+        self._start_time = time.time()
 
         if rate_limit != None:
             if rate_limit <= 0:
                 raise ValueError('rate_limit must be positive')
+            self.rate_limit = rate_limit
             #(increment, sleep) = self._get_rate_increment()            
             self._queue = asyncio.Queue(min(2, int(rate_limit)+1))
-            self._fillerTask = asyncio.create_task(self._filler(rate_limit))
-        self._start_time = None
-        self._count = 0
+            # self._fillerTask = asyncio.create_task(self._filler(rate_limit))
+            self._fillerTask = asyncio.create_task(self._filler())
+        
      
 
     def _get_sleep(self) -> list:
-        return max(1/self.rate_limit, self.MIN_SLEEP)
+        if self.rate_limit != None:
+            return max(1/self.rate_limit, self.MIN_SLEEP)
+        return None
+
+
+    def get_rate(self) -> float:
+        """Return rate of requests"""
+        return self._count / (time.time() - self._start_time)
+
+
+    def get_stats(self):
+        """Get session statistics"""
+        res = {'rate' : self.get_rate(), 'rate_limit': self.rate_limit, 'count' : self._count }
+        return res
+        
+
+    def get_stats_str(self):
+        """Print session statistics"""
+        return 'rate limit: ' + str(self.rate_limit if self.rate_limit != None else '-') + \
+                ' rate: ' +  "{0:.1f}".format(self.get_rate()) + ' requests: ' + str(self._count)
+
+
+    def reset_counters(self):
+        """Reset rate counters and return current results"""
+        res = self.get_stats()
+        self._start_time = time.time()
+        self._count = 0
+        return res
+
+
+    def set_rate_limit(self, rate_limit: float = 1):
+        if rate_limit >= 0:
+            self.rate_limit = rate_limit
+            return self.rate_limit
+        return None
 
 
     async def close(self) -> None:
         """Close rate-limiter's "bucket filler" task"""
         # DEBUG 
-        if self._start_time != None:
-            duration = time.time() - self._start_time
-            debug('Average WG API request rate: ' + '{:.1f}'.format(self._count / duration) + ' / sec')
+        debug(self.get_stats_str())
         if self._fillerTask != None:
             self._fillerTask.cancel()
         try:
-            await asyncio.wait_for(self._fillerTask, timeout= 3)
+            await asyncio.wait_for(self._fillerTask, timeout= 0.5)
         except asyncio.TimeoutError as err:
             error(exception=err)
         await super().close()
 
 
-    async def _filler(self, rate_limit: float = 1):
+    # async def _filler(self, rate_limit: float = 1):
+    async def _filler(self):
         """Filler task to fill the leaky bucket algo"""
         try:
             if self._queue == None:
                 return 
-            self.rate_limit = rate_limit
             sleep = self._get_sleep()
             debug('SLEEP: ' + str(sleep))
             updated_at = time.monotonic()
@@ -88,7 +124,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
             while True:
                 if not self._queue.full():
                     now = time.monotonic()
-                    increment = rate_limit * (now - updated_at)
+                    increment = self.rate_limit * (now - updated_at)
                     fraction += increment % 1
                     extra_increment = fraction // 1
                     items_2_add = int(min(self._queue.maxsize - self._queue.qsize(), int(increment) + extra_increment))
@@ -103,21 +139,12 @@ class ThrottledClientSession(aiohttp.ClientSession):
             error(exception=err)
 
 
-    async def _allow(self) -> None:
-        if self._queue != None:
-            # debug 
-            if self._start_time == None:
-                self._start_time = time.time()
-            await self._queue.get()
-            self._queue.task_done()
-            # DEBUG 
-            self._count += 1
-        return None
-
-
     async def _request(self, *args,**kwargs):
         """Throttled _request()"""
-        await self._allow()
+        if self._queue != None:
+            await self._queue.get()
+            self._queue.task_done()
+        self._count += 1
         return await super()._request(*args,**kwargs)
 
 
@@ -195,6 +222,22 @@ def set_silent(silent: bool):
 def set_log_level_normal():
     global _log_level
     _log_level = NORMAL
+
+
+def is_debug() -> bool:
+    return _log_level == DEBUG
+
+
+def is_verbose() -> bool:
+    return _log_level == VERBOSE
+
+
+def is_normal() -> bool:
+    return _log_level == NORMAL
+
+
+def is_silent() -> bool:
+    return _log_level == SILENT
 
 
 def set_log_level(silent: bool,verbose: bool, debug: bool):
@@ -311,7 +354,7 @@ def _log_msg(msg =''):
 
 def set_progress_step(n: int):
     """Set the frequency of the progress dots. The bigger 'n', the fewer dots"""
-    global _progress_N 
+    global _progress_N, _progress_i 
     if n > 0:
         _progress_N = n
         _progress_i = 0
@@ -374,10 +417,14 @@ def finish_progress_bar():
     """Finish and close progress bar object"""
     global _progress_obj
 
-    _progress_obj.finish()
+    # print_nl = True
+    if _progress_obj != None:
+        # if isinstance(_progress_obj, Counter):
+        #     print_nl = False
+        _progress_obj.finish()
+        # if print_nl:
+        print_new_line()
     _progress_obj = None
-    print_new_line()
-
     return None
 
 
@@ -728,11 +775,13 @@ class WG:
         'china' : range(int(31e8),int(4e9))
         }
 
-    def __init__(self, WG_app_id : str = None, tankopedia_fn : str =  None, maps_fn : str = None, stats_cache: bool = False, rate_limit: int = 10):
+    def __init__(self, WG_app_id : str = None, tankopedia_fn : str =  None, maps_fn : str = None, 
+                stats_cache: bool = False, rate_limit: int = 10, global_rate_limit = True):
         
         self.WG_app_id = WG_app_id
         self.load_tanks(tankopedia_fn)
         WG.tanks = self.tanks
+        self.global_rate_limit = global_rate_limit
         
         if (maps_fn != None):
             if os.path.exists(maps_fn) and os.path.isfile(maps_fn):
@@ -743,10 +792,14 @@ class WG:
                     error('Could not read maps file: ' + maps_fn + '\n' + str(err))  
             else:
                 verbose('Could not find maps file: ' + maps_fn)    
-        self.rate_limiter = None
         if self.WG_app_id != None:
             headers = {'Accept-Encoding': 'gzip, deflate'} 	
-            self.session = ThrottledClientSession(rate_limit=rate_limit, headers=headers)
+            if self.global_rate_limit:
+                self.session = ThrottledClientSession(rate_limit=rate_limit, headers=headers)
+            else:
+                self.session = dict()
+                for server in list(self.URL_WG_SERVER)[:4]:    # China (5th) server is unknown, thus excluded
+                    self.session[server] = ThrottledClientSession(rate_limit=rate_limit, headers=headers)
             debug('WG aiohttp session initiated')            
         else:
             self.session = None
@@ -783,7 +836,11 @@ class WG:
             await self.cache.close()
         
         if self.session != None:
-            await self.session.close()   
+            if self.global_rate_limit:
+                await self.session.close()
+            else:
+                for server in self.session:
+                    await self.session[server].close()
    
         return
 
@@ -814,7 +871,7 @@ class WG:
 
 
     @classmethod
-    def get_map_name(cls, map_str: str) -> str:
+    def get_map(cls, map_str: str) -> str:
         """Return map name from short map string in replays"""
         try:
             return cls.maps[map_str]
@@ -822,16 +879,6 @@ class WG:
             error('Map ' + map_str + ' not found')
         return None
     
-
-    @classmethod
-    def get_tank_name(cls, tank_str: str) -> str:
-        """Return tnak name from short tank string in replays"""
-        try:
-            return cls.tanks["userStr"][tank_str]
-        except:
-            error('Tank ' + tank_str + ' not found')
-        return tank_str
-
 
     @classmethod
     def get_map_user_strs(cls) -> str:
@@ -1089,7 +1136,40 @@ class WG:
                 error('Available servers: ' + ', '.join(WG.ACCOUNT_ID_SERVER.keys()))
             error(exception=err)
         return None
-  
+
+
+    def url_get_server(self, url: str) -> str: 
+        """Decode WG server from the URL"""         
+        try:            
+            for server in self.session:
+                if url.startswith(self.URL_WG_SERVER[server]):
+                    return server
+        except Exception as err:
+            error(exception=err)
+        return 'eu'  # default
+
+
+    def print_request_stats(self):
+        """Print session statics"""
+        if self.global_rate_limit:
+            verbose_std('Globar rate limit: ' + self.session.get_stats_str())
+        else:
+            for server in self.session:
+                verbose_std('Per server rate limits: '  + server + ': '+ self.session[server].get_stats_str())
+
+
+    async def get_url_JSON(self, url: str, chk_JSON_func = None, max_tries = MAX_RETRIES) -> dict:
+        """Class WG get_url_JSON() for load balancing between WG servers 
+        that have individial rate limits"""
+        
+        if self.global_rate_limit:
+            session = self.session
+        else:
+            server = self.url_get_server(url)
+            session = self.session[server]
+            debug('server:' + server)
+        return await get_url_JSON(session, url, chk_JSON_func, max_tries)
+
 
     async def get_account_id(self, nickname: str) -> int:
         """Get WG account_id for a nickname"""
@@ -1103,7 +1183,7 @@ class WG:
                 raise ValueError('Invalid nickname given: ' + nickname)
             url = self.get_url_account_id(nick, server)
 
-            json_data = await get_url_JSON(self.session, url, self.chk_JSON_status)
+            json_data = await self.get_url_JSON(url, self.chk_JSON_status)
             for res in json_data['data']:
                 if res['nickname'].lower() == nick.lower(): 
                     return res['account_id']
@@ -1129,7 +1209,7 @@ class WG:
 
             # Cached stats not found, fetching new ones
             url = self.get_url_player_tanks_stats(account_id, tank_ids, fields)
-            json_data = await get_url_JSON(self.session, url, self.chk_JSON_status)
+            json_data = await self.get_url_JSON(url, self.chk_JSON_status)
             if json_data != None:
                 #debug('JSON Response received: ' + str(json_data))
                 stats = json_data['data'][str(account_id)]
@@ -1164,7 +1244,7 @@ class WG:
         try:
             # Cached stats not found, fetching new ones
             url = self.get_url_player_stats(account_id, fields)
-            json_data = await get_url_JSON(self.session, url, self.chk_JSON_status)
+            json_data = await self.get_url_JSON(url, self.chk_JSON_status)
             if json_data != None:
                 #debug('JSON Response received: ' + str(json_data))
                 stats = json_data['data'][str(account_id)]
@@ -1202,7 +1282,7 @@ class WG:
             debug('fetching new stats')
             # Cached stats not found, fetching new ones
             url = self.get_url_player_achievements(list(account_ids), fields)
-            json_data = await get_url_JSON(self.session, url, self.chk_JSON_status)
+            json_data = await self.get_url_JSON(url, self.chk_JSON_status)
             if (json_data != None) and ('data' in json_data):
                 #debug('JSON Response received: ' + str(json_data))
                 for account_id in json_data['data'].keys():
