@@ -1641,7 +1641,6 @@ class WoTinspector:
     async def post_replay(self,  data, filename = 'Replay', account_id = 0, title = 'Replay', priv = False, N = None):
         try:
             N = N if N != None else self.REPLAY_N
-            msg_str = 'Replay[' + str(N) + ']: '
             self.REPLAY_N += 1
 
             hash = hashlib.md5()
@@ -1651,7 +1650,7 @@ class WoTinspector:
             ##  Testing if the replay has already been posted
             json_resp = await self.get_replay_JSON(replay_id)
             if json_resp != None:
-                debug(msg_str + 'Already uploaded: ' + title)
+                debug('Already uploaded: ' + title, id=N)
                 return json_resp
 
             params = {
@@ -1667,29 +1666,29 @@ class WoTinspector:
             headers ={'Content-type':  'application/x-www-form-urlencoded'}
             payload = { 'file' : (filename, base64.b64encode(data)) }
         except Exception as err:
-            error(msg_str + 'Unexpected Exception', err)
+            error('Unexpected Exception', exception=err, id=N)
             return None
 
         json_resp  = None
         for retry in range(MAX_RETRIES):
-            debug(msg_str + 'Posting: ' + title + ' Try #: ' + str(retry + 1) + '/' + str(MAX_RETRIES) )
+            debug('Posting: ' + title + ' Try #: ' + str(retry + 1) + '/' + str(MAX_RETRIES), id=N )
             try:
                 async with self.session.post(url, headers=headers, data=payload) as resp:
-                    debug(msg_str + 'HTTP response: '+ str(resp.status))
+                    debug('HTTP response: '+ str(resp.status), id=N)
                     if resp.status == 200:								
-                        debug(msg_str + 'HTTP POST 200 = Success. Reading response data')
+                        debug('HTTP POST 200 = Success. Reading response data', id=N)
                         json_resp = await resp.json()
                         if self.chk_JSON_replay(json_resp):
-                            debug(msg_str + 'Response data read. Status OK')                            
+                            debug('Response data read. Status OK', id=N) 
                             return json_resp	
-                        debug(msg_str +' : ' + title + ' : Receive invalid JSON')                        										
+                        debug(title + ' : Receive invalid JSON', id=N)
                     else:
-                        debug(msg_str + 'Got HTTP/' + str(resp.status))
+                        debug('Got HTTP/' + str(resp.status), id=N)
             except Exception as err:
-                debug(msg_str, exception=err)
+                debug(exception=err, id=N)
             await asyncio.sleep(SLEEP)
             
-        debug(msg_str + ' Could not post replay: ' + title)
+        debug(' Could not post replay: ' + title, id=N)
         return json_resp
 
 
