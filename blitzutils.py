@@ -1717,7 +1717,7 @@ class WoTinspector:
             replay_links = set()
             for tag in links:
                 link = tag.get('href',None)
-                if (link is not None) and (link.find(cls.URL_REPLAY_DL) == 0 ):
+                if (link is not None) and link.startswith(cls.URL_REPLAY_DL):
                     replay_links.add(link)
                     debug('Adding replay link:' + link)
         except Exception as err:
