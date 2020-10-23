@@ -41,6 +41,7 @@ replay_summary_flds = [
 	'battle_type',
 	'map_name',
 	'battle_duration',
+	'room_type',
 	'protagonist',
 	'title', 
 	'mastery_badge'
@@ -92,9 +93,12 @@ class BattleRecordCategory():
 	_result_categories = {
 		'total'				: [ 'TOTAL', 'total' ],
 		'battle_result'		: [ 'Result', [ 'Loss', 'Win', 'Draw']],
-		'battle_type'		: [ 'Battle Type',['Encounter', 'Supremacy']],
+		'battle_type'		: [ 'Battle Type', ['Encounter', 'Supremacy']],
 		'tank_tier'			: [ 'Tank Tier', 'number' ],
 		'top_tier'			: [ 'Tier', ['Bottom tier', 'Top tier']],
+		'room_type'			: [ 'Battle Mode', ['Any', 'Random', 'Training Room', '-', 'Tournament', '-', '-', 'Rating', 'Mad Games', '-', \
+												 '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', \
+												 '-', '-','Realistic', '-', 'Burning Games'] ],
 		'mastery_badge'		: [ 'Battle Medal', ['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
 		'team_result'		: [ 'Team Result', 'string' ],
 		'tank_name'			: [ 'Tank', 'string' ],
@@ -220,29 +224,48 @@ class BattleRecordCategory():
 		return None
 
 
+	def get_results_json(self):
+		"""Get results in JSON format"""
+		try:
+			results = dict()
+			results['name' ] = self.get_category_name()
+			# results.append(self.get_headers())			
+			if self.type == 'number':
+				for cat in sorted( [ int(s) for s in self.category.keys() ] ):
+					cat = str(cat) 
+					results[cat] = self.category[cat].get_results_json()					
+			else:
+				for cat in sorted(self.category.keys() , key=str.casefold):
+					cat = str(cat) 
+					results[cat] = self.category[cat].get_results_json()					
+			return results
+		except KeyError as err:
+			bu.error('Key not found', err)  
+		return None
+
 class BattleRecord():
 	
 	## Syntax: Check how the replay JSON files look. The algorithm is counting/recording fields
 	_result_fields = {
-		'battles'			: [ 'Battles', 'Number of battles', 8, '{:^8.0f}' ],
-		'battles%'			: [ '% Battles', 'Share of Battles',6, '{:6.0%}' ],
-		'win'				: [ 'WR', 'Win rate', 				6, '{:6.1%}' ],
-		'damage_made'		: [ 'DPB', 'Average Damage', 		5, '{:5.0f}' ],
-		'DR'				: [ 'DR', 'Damage Ratio', 			5, '{:5.1f}' ],
-		'KDR'				: [ 'KDR', 'Kills / Death', 		4, '{:4.1f}' ],
-		'enemies_spotted'	: [ 'Spot', 'Enemies spotted per battle', 		4, '{:4.1f}' ],
-		'hit_rate'			: [ 'Hit rate', 'Shots hit / all shots made', 	8, '{:8.1%}' ],
-		'pen_rate'			: [ 'Pen rate', 'Shots pen / shots hit', 		8, '{:8.1%}' ],
-		'survived'			: [ 'Surv%', 'Survival rate', 					6, '{:6.1%}' ],
-		'time_alive%'		: [ 'T alive%', 'Percentage of time being alive in a battle', 8, '{:8.0%}' ], 
-		'top_tier'			: [ 'Top tier', 'Share of games as top tier', 					8, '{:8.0%}' ],
-		'player_wins'		: [ 'Player WR', 'Average WR of the player', 					9, '{:9.2%}' ],
-		'player_battles'	: [ 'Player Btls', 'Average number battles of the player', 		11, '{:11.0f}' ],
-		'allies_wins'		: [ 'Allies WR', 'Average WR of allies at the tier of their tank', 9, '{:9.2%}' ],
+		'battles'			: [ 'Battles', 'Number of battles', 								8, '{:^8.0f}' ],
+		'battles%'			: [ '% Battles', 'Share of Battles',								6, '{:6.0%}' ],
+		'win'				: [ 'WR', 'Win rate', 												6, '{:6.1%}' ],
+		'damage_made'		: [ 'DPB', 'Average Damage', 										5, '{:5.0f}' ],
+		'DR'				: [ 'DR', 'Damage Ratio', 											5, '{:5.1f}' ],
+		'KDR'				: [ 'KDR', 'Kills / Death', 										4, '{:4.1f}' ],
+		'enemies_spotted'	: [ 'Spot', 'Enemies spotted per battle', 							4, '{:4.1f}' ],
+		'hit_rate'			: [ 'Hit rate', 'Shots hit / all shots made', 						8, '{:8.1%}' ],
+		'pen_rate'			: [ 'Pen rate', 'Shots pen / shots hit', 							8, '{:8.1%}' ],
+		'survived'			: [ 'Surv%', 'Survival rate', 										6, '{:6.1%}' ],
+		'time_alive%'		: [ 'T alive%', 'Percentage of time being alive in a battle', 		8, '{:8.0%}' ], 
+		'top_tier'			: [ 'Top tier', 'Share of games as top tier', 						8, '{:8.0%}' ],
+		'player_wins'		: [ 'Player WR', 'Average WR of the player', 						9, '{:9.2%}' ],
+		'player_battles'	: [ 'Player Btls', 'Average number battles of the player', 			11, '{:11.0f}' ],
+		'allies_wins'		: [ 'Allies WR', 'Average WR of allies at the tier of their tank', 	9, '{:9.2%}' ],
 		'enemies_wins'		: [ 'Enemies WR', 'Average WR of enemies at the tier of their tank', 10, '{:10.2%}' ],
-		'allies_battles'	: [ 'Allies Btls', 'Average number battles of the allies', 		11, '{:11.0f}' ],
-		'enemies_battles'	: [ 'Enemies Btls', 'Average number battles of the enemies', 	12, '{:12.0f}' ],
-		MISSING_STATS		: [ 'No stats', 'Players without stats avail', 	8, '{:8.1%}']		
+		'allies_battles'	: [ 'Allies Btls', 'Average number battles of the allies', 			11, '{:11.0f}' ],
+		'enemies_battles'	: [ 'Enemies Btls', 'Average number battles of the enemies', 		12, '{:12.0f}' ],
+		MISSING_STATS		: [ 'No stats', 'Players without stats avail', 						8, '{:8.1%}']		
 	}
 
 	_team_fields = [ 'wins', 'battles' ]
@@ -417,11 +440,12 @@ class BattleRecord():
 		return None
 
 
-	def get_results(self):
+	def get_results(self) -> list:
+		"""Return results for printing"""
 		if not self.results_ready:
 			bu.error('Stats have not been calculated yet. call calc_results() before get_results()')
-		results = []
 		try:
+			results = []
 			for field in self.result_fields:
 				results.append(self._result_fields[field][3].format(self.results[field]) )
 			return results
@@ -431,6 +455,23 @@ class BattleRecord():
 			bu.error(exception=err) 
 		return None
 	
+
+	def get_results_json(self) -> dict:
+		"""Return results in JSON format"""
+		if not self.results_ready:
+			bu.error('Stats have not been calculated yet. call calc_results() before get_results()')
+		try:
+			results = dict()
+			for field in self.result_fields:
+				results[field] = self.results[field]				
+			return results
+		except KeyError as err:
+			bu.error('Key not found', err)  
+		except Exception as err:
+			bu.error(exception=err) 
+		return None
+	
+
 
 	def print_results(self):
 		print(' : '.join(self.get_results()))
@@ -474,9 +515,12 @@ class PlayerHistogram():
 		val = self.fields[cat]
 		return self.cat_format.format(float(val * self.cat_factor))
 
-	def print(self):
+
+	def print(self, ret_json: bool = False):
 		N_enemies = 0
 		N_allies = 0
+		res = dict()
+		# calculate buckets 
 		for cat in range(0, self.ncat):
 			N_enemies += self.enemies[cat]
 			N_allies += self.allies[cat]
@@ -485,7 +529,17 @@ class PlayerHistogram():
 		print("\n{:12s} | {:13s} | {:13s} | {:13s}".format(self.name, "Allies", "Enemies", "TOTAL"))
 		for cat in range(0, self.ncat):
 			print("{:12s} | {:5d} ({:4.1f}%) | {:5d} ({:4.1f}%) | {:5d} ({:4.1f}%)".format(self.get_category_name(cat), self.allies[cat], self.allies[cat]/N_allies*100, self.enemies[cat], self.enemies[cat]/N_enemies*100, self.allies[cat] + self.enemies[cat], (self.allies[cat] + self.enemies[cat])/N_total*100 ))
-		return None
+			if ret_json:
+				stat = dict()
+				stat['allies'] 		= self.allies[cat]
+				stat['allies%'] 	= stat['allies'] / N_allies
+				stat['enemies'] 	= self.enemies[cat]
+				stat['enemies%'] 	= stat['enemies'] / N_enemies
+				stat['total'] 		= self.allies[cat] + self.enemies[cat]
+				stat['total%'] 		= stat['total'] / N_total
+				res[self.get_category_name(cat)] = stat
+			
+		return res
 
 
 class ErrorCatchingArgumentParser(argparse.ArgumentParser):
@@ -598,19 +652,21 @@ async def main(argv):
 		parser.add_argument('-u', '--url', action='store_true', default=False, help='Print replay URLs')
 		parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
 		parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default is "maps.json"')
+		parser.add_argument('-j', '--json', action='store_true', default=False, help='Export data in JSON')
 		parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
 		parser.add_argument('--db', action='store_true', default=OPT_DB, help='Use DB - You are unlikely to have it')
-		parser.add_argument('--filters', type=str, default=None, help='Filters for DB based analyses. MongoDB find() filter JSON format.')
+		parser.add_argument('--filters', type=str, default=None, help='Filters for DB based analyses. MongoDB find() filter JSON format. see --help_filters')
 		parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 		parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
 		parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
 		parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files/dirs to read. Use \'-\' for STDIN, "db:" for database')
-		
+		## parser.add_argument('--help_filters', action='store_true', default=False, help='Extended help for --filters')		
+
 		try:
 			args = parser.parse_args()
 		except Exception as err:
 			raise
-
+		
 		bu.set_log_level(args.silent, args.verbose, args.debug)
 		bu.set_progress_step(250)  # Set the frequency of the progress dots. 
 		
@@ -644,6 +700,11 @@ async def main(argv):
 				pass
 		else:
 			bu.debug('No DB in use')
+
+		# TBD
+		# if args.filter_help: 
+		# 	await help_filters(db)
+		# 	sys.exit(0)
 
 		# rebase file arguments due to moving the working directory to the script location
 		args.files = bu.rebase_file_args(current_dir, args.files)
@@ -682,10 +743,14 @@ async def main(argv):
 			bu.verbose('')
 			bu.debug('Number of player stats: ' + str(len(player_stats)))
 			teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
-			process_battle_results(teamresults, args)	
-			if args.hist: 
-				print('\nPlayer Histograms______', end='', flush=True)
-				process_player_dist(results, player_stats, stat_id_map)
+			res = process_battle_results(teamresults, args)	
+			if args.hist: 				
+				res['histograms'] = process_player_dist(results, player_stats, stat_id_map, args.json)
+			if args.json:
+				if args.outfile == '-':
+					args.outfile = 'export.json'
+					bu.verbose_std('Data exported to ' + args.outfile)
+				await bu.save_JSON(args.outfile,res) 
 			bu.debug('Finished. Cleaning up..................')
 		except Exception as err:
 			bu.error(exception=err)
@@ -701,6 +766,25 @@ async def main(argv):
 	return None
 
 
+async def help_filters(db : motor.motor_asyncio.AsyncIOMotorDatabase = None):
+	"""Help for --filters"""
+	print("Syntax: --filters '{ \"replay.param\": VALUE, \"replay.param2\": { \"$MONGO_OPERATOR\" : VALUE }, ... }'")
+	print("\tExample: --filters '{ \"data.summary.protagonist\": ACCOUNT_ID, \"data.summary.battle_start_timestamp\": { \"$gt\" : 1602853200 } }'")
+	if db != None:
+		dbc = db[DB_C_REPLAYS]
+		try:
+			res = await dbc.find_one()
+			summary = res['data']['summary']
+			details = summary[0]
+			print('data.summary.KEYS:')
+			for s in summary:
+				print("\t" + s)
+			print(print('data.summary.details.[].KEYS:'))
+			for d in details:
+				print("\t" + d)
+		except:
+			pass
+
 def set_histogram_buckets(json: dict):
 	global histogram_fields
 	try:
@@ -711,7 +795,7 @@ def set_histogram_buckets(json: dict):
 	return histogram_fields
 
 
-def process_player_dist(results: list, player_stats: dict, stat_id_map: dict):
+def process_player_dist(results: list, player_stats: dict, stat_id_map: dict, res_json: bool = False) -> dict:
 	"""Process player distribution"""
 	hist_stats = dict()
 	try:
@@ -729,9 +813,13 @@ def process_player_dist(results: list, player_stats: dict, stat_id_map: dict):
 						for stat_field in hist_stats:
 							hist_stats[stat_field].record_enemy(player_stats[player_remapped][stat_field])
 		
+		print('\nPlayer Histograms______', end='', flush=True)
+
+		res = dict()
 		for stat_field in hist_stats:
-			hist_stats[stat_field].print()
-	
+			res[stat_field] = hist_stats[stat_field].print(res_json)
+		
+		return res	
 	except Exception as err:
 		bu.error(exception=err)
 
@@ -741,8 +829,10 @@ def process_player_dist(results: list, player_stats: dict, stat_id_map: dict):
 def process_battle_results(results: dict, args : argparse.Namespace):
 	"""Process replay battle results""" 
 	url 	= args.url
+	ret_json = args.json
 	urls 	= collections.OrderedDict()
 	categories = {}
+
 	
 	cats = BattleRecordCategory.get_result_categories(args.extra_categories)
 	
@@ -756,17 +846,25 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 		if url:
 			max_title_len = max(max_title_len, len(result['title']))
 			urls[result['title']] = result['url']
-
+	
+	res = dict()
 	for cat in cats:
 		categories[cat].calc_results()
 		print('')
 		categories[cat].print_results()
+		if ret_json:
+			res[cat] = categories[cat].get_results_json()
 	if url:
 		print('\nURLs to Battle replays:\n')
+		json_urls = dict()
 		for title in urls.keys():
 			print(('{:' + str(3 + max_title_len) + '}').format(title) + ' : ' + urls[title])
+			if ret_json:
+				json_urls[title] = urls[title]
+		if ret_json:
+			res['replay_urls'] = json_urls
 
-	return None
+	return res
 
 
 async def process_player_stats(players, N_workers: int, args : argparse.Namespace, db : motor.motor_asyncio.AsyncIOMotorDatabase) -> dict:
