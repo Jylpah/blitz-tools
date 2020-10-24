@@ -473,14 +473,17 @@ async def read_int_list(filename: str) -> list():
     return input_list
 
 
-async def save_JSON(filename: str, json_data: dict, sort_keys = False) -> bool:
+async def save_JSON(filename: str, json_data: dict, sort_keys = False, pretty = True) -> bool:
     """Save JSON data into file"""
     try:
         dirname = os.path.dirname(filename)
         if (dirname != '') and not os.path.isdir(dirname):
             os.makedirs(dirname, 0o770-UMASK)
         async with aiofiles.open(filename,'w', encoding="utf8") as outfile:
-            await outfile.write(json.dumps(json_data, ensure_ascii=False, indent=4, sort_keys=sort_keys))
+            if pretty:
+                await outfile.write(json.dumps(json_data, ensure_ascii=False, indent=4, sort_keys=sort_keys))
+            else:
+                await outfile.write(json.dumps(json_data, ensure_ascii=False, sort_keys=sort_keys))
             return True
     except Exception as err:
         error('Error saving JSON', err)
