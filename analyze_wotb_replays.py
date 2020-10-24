@@ -98,7 +98,7 @@ class BattleRecordCategory():
 		'top_tier'			: [ 'Tier', ['Bottom tier', 'Top tier']],
 		'room_type'			: [ 'Battle Mode', ['Any', 'Random', 'Training Room', '-', 'Tournament', '-', '-', 'Rating', 'Mad Games', '-', \
 												 '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', \
-												 '-', '-','Realistic', '-', 'Burning Games'] ],
+												 '-', '-','Realistic Battles', '-', 'Gravity Mode', '-', 'Burning Games', '-', '-', '-'] ],
 		'mastery_badge'		: [ 'Battle Medal', ['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
 		'team_result'		: [ 'Team Result', 'string' ],
 		'tank_name'			: [ 'Tank', 'string' ],
@@ -110,6 +110,7 @@ class BattleRecordCategory():
 		'total',
 		'battle_result',
 		'battle_type',
+		'room_type',
 		'tank_tier', 
 		'top_tier',
 		'mastery_badge'		
