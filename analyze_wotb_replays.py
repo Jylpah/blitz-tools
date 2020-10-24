@@ -112,11 +112,12 @@ class BattleRecordCategory():
 		'battle_type',
 		'room_type',
 		'tank_tier', 
-		'top_tier',
-		'mastery_badge'		
+		'top_tier'
+	
 		]
 
-	_result_categories_extended = [
+	_result_categories_extra = [
+		'mastery_badge',	
 		'tank_name',
 		'map_name', 
 		'team_result',
@@ -128,15 +129,15 @@ class BattleRecordCategory():
 	RESULT_CAT_FRMT = '{:>20s}'
 	
 	@classmethod
-	def get_result_categories(cls, extended_cats: list = None):
-		if extended_cats != None:
-			return cls._result_categories_default + extended_cats
+	def get_result_categories(cls, extra_cats: list = None):
+		if extra_cats != None:
+			return cls._result_categories_default + extra_cats
 		else:
 			return cls._result_categories_default
 
 	@classmethod
 	def get_extra_categories(cls) -> list:
-		return cls._result_categories_extended
+		return cls._result_categories_extra
 
 	def __init__(self, cat_name : str):
 		self.category_name = cat_name
@@ -279,8 +280,6 @@ class BattleRecord():
 		'battles%',
 		'win',
 		'damage_made',
-		'enemies_spotted',
-		'top_tier',
 		'player_wins',
 		'allies_wins',
 		'enemies_wins',
@@ -288,7 +287,22 @@ class BattleRecord():
 		'enemies_battles'
 	]
 
+
+	_result_fields_team = [
+		'battles',
+		'player_wins',
+		'allies_wins',
+		'enemies_wins',
+		'allies_damage_dealt',
+		'enemies_damage_dealt',
+		'allies_battles',
+		'enemies_battles'
+	]
+
+
 	_result_fields_extended = [
+		'enemies_spotted',
+		'top_tier',
 		'DR',
 		'KDR',
 		'hit_rate',
@@ -314,7 +328,7 @@ class BattleRecord():
 		'dmg_block_rate' 	: [ 'damage_blocked', 'damage_received' ]
 	}
 
-	_extended_stats = False
+	# _extended_stats = False
 
 	result_fields 	= list()
 	avg_fields 		= set()
@@ -324,11 +338,14 @@ class BattleRecord():
 
 
 	@classmethod
-	def set_fields(cls, extended_stats: bool = False):
+	def set_fields(cls, mode: str = None):
 		try:
-			cls._extended_stats = extended_stats
-			if cls._extended_stats:
+			cls._mode = mode
+			
+			if cls._mode == OPT_MODE_EXTENDED:
 				cls.result_fields  = cls._result_fields_default + cls._result_fields_extended
+			elif cls._mode == OPT_MODE_TEAM:
+				cls.result_fields = cls._result_fields_team
 			else:
 				cls.result_fields  = cls._result_fields_default
 			cls.result_fields_ratio = set(cls._result_ratios.keys()) & set(cls.result_fields)
@@ -575,6 +592,10 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
 
 ## main() -------------------------------------------------------------
 
+OPT_MODE_TEAM 		= 'team'
+OPT_MODE_EXTENDED 	= 'extended'
+OPT_MODE = [ None, OPT_MODE_TEAM, OPT_MODE_EXTENDED ]
+
 async def main(argv):
 	global wg, wi, WG_APP_ID
 	# set the directory for the script
@@ -668,9 +689,9 @@ async def main(argv):
 		parser.add_argument('--output', default='plain', choices=['plain', 'db'], help='Select output mode: plain text or database')
 		parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
 		parser.add_argument('-a', '--account', type=str, default=WG_ACCOUNT, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
-		parser.add_argument('-x', '--extended', action='store_true', default=OPT_EXTENDED, help='Print Extended stats')
-		parser.add_argument('-X', '--extra_categories', choices=BattleRecordCategory.get_extra_categories(), default=None, nargs='*', help='Print Extended categories')
-		parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms (WR/battles)')
+		parser.add_argument('--mode', default=None, choices=OPT_MODE, help='Select stats mode. Options: ' + ', '.join(OPT_MODE[1:]))
+		parser.add_argument('--extra', choices=BattleRecordCategory.get_extra_categories(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleRecordCategory._result_categories[cat][0]  for cat in BattleRecordCategory._result_categories_extra))
+		parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms: ' + ', '.join( histogram_fields[k][0] for k in histogram_fields))
 		parser.add_argument('--stat_func', default=OPT_STAT_FUNC, choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
 		parser.add_argument('-u', '--url', action='store_true', default=False, help='Print replay URLs')
 		parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
@@ -700,7 +721,7 @@ async def main(argv):
 			args.account_id = await wg.get_account_id(args.account)
 			bu.debug('WG  account_id: ' + str(args.account_id))
 
-		BattleRecord.set_fields(args.extended)
+		BattleRecord.set_fields(args.mode)
 
 		#### Connect to MongoDB (TBD)
 		bu.debug('DB_SERVER: ' + DB_SERVER)
@@ -808,6 +829,7 @@ async def help_filters(db : motor.motor_asyncio.AsyncIOMotorDatabase = None):
 		except:
 			pass
 
+
 def set_histogram_buckets(json: dict):
 	global histogram_fields
 	try:
@@ -858,7 +880,7 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 		categories = {}
 
 		
-		cats = BattleRecordCategory.get_result_categories(args.extra_categories)
+		cats = BattleRecordCategory.get_result_categories(args.extra)
 		
 		for cat in cats:
 			categories[cat] = BattleRecordCategory(cat)
