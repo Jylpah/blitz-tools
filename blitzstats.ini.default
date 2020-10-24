@@ -3,13 +3,27 @@
 
 [OPTIONS]
 ## You may set your preferred commandline param defaults here
-#opt_analyzer_extended    = False
+#opt_analyzer_mode        = extended
 #opt_analyzer_hist        = False
 #opt_analyzer_stat_func   = player
+#opt_analyzer_categories  = total,battle_type,battle_type,top_tier,room_type,tank_name
+
+[ANALYZER]
+#opt_mode       = extended
+#opt_hist       = True
+#opt_stat_func  = player
+#opt_workers    = 10
+#opt_categories  = total,battle_type,battle_type,top_tier,room_type,tank_name
+
+## Define histogram buckets. Valid JSON required. The last field is the maximum, therefore very large. 
+# histogram_buckets = {	"wins"		    : [ 0, 0.40, 0.5, 0.60, 0.70, 1],
+#			            "damage_dealt"	: [ 0, 500, 1000, 1500, 2000, 1000000], 
+#			            "battles"	    : [ 0, 1000, 5000, 10000, 15e3, 1e6 ] }
+
 
 [WG]
-## wg_account format: nick@server, where server is either 'eu', 'ru', 'na', 'asia' or 'china'. 
-## China is not supported since WG API stats are not available there
+## wg_account format: nick@server, where server is either 'eu', 'ru', 'na' or 'asia'. 
+## China is not supported since WG API server address is unkown
 # wg_account    = your_nick@eu
 
 ## Find your WG account_id :  https://developers.wargaming.net/reference/all/wotb/account/list/
@@ -22,8 +36,3 @@
 ## Check https://developers.wargaming.net/documentation/guide/getting-started/
 # wg_app_id       = XXXXXXXXXXX
 
-[ANALYZER]
-## Define histogram buckets. Valid JSON required. The last field is the maximum, therefore very large. 
-# histogram_buckets = {	"wins"		    : [ 0, 0.40, 0.5, 0.60, 0.70, 1],
-#			            "damage_dealt"	: [ 0, 500, 1000, 1500, 2000, 1000000], 
-#			            "battles"	    : [ 0, 1000, 5000, 10000, 15e3, 1e6 ] }
