@@ -43,6 +43,7 @@ replay_summary_flds = [
 	'battle_duration',
 	'room_type',
 	'protagonist',
+	'player_name',
 	'title', 
 	'mastery_badge'
 ]
@@ -101,8 +102,10 @@ class BattleRecordCategory():
 												 '-', '-','Realistic Battles', '-', 'Gravity Mode', '-', 'Burning Games', '-', '-', '-'] ],
 		'mastery_badge'		: [ 'Battle Medal', ['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
 		'team_result'		: [ 'Team Result', 'string' ],
-		'tank_name'			: [ 'Tank', 'string' ],
 		'map_name'			: [ 'Map', 'string' ],
+		'tank_name'			: [ 'Tank', 'string' ],
+		'player_name'		: [ 'Player', 'string'],
+		'protagonist'		: [ 'account_id', 'number'],
 		'battle_i'			: [ 'Battle #', 'number']
 		}
 
@@ -120,7 +123,9 @@ class BattleRecordCategory():
 		'tank_name',
 		'map_name', 
 		'team_result',
-		'battle_i'		
+		'battle_i',
+		'player_name',
+		'protagonist'		
 		]
 
 	total_battles = 0
@@ -133,11 +138,17 @@ class BattleRecordCategory():
 
 
 	@classmethod
-	def get_result_categories(cls, extra_cats: list = None):
-		if extra_cats != None:
-			return cls._result_categories_default + extra_cats
+	def get_result_categories(cls, default_cats: list, extra_cats: list = None):
+		if default_cats == None:
+			res_categories = cls.get_default_categories()
 		else:
-			return cls._result_categories_default
+			res_categories = default_cats
+		if extra_cats != None: 
+			res_categories = res_categories + extra_cats
+		res_categories = list(set(res_categories))  	# remove duplicates
+				
+		return [ cat for cat in cls._result_categories if cat in res_categories ]
+
 
 
 	@classmethod
@@ -725,13 +736,7 @@ async def main(argv):
 		except Exception as err:
 			raise
 
-		if OPT_CATEGORIES == None:
-			res_categories = BattleRecordCategory.get_default_categories()
-		else:
-			res_categories = OPT_CATEGORIES
-		if args.extra != None: 
-			res_categories = res_categories + args.extra
-		res_categories = list(set(res_categories))  	# remove duplicates
+		res_categories = BattleRecordCategory.get_result_categories(OPT_CATEGORIES, args.extra)
 
 		bu.set_log_level(args.silent, args.verbose, args.debug)
 		bu.set_progress_step(250)  						# Set the frequency of the progress dots. 
@@ -1456,8 +1461,8 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		protagonist = int(replay_json['data']['summary']['protagonist'])
 		
 		if account_id == None:
-			account_id = replay_json['data']['summary']['protagonist'] 
-		elif replay_json['data']['summary']['protagonist'] != account_id:
+			account_id = protagonist
+		elif protagonist != account_id:
 			if account_id in replay_json['data']['summary']['enemies']:
 				# switch the teams...
 				if replay_json['data']['summary']['battle_result'] != 2:
@@ -1471,7 +1476,8 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 			elif account_id not in replay_json['data']['summary']['allies']:
 				# account_id looked for but not found in teams
 				bu.debug('Replay ' + replay_json['data']['summary']['title'] + ' does not have account_id ' + str(account_id) + '. Skipping.')
-				return None
+				account_id = protagonist
+				# return None
 		if url: 
 			result['url'] = replay_json['data']['view_url']
 				
