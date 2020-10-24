@@ -43,9 +43,9 @@ async def main(argv):
 			config = configparser.ConfigParser()
 			config.read(FILE_CONFIG)
 			try:
-				if 'OPTIONS' in config.sections():
-					configOptions 	= config['OPTIONS']
-					OPT_WORKERS_N = configOptions.getint('opt_uploader_workers', OPT_WORKERS_N)
+				if 'UPLOADER' in config.sections():
+					configUploader 	= config['UPLOADER']
+					OPT_WORKERS_N = configUploader.getint('opt_workers', OPT_WORKERS_N)
 			except (KeyError, configparser.NoSectionError) as err:
 				bu.error(exception=err)
 				

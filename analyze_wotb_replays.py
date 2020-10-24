@@ -110,14 +110,13 @@ class BattleRecordCategory():
 		'total',
 		'battle_result',
 		'battle_type',
-		'room_type',
 		'tank_tier', 
 		'top_tier'
-	
 		]
 
 	_result_categories_extra = [
 		'mastery_badge',	
+		'room_type',
 		'tank_name',
 		'map_name', 
 		'team_result',
@@ -129,19 +128,26 @@ class BattleRecordCategory():
 	RESULT_CAT_FRMT = '{:>20s}'
 	
 	@classmethod
+	def get_default_categories(cls):
+		return cls._result_categories_default
+
+
+	@classmethod
 	def get_result_categories(cls, extra_cats: list = None):
 		if extra_cats != None:
 			return cls._result_categories_default + extra_cats
 		else:
 			return cls._result_categories_default
 
+
 	@classmethod
 	def get_extra_categories(cls) -> list:
 		return cls._result_categories_extra
 
+
 	def __init__(self, cat_name : str):
 		self.category_name = cat_name
-		self.category = collections.defaultdict(def_value_BattleRecord)
+		self.categories = collections.defaultdict(def_value_BattleRecord)
 		if self._result_categories[self.category_name][1] == 'string':
 			self.type = 'string'
 		elif self._result_categories[self.category_name][1] == 'number':
@@ -153,7 +159,17 @@ class BattleRecordCategory():
 	
 
 	def get_sub_categories(self):
-		return self.category
+		return self.categories
+
+
+	def get_fields(self):
+		"""Return fields as dict"""
+		key = next(iter(self.get_sub_categories()))
+		sub_category = self.categories[key]
+		fields = dict()
+		for col in sub_category.get_result_fields():
+			fields[col] = sub_category.get_field_name(col)
+		return fields
 
 	
 	def get_category_name(self) -> str:
@@ -171,7 +187,7 @@ class BattleRecordCategory():
 				cat = result[self.category_name]
 			else:
 				cat = self._result_categories[self.category_name][1][result[self.category_name]]
-			self.category[cat].record_result(result)
+			self.categories[cat].record_result(result)
 			self.total_battles += 1
 			return True
 		except KeyError as err:
@@ -187,14 +203,14 @@ class BattleRecordCategory():
 	def calc_results(self):
 		try:
 			for sub_cat in self.get_sub_categories().keys():
-				self.category[sub_cat].calc_results(self.total_battles)
+				self.categories[sub_cat].calc_results(self.total_battles)
 		except Exception as err:
 			bu.error(exception = err)
 
 
 	def print_results(self):
 		try:
-			first_btl_record = list(self.category.values())[0]
+			first_btl_record = list(self.categories.values())[0]
 			print('   '.join(first_btl_record.get_headers(self.get_category_name())))
 			for row in self.get_results():
 				print(' : '.join(row))
@@ -210,15 +226,15 @@ class BattleRecordCategory():
 			results = []
 			# results.append(self.get_headers())			
 			if self.type == 'number':
-				for cat in sorted( [ int(s) for s in self.category.keys() ] ):
+				for cat in sorted( [ int(s) for s in self.categories.keys() ] ):
 					cat = str(cat) 
 					row = [ self.RESULT_CAT_FRMT.format(cat) ]
-					row.extend(self.category[cat].get_results())
+					row.extend(self.categories[cat].get_results())
 					results.append(row)
 			else:
-				for cat in sorted(self.category.keys() , key=str.casefold):
+				for cat in sorted(self.categories.keys() , key=str.casefold):
 					row = [ self.RESULT_CAT_FRMT.format(cat) ]
-					row.extend(self.category[cat].get_results())
+					row.extend(self.categories[cat].get_results())
 					results.append(row)
 			return results
 		except KeyError as err:
@@ -233,13 +249,13 @@ class BattleRecordCategory():
 			results['name' ] = self.get_category_name()
 			# results.append(self.get_headers())			
 			if self.type == 'number':
-				for cat in sorted( [ int(s) for s in self.category.keys() ] ):
+				for cat in sorted( [ int(s) for s in self.categories.keys() ] ):
 					cat = str(cat) 
-					results[cat] = self.category[cat].get_results_json()					
+					results[cat] = self.categories[cat].get_results_json()					
 			else:
-				for cat in sorted(self.category.keys() , key=str.casefold):
+				for cat in sorted(self.categories.keys() , key=str.casefold):
 					cat = str(cat) 
-					results[cat] = self.category[cat].get_results_json()					
+					results[cat] = self.categories[cat].get_results_json()					
 			return results
 		except KeyError as err:
 			bu.error('Key not found', err)  
@@ -594,7 +610,8 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
 
 OPT_MODE_TEAM 		= 'team'
 OPT_MODE_EXTENDED 	= 'extended'
-OPT_MODE = [ None, OPT_MODE_TEAM, OPT_MODE_EXTENDED ]
+OPT_MODE_DEFAULT 	= None
+OPT_MODES = [ None, OPT_MODE_TEAM, OPT_MODE_EXTENDED ]
 
 async def main(argv):
 	global wg, wi, WG_APP_ID
@@ -604,11 +621,11 @@ async def main(argv):
 
 	## Default options:
 	OPT_DB			= False
-	OPT_EXTENDED 	= False
 	OPT_HIST		= False
 	OPT_STAT_FUNC	= 'player'
 	OPT_WORKERS_N 	= 10
-	
+	OPT_CATEGORIES  = None
+
 	WG_ACCOUNT 		= None 	# format: nick@server, where server is either 'eu', 'ru', 'na', 'asia' or 'china'. 
 	  					 	# China is not supported since WG API stats are not available there
 	WG_ID			= None  # WG account_id in integer format. 
@@ -636,21 +653,15 @@ async def main(argv):
 			config.read(FILE_CONFIG)
 
 			try:
-				if 'OPTIONS' in config.sections():
-					configOptions 	= config['OPTIONS']
-					# WG account id of the uploader: 
-					# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
-					OPT_DB			= configOptions.getboolean('opt_DB', OPT_DB)
-					OPT_EXTENDED 	= configOptions.getboolean('opt_analyzer_extended', OPT_EXTENDED)
-					OPT_HIST		= configOptions.getboolean('opt_analyzer_hist', OPT_HIST)
-					OPT_STAT_FUNC	= configOptions.get('opt_analyzer_stat_func', fallback=OPT_STAT_FUNC)
-					OPT_WORKERS_N 	= configOptions.getint('opt_analyzer_workers', OPT_WORKERS_N)
-			except (KeyError, configparser.NoSectionError) as err:
-				bu.error(exception=err)
-
-			try:
 				if 'ANALYZER' in config.sections():
 					configAnalyzer	= config['ANALYZER']
+					OPT_MODE 		= configAnalyzer.getboolean('opt_mode', OPT_MODE_DEFAULT)
+					OPT_HIST		= configAnalyzer.getboolean('opt_hist', OPT_HIST)
+					OPT_STAT_FUNC	= configAnalyzer.get('opt_stat_func', fallback=OPT_STAT_FUNC)
+					OPT_WORKERS_N 	= configAnalyzer.getint('opt_workers', OPT_WORKERS_N)
+					res_categories  = configAnalyzer.get('opt_categories', None)
+					if res_categories != None:
+						OPT_CATEGORIES = res_categories.split(',')
 					histogram_fields_str = configAnalyzer.get('histogram_buckets', None)
 					if histogram_fields_str != None:
 						set_histogram_buckets(json.loads(histogram_fields_str))
@@ -661,6 +672,8 @@ async def main(argv):
 			try:
 				if 'WG' in config.sections():
 					configWG 		= config['WG']
+					# WG account id of the uploader: 
+					# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
 					WG_ID			= configWG.getint('wg_id', WG_ID)
 					WG_ACCOUNT		= configWG.get('wg_account', WG_ACCOUNT)
 					WG_APP_ID		= configWG.get('wg_app_id', WG_APP_ID)
@@ -671,6 +684,7 @@ async def main(argv):
 			try:
 				if 'DATABASE' in config.sections():
 					configDB 	= config['DATABASE']
+					OPT_DB		= configDB.getboolean('opt_DB', OPT_DB)
 					DB_SERVER 	= configDB.get('db_server', DB_SERVER)
 					DB_PORT 	= configDB.getint('db_port', DB_PORT)
 					DB_SSL		= configDB.getboolean('db_ssl', DB_SSL)
@@ -689,7 +703,7 @@ async def main(argv):
 		parser.add_argument('--output', default='plain', choices=['plain', 'db'], help='Select output mode: plain text or database')
 		parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
 		parser.add_argument('-a', '--account', type=str, default=WG_ACCOUNT, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
-		parser.add_argument('--mode', default=None, choices=OPT_MODE, help='Select stats mode. Options: ' + ', '.join(OPT_MODE[1:]))
+		parser.add_argument('--mode', default=OPT_MODE, choices=OPT_MODES, help='Select stats mode. Options: ' + ', '.join(OPT_MODES[1:]))
 		parser.add_argument('--extra', choices=BattleRecordCategory.get_extra_categories(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleRecordCategory._result_categories[cat][0]  for cat in BattleRecordCategory._result_categories_extra))
 		parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms: ' + ', '.join( histogram_fields[k][0] for k in histogram_fields))
 		parser.add_argument('--stat_func', default=OPT_STAT_FUNC, choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
@@ -710,9 +724,17 @@ async def main(argv):
 			args = parser.parse_args()
 		except Exception as err:
 			raise
-		
+
+		if OPT_CATEGORIES == None:
+			res_categories = BattleRecordCategory.get_default_categories()
+		else:
+			res_categories = OPT_CATEGORIES
+		if args.extra != None: 
+			res_categories = res_categories + args.extra
+		res_categories = list(set(res_categories))  	# remove duplicates
+
 		bu.set_log_level(args.silent, args.verbose, args.debug)
-		bu.set_progress_step(250)  # Set the frequency of the progress dots. 
+		bu.set_progress_step(250)  						# Set the frequency of the progress dots. 
 		
 		wg = WG(WG_APP_ID, args.tankfile, args.mapfile, stats_cache=True, rate_limit=WG_RATE_LIMIT)
 		wi = WoTinspector(rate_limit=10)
@@ -787,14 +809,14 @@ async def main(argv):
 			bu.verbose('')
 			bu.debug('Number of player stats: ' + str(len(player_stats)))
 			teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
-			res = process_battle_results(teamresults, args)	
+			res = process_battle_results(teamresults, args, res_categories)	
 			if args.hist: 				
 				res['histograms'] = process_player_dist(results, player_stats, stat_id_map, args.json)
 			if args.json:
 				if args.outfile == '-':
 					args.outfile = 'export.json'
 					bu.verbose_std('Data exported to ' + args.outfile)
-				await bu.save_JSON(args.outfile,res) 
+				await bu.save_JSON(args.outfile, res, pretty=False) 
 			bu.debug('Finished. Cleaning up..................')
 		except Exception as err:
 			bu.error(exception=err)
@@ -871,17 +893,14 @@ def process_player_dist(results: list, player_stats: dict, stat_id_map: dict, re
 	return None
 
 
-def process_battle_results(results: dict, args : argparse.Namespace):
+def process_battle_results(results: dict, args : argparse.Namespace, cats: list):
 	"""Process replay battle results""" 
 	try:
-		url 	= args.url
-		ret_json = args.json
-		urls 	= collections.OrderedDict()
-		categories = {}
+		url 		= args.url
+		ret_json 	= args.json
+		urls 		= collections.OrderedDict()
+		categories 	= {}
 
-		
-		cats = BattleRecordCategory.get_result_categories(args.extra)
-		
 		for cat in cats:
 			categories[cat] = BattleRecordCategory(cat)
 
@@ -895,14 +914,9 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 		
 		res = dict()
 		if ret_json:
-			cat = next(iter(categories))
-			sub_cat = next(iter(categories[cat].get_sub_categories()))
-			sub_category = categories[cat].category[sub_cat]
-			fields = dict()
-			for col in sub_category.get_result_fields():
-				fields[col] = sub_category.get_field_name(col)
-			res['fields'] = fields
-		for cat in cats:
+			cat = next(iter(categories))			
+			res['fields'] = categories[cat].get_fields()			
+		for cat in categories:
 			categories[cat].calc_results()
 			print('')
 			categories[cat].print_results()
