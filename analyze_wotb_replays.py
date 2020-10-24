@@ -152,7 +152,7 @@ class BattleRecordCategory():
 	
 
 	def get_sub_categories(self):
-		return self.category.keys()
+		return self.category
 
 	
 	def get_category_name(self) -> str:
@@ -185,7 +185,7 @@ class BattleRecordCategory():
 
 	def calc_results(self):
 		try:
-			for sub_cat in self.get_sub_categories():
+			for sub_cat in self.get_sub_categories().keys():
 				self.category[sub_cat].calc_results(self.total_battles)
 		except Exception as err:
 			bu.error(exception = err)
@@ -266,10 +266,12 @@ class BattleRecord():
 		'enemies_wins'		: [ 'Enemies WR', 'Average WR of enemies at the tier of their tank', 10, '{:10.2%}' ],
 		'allies_battles'	: [ 'Allies Btls', 'Average number battles of the allies', 			11, '{:11.0f}' ],
 		'enemies_battles'	: [ 'Enemies Btls', 'Average number battles of the enemies', 		12, '{:12.0f}' ],
+		'allies_damage_dealt'	: [ 'Allies Avg Dmg', 'Average damage of the allies', 			11, '{:11.0f}' ],
+		'enemies_damage_dealt'	: [ 'Enemies Avg Dmg', 'Average damage of the enemies', 		12, '{:12.0f}' ],
 		MISSING_STATS		: [ 'No stats', 'Players without stats avail', 						8, '{:8.1%}']		
 	}
 
-	_team_fields = [ 'wins', 'battles' ]
+	_team_fields = [ 'wins', 'battles', 'damage_dealt' ]
 
 	# fields to display in results
 	_result_fields_default = [
@@ -294,6 +296,8 @@ class BattleRecord():
 		'survived',
 		'time_alive%',
 		'player_battles',
+		'allies_damage_dealt',
+		'enemies_damage_dealt',
 		MISSING_STATS
 	]
 
@@ -347,13 +351,31 @@ class BattleRecord():
 	def get_result_fields(cls) -> set:
 		return cls.result_fields
 
+
+	@classmethod
+	def get_field_name(cls, field: str):
+		try:
+			return cls._result_fields[field][0]
+		except Exception as err:
+			bu.error(exception=err)
+
+	@classmethod
+	def get_field_width(cls, field: str):
+		try:
+			return cls._result_fields[field][2]
+		except Exception as err:
+			bu.error(exception=err)
+
+
 	@classmethod
 	def get_fields_avg(cls) -> set:
 		return cls.avg_fields
 
+
 	@classmethod
 	def get_fields_ratio(cls) -> set:
 		return cls.ratio_fields
+
 
 	@classmethod
 	def get_team_fields(cls) -> list:
@@ -431,8 +453,8 @@ class BattleRecord():
 		try:
 			headers = [ self.RESULT_CAT_HEADER_FRMT.format(cat_name) ]
 			for field in self.result_fields:
-				print_format = '{:^' + str(self._result_fields[field][2]) + 's}'
-				headers.append(print_format.format(self._result_fields[field][0]))
+				print_format = '{:^' + str(self.get_field_width(field)) + 's}'
+				headers.append(print_format.format(self.get_field_name(field)))
 			return headers
 		except KeyError as err:
 			bu.error('Key not found', err)  
@@ -829,42 +851,53 @@ def process_player_dist(results: list, player_stats: dict, stat_id_map: dict, re
 
 def process_battle_results(results: dict, args : argparse.Namespace):
 	"""Process replay battle results""" 
-	url 	= args.url
-	ret_json = args.json
-	urls 	= collections.OrderedDict()
-	categories = {}
+	try:
+		url 	= args.url
+		ret_json = args.json
+		urls 	= collections.OrderedDict()
+		categories = {}
 
-	
-	cats = BattleRecordCategory.get_result_categories(args.extra_categories)
-	
-	for cat in cats:
-		categories[cat] = BattleRecordCategory(cat)
-
-	max_title_len = 0
-	for result in results:
+		
+		cats = BattleRecordCategory.get_result_categories(args.extra_categories)
+		
 		for cat in cats:
-			categories[cat].record_result(result)
-		if url:
-			max_title_len = max(max_title_len, len(result['title']))
-			urls[result['title']] = result['url']
-	
-	res = dict()
-	for cat in cats:
-		categories[cat].calc_results()
-		print('')
-		categories[cat].print_results()
-		if ret_json:
-			res[cat] = categories[cat].get_results_json()
-	if url:
-		print('\nURLs to Battle replays:\n')
-		json_urls = dict()
-		for title in urls.keys():
-			print(('{:' + str(3 + max_title_len) + '}').format(title) + ' : ' + urls[title])
-			if ret_json:
-				json_urls[title] = urls[title]
-		if ret_json:
-			res['replay_urls'] = json_urls
+			categories[cat] = BattleRecordCategory(cat)
 
+		max_title_len = 0
+		for result in results:
+			for cat in cats:
+				categories[cat].record_result(result)
+			if url:
+				max_title_len = max(max_title_len, len(result['title']))
+				urls[result['title']] = result['url']
+		
+		res = dict()
+		if ret_json:
+			cat = next(iter(categories))
+			sub_cat = next(iter(categories[cat].get_sub_categories()))
+			sub_category = categories[cat].category[sub_cat]
+			fields = dict()
+			for col in sub_category.get_result_fields():
+				fields[col] = sub_category.get_field_name(col)
+			res['fields'] = fields
+		for cat in cats:
+			categories[cat].calc_results()
+			print('')
+			categories[cat].print_results()
+			if ret_json:
+				res[cat] = categories[cat].get_results_json()
+		if url:
+			print('\nURLs to Battle replays:\n')
+			json_urls = dict()
+			for title in urls.keys():
+				print(('{:' + str(3 + max_title_len) + '}').format(title) + ' : ' + urls[title])
+				if ret_json:
+					json_urls[title] = urls[title]
+			
+			if ret_json:
+				res['replay_urls'] = json_urls
+	except Exception as err:
+		bu.error(exception=err)
 	return res
 
 
