@@ -78,8 +78,8 @@ replay_details_flds = [
 ## Syntax: key == stat field in https://api.wotblitz.eu/wotb/tanks/stats/  (all.KEY)
 ## Value array [ 'Stat Title', [ 0, data buckets ....], scaling_factor_for_bucket_values, 'print_format' ]
 histogram_fields = {
-	'wins'				: [ 'Win rate', 	[0, .35, .40, .45, .48, .5, .52, .55, .60, .65, .70, 1], 100, '{:.0f}%' ],
-	'damage_dealt'		: [ 'Avg. Dmg.', 	[0, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 100e3], 1, '{:.0f}' ],
+	'wins'				: [ 'Win rate', 	[0, .35, .40, .45, .48, .5, .52, .55, .60, .65, .70, 1], 100, '{:2.0f}%' ],
+	'damage_dealt'		: [ 'Avg. Dmg.', 	[0, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 100e3], 1, '{:3.0f}' ],
 	'battles'			: [ 'Battles', 		[0, 1000, 2500, 5000, 7000, 10e3, 15e3, 25e3, 50e3, 5e7], .001, '{:.0f}k']	# battles is a mandatory stat to include
 	}
 
@@ -120,19 +120,22 @@ class BattleRecordCategory():
 	_BATTLE_MODES = mk_battle_modes.__func__(_battle_modes)
 
 	_result_categories = {
-		'total'				: [ 'TOTAL', 'total' ],
-		'battle_result'		: [ 'Result', [ 'Loss', 'Win', 'Draw']],
-		'battle_type'		: [ 'Battle Type', ['Encounter', 'Supremacy']],
-		'tank_tier'			: [ 'Tank Tier', 'number' ],
-		'top_tier'			: [ 'Tier', ['Bottom tier', 'Top tier']],
-		'room_type'			: [ 'Battle Mode', _BATTLE_MODES ],
-		'mastery_badge'		: [ 'Battle Medal', ['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
-		'team_result'		: [ 'Team Result', 'string' ],
-		'map_name'			: [ 'Map', 'string' ],
-		'tank_name'			: [ 'Tank', 'string' ],
-		'player_name'		: [ 'Player', 'string'],
-		'protagonist'		: [ 'account_id', 'number'],
-		'battle_i'			: [ 'Battle #', 'number']
+		'total'				: [ 'TOTAL', 		'total' ],
+		'battle_result'		: [ 'Result', 		'category', 	[ 'Loss', 'Win', 'Draw']],
+		'battle_type'		: [ 'Battle Type', 	'category', 	['Encounter', 'Supremacy']],
+		'tank_tier'			: [ 'Tank Tier', 	'number' ],
+		'top_tier'			: [ 'Tier', 		'category', 	['Bottom tier', 'Top tier']],
+		'room_type'			: [ 'Battle Mode', 	'category', 	_BATTLE_MODES ],
+		'mastery_badge'		: [ 'Battle Medal', 'category', 	['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
+		'team_result'		: [ 'Team Result', 	'string' ],
+		'map_name'			: [ 'Map', 			'string' ],
+		'tank_name'			: [ 'Tank', 		'string' ],
+		'player_name'		: [ 'Player', 		'string' ],
+		'protagonist'		: [ 'account_id', 	'number' ],
+		'battle_i'			: [ 'Battle #', 	'number' ], 
+		'player_wins'		: [ 'Player WR', 	'bucket', [ 0, .35, .45, .50, .55, .65], '%'],
+		'player_battles'	: [ 'Player Battles', 	'bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3]],
+		'player_damage_dealt'	: [ 'Player Avg Dmg', 	'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500]]
 		}
 
 	_result_categories_default = [
@@ -143,16 +146,17 @@ class BattleRecordCategory():
 		'top_tier'
 		]
 
-	_result_categories_extra = [
-		'mastery_badge',	
-		'room_type',
-		'tank_name',
-		'map_name', 
-		'team_result',
-		'battle_i',
-		'player_name',
-		'protagonist'		
-		]
+	# _result_categories_extra = [
+	# 	'mastery_badge',	
+	# 	'room_type',
+	# 	'tank_name',
+	# 	'map_name', 
+	# 	'team_result',
+	# 	'battle_i',
+	# 	'player_wins',
+	# 	'player_name',
+	# 	'protagonist'		
+	# 	]
 
 	total_battles = 0
 
@@ -186,11 +190,13 @@ class BattleRecordCategory():
 
 	@classmethod
 	def get_extra_categories(cls) -> list:
-		return cls._result_categories_extra
+		#return cls._result_categories_extra
+		return list( set(cls._result_categories.keys() ) - set(cls.get_default_categories() ) )
 
 
 	def __init__(self, cat_name : str):
 		self.category_name = cat_name
+		self.bucket_labels = list()
 		self.categories = collections.defaultdict(def_value_BattleRecord)
 		if self._result_categories[self.category_name][1] == 'string':
 			self.type = 'string'
@@ -198,6 +204,13 @@ class BattleRecordCategory():
 			self.type = 'number'
 		elif self._result_categories[self.category_name][1] == 'total':
 			self.type = 'total'
+		elif self._result_categories[self.category_name][1] == 'bucket':
+			self.type = 'bucket'
+			self.bucket_format = self.get_bucket_label_format()
+			self.buckets = self.get_bucket_breaks()
+			for start in range(len(self.buckets)):
+				self.bucket_labels.append(self.mk_bucket_label(start, self.buckets))
+
 		else:
 			self.type = 'category'
 	
@@ -220,7 +233,96 @@ class BattleRecordCategory():
 		return self._result_categories[self.category_name][0]
 
 
-	def record_result(self, result: dict):
+	def get_category(self, id):
+		"""Get category of 'category' type of BattleRecordCategory"""
+		try:
+			return self._result_categories[self.category_name][2][id]
+		except Exception as err:
+			bu.error(exception=err)	
+		return None
+
+
+	def get_bucket_breaks(self) -> list:
+		"""Return bucket breaks"""
+		try:
+			return sorted(self._result_categories[self.category_name][2])
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
+	
+	def get_bucket_label_format(self) -> str:
+		"""Return bucket label type, if any"""
+		try:
+			if len(self._result_categories[self.category_name]) > 3:
+				return self._result_categories[self.category_name][3]
+			return ''			
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
+
+	def get_bucket(self, result: dict) -> str:
+		try:
+			ndx = self.find_bucket(result[self.category_name], self.buckets)
+			return self.bucket_labels[ndx]			
+		except Exception as err:
+			bu.error('Category: ' + self.category_name)
+			bu.error('Unknown error', exception=err) 
+		return None
+
+
+	def find_bucket(self, value, buckets):
+		"""Find bucket for value"""
+		max = len(buckets)
+		if max <= 1:
+			return 0
+		ndx = int(max//2)
+		if value > buckets[ndx]:
+			return ndx + self.find_bucket(value, buckets[ndx:])
+		elif value < buckets[ndx]:
+			return self.find_bucket(value, buckets[:ndx])
+		else:
+			return ndx
+
+
+	def mk_bucket_label(self, ndx: int, buckets: list) -> str:
+		try:
+			low = buckets[ndx]
+			if ndx >= len(buckets)-1:
+				high = None
+			else:
+				high = buckets[min(ndx+1, len(buckets)-1)]
+			
+			prefix = ''
+			if self.bucket_format == '%':
+				frmt = '{:2.0f}'
+				if low != None:
+					low *= 100
+				if high != None:
+					high *= 100
+				prefix = '%'
+			elif self.bucket_format == 'ratio':
+				frmt = '{:.2f}'
+			else:
+				frmt = '{:.0f}'
+
+			label = frmt.format(low) + ' - '
+			if high != None:
+				label = label + frmt.format(high)
+			else:
+				label = label + '  '
+			label = label + prefix
+			return label
+		except KeyError as err:
+			bu.error('KeyError: ndx=' + str(ndx) + ' buckets=' + str(buckets), exception=err)
+		except Exception as err:			
+			bu.error('Unknown error', exception=err) 
+		return None
+
+
+	def get_sub_category(self, result: dict) -> str: 
+		"""Get category"""
 		try:
 			cat = None
 			if self.type == 'total':
@@ -229,8 +331,24 @@ class BattleRecordCategory():
 				cat = str(result[self.category_name])
 			elif self.type == 'string':
 				cat = result[self.category_name]
-			else:
-				cat = self._result_categories[self.category_name][1][result[self.category_name]]
+			elif self.type == 'category':
+				cat = self.get_category(result[self.category_name])
+				#cat = self._result_categories[self.category_name][2][result[self.category_name]]
+			elif self.type == 'bucket':
+				cat = self.get_bucket(result)				
+			return cat
+		except KeyError as err:
+			bu.error('Category: ', str(cat))
+			bu.error('Key not found', exception=err)			
+		except Exception as err:
+			bu.error('Category: ', str(cat))
+			bu.error('Unknown error', exception=err) 
+		return None
+		
+
+	def record_result(self, result: dict):
+		try:
+			cat = self.get_sub_category(result)
 			self.categories[cat].record_result(result)
 			self.total_battles += 1
 			return True
@@ -272,6 +390,11 @@ class BattleRecordCategory():
 			if self.type == 'number':
 				for cat in sorted( [ int(s) for s in self.categories.keys() ] ):
 					cat = str(cat) 
+					row = [ self.RESULT_CAT_FRMT.format(cat) ]
+					row.extend(self.categories[cat].get_results())
+					results.append(row)
+			if self.type == 'bucket':
+				for cat in [ c for c in self.bucket_labels if c in self.categories.keys()]:
 					row = [ self.RESULT_CAT_FRMT.format(cat) ]
 					row.extend(self.categories[cat].get_results())
 					results.append(row)
@@ -611,6 +734,7 @@ class PlayerHistogram():
 		else:
 			return self.format_category(cat) + ' -'
 
+
 	def format_category(self, cat: int):
 		val = self.fields[cat]
 		return self.cat_format.format(float(val * self.cat_factor))
@@ -652,10 +776,11 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
 
 ## main() -------------------------------------------------------------
 
+OPT_MODE_DEFAULT 	= None
 OPT_MODE_TEAM 		= 'team'
 OPT_MODE_EXTENDED 	= 'extended'
-OPT_MODE_DEFAULT 	= None
-OPT_MODES = [ None, OPT_MODE_TEAM, OPT_MODE_EXTENDED ]
+OPT_MODE_HELP		= 'help'
+OPT_MODES = [ None, OPT_MODE_TEAM, OPT_MODE_EXTENDED, OPT_MODE_HELP ]
 
 async def main(argv):
 	global wg, wi, WG_APP_ID
@@ -748,7 +873,7 @@ async def main(argv):
 		parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
 		parser.add_argument('-a', '--account', type=str, default=WG_ACCOUNT, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 		parser.add_argument('--mode', default=OPT_MODE, choices=OPT_MODES, help='Select stats mode. Options: ' + ', '.join(OPT_MODES[1:]))
-		parser.add_argument('--extra', choices=BattleRecordCategory.get_extra_categories(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleRecordCategory._result_categories[cat][0]  for cat in BattleRecordCategory._result_categories_extra))
+		parser.add_argument('--extra', choices=BattleRecordCategory.get_extra_categories(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleRecordCategory._result_categories[cat][0]  for cat in BattleRecordCategory.get_extra_categories()))
 		parser.add_argument('--only_extra', action='store_true', default=False, help='Print only the extra categories')
 		parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms: ' + ', '.join( histogram_fields[k][0] for k in histogram_fields))
 		parser.add_argument('--stat_func', default=OPT_STAT_FUNC, choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
@@ -807,10 +932,10 @@ async def main(argv):
 			bu.debug('No DB in use')
 
 		# TBD
-		# if args.filter_help: 
-		# 	await help_filters(db)
-		# 	sys.exit(0)
-
+		if args.mode == OPT_MODE_HELP: 
+			await help_filters(db)
+			sys.exit(0)
+		
 		# rebase file arguments due to moving the working directory to the script location
 		args.files = bu.rebase_file_args(current_dir, args.files)
 
@@ -884,11 +1009,11 @@ async def help_filters(db : motor.motor_asyncio.AsyncIOMotorDatabase = None):
 			print('data.summary.KEYS:')
 			for s in summary:
 				print("\t" + s)
-			print(print('data.summary.details.[].KEYS:'))
+			print(print('data.summary.details.[].keys:'))
 			for d in details:
 				print("\t" + d)
-		except:
-			pass
+		except Exception as err:
+			bu.error(exception=err)
 
 
 def set_histogram_buckets(json: dict):
@@ -1054,9 +1179,8 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 			n_players = len(result['allies']) + len(result['enemies'])
 			n_allies = collections.defaultdict(def_value_zero)
 			allies_stats = collections.defaultdict(def_value_zero)
+			
 			#bu.debug('Processing Allies')
-			
-			
 			for ally in result['allies']:
 				# Player itself is not in 'allies': see read_replay_JSON()
 				ally_mapped = stat_id_map[ally]
@@ -1081,7 +1205,7 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 						enemies_stats[stat] += player_stats[enemy_mapped][stat]
 						n_enemies[stat] += 1
 			
-			#bu.debug('Processing avg stats')
+			#bu.debug('Processing player's own stats')
 			player_mapped = stat_id_map[result['player']]
 			if player_mapped not in player_stats:
 				missing_stats += 1				
@@ -1297,7 +1421,7 @@ async def tank_stats_helper(stat_list: list):
 		hist_fields = histogram_fields.keys()
 		if 'battles' not in hist_fields:
 			bu.error('\'battles\' must be defined in \'histogram_fields\'')
-			sys.exit(1)
+			return None
 
 		for field in hist_fields:
 			stats[field] = 0
@@ -1329,13 +1453,14 @@ async def player_stats_helper(player_stats: dict):
 		hist_fields = histogram_fields.keys()
 		if 'battles' not in hist_fields:
 			bu.error('\'battles\' must be defined in \'histogram_fields\'')
-			sys.exit(1)
+			return None
 
-		for field in hist_fields:
-			stats[field] = 0
+		# NEEDED 2020-10-25? 
+		#for field in hist_fields:
+		#	stats[field] = 0
 		
 		for field in hist_fields:
-			stats[field] += max(0, player_stats['statistics']['all'][field])
+			stats[field] = max(0, player_stats['statistics']['all'][field])
 
 		if stats['battles'] == 0:
 			return None
