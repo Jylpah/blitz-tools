@@ -165,11 +165,17 @@ class BattleRecordCategory():
 
 
 	@classmethod
-	def get_result_categories(cls, default_cats: list, extra_cats: list = None):
-		if default_cats == None:
-			res_categories = cls.get_default_categories()
+	def get_result_categories(cls, default_cats: list, args : argparse.Namespace):
+		extra_cats = args.extra
+		only_extra = args.only_extra
+
+		if only_extra:
+			res_categories = list()
 		else:
-			res_categories = default_cats
+			if default_cats == None:
+				res_categories = cls.get_default_categories()
+			else:
+				res_categories = default_cats
 		if extra_cats != None: 
 			res_categories = res_categories + extra_cats
 		res_categories = list(set(res_categories))  	# remove duplicates
@@ -743,6 +749,7 @@ async def main(argv):
 		parser.add_argument('-a', '--account', type=str, default=WG_ACCOUNT, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 		parser.add_argument('--mode', default=OPT_MODE, choices=OPT_MODES, help='Select stats mode. Options: ' + ', '.join(OPT_MODES[1:]))
 		parser.add_argument('--extra', choices=BattleRecordCategory.get_extra_categories(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleRecordCategory._result_categories[cat][0]  for cat in BattleRecordCategory._result_categories_extra))
+		parser.add_argument('--only_extra', action='store_true', default=False, help='Print only the extra categories')
 		parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms: ' + ', '.join( histogram_fields[k][0] for k in histogram_fields))
 		parser.add_argument('--stat_func', default=OPT_STAT_FUNC, choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
 		parser.add_argument('-u', '--url', action='store_true', default=False, help='Print replay URLs')
@@ -763,7 +770,7 @@ async def main(argv):
 		except Exception as err:
 			raise
 
-		res_categories = BattleRecordCategory.get_result_categories(OPT_CATEGORIES, args.extra)
+		res_categories = BattleRecordCategory.get_result_categories(OPT_CATEGORIES, args)
 
 		bu.set_log_level(args.silent, args.verbose, args.debug)
 		bu.set_progress_step(250)  						# Set the frequency of the progress dots. 
