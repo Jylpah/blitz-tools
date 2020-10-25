@@ -91,15 +91,41 @@ def def_value_BattleRecord():
 	return BattleRecord()
 
 class BattleRecordCategory():
+
+	@staticmethod
+	def mk_battle_modes(modes: dict):
+		"""Make a list of battle modes as required for the _result_categories"""
+		mode_ids = modes.values()
+		id_max = max(mode_ids)
+		ret_modes = ['-'] * (id_max+16)		# create a list of '-' elements
+				
+		for mode in modes:
+			id = modes[mode]
+			ret_modes[id] = mode
+		
+		return ret_modes
+
+	_battle_modes = {
+		'Any' 					: 0, 
+		'Random'				: 1,
+		'Training Room'			: 2,
+		'Tournament'			: 4,
+		'Rating'				: 7,
+		'Mad Games'				: 8,
+		'Realistic Battles'		: 22,
+		'Gravity Mode'			: 24,
+		'Burning Games'			: 26
+	}
+
+	_BATTLE_MODES = mk_battle_modes.__func__(_battle_modes)
+
 	_result_categories = {
 		'total'				: [ 'TOTAL', 'total' ],
 		'battle_result'		: [ 'Result', [ 'Loss', 'Win', 'Draw']],
 		'battle_type'		: [ 'Battle Type', ['Encounter', 'Supremacy']],
 		'tank_tier'			: [ 'Tank Tier', 'number' ],
 		'top_tier'			: [ 'Tier', ['Bottom tier', 'Top tier']],
-		'room_type'			: [ 'Battle Mode', ['Any', 'Random', 'Training Room', '-', 'Tournament', '-', '-', 'Rating', 'Mad Games', '-', \
-												 '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', \
-												 '-', '-','Realistic Battles', '-', 'Gravity Mode', '-', 'Burning Games', '-', '-', '-'] ],
+		'room_type'			: [ 'Battle Mode', _BATTLE_MODES ],
 		'mastery_badge'		: [ 'Battle Medal', ['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
 		'team_result'		: [ 'Team Result', 'string' ],
 		'map_name'			: [ 'Map', 'string' ],
@@ -131,6 +157,7 @@ class BattleRecordCategory():
 	total_battles = 0
 
 	RESULT_CAT_FRMT = '{:>20s}'
+	
 	
 	@classmethod
 	def get_default_categories(cls):
