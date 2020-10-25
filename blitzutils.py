@@ -35,7 +35,7 @@ os.umask(UMASK)
 
 class ThrottledClientSession(aiohttp.ClientSession):
     """Rate-throttled client session class inherited from aiohttp.ClientSession)""" 
-    MIN_SLEEP = 0.1
+    #MIN_SLEEP = 0.1
 
     def __init__(self, rate_limit: float = None, *args,**kwargs) -> None: 
         super().__init__(*args,**kwargs)
@@ -50,17 +50,16 @@ class ThrottledClientSession(aiohttp.ClientSession):
             if rate_limit <= 0:
                 raise ValueError('rate_limit must be positive')
             self.rate_limit = rate_limit
-            #(increment, sleep) = self._get_rate_increment()            
             self._queue = asyncio.Queue(min(2, int(rate_limit)+1))
-            # self._fillerTask = asyncio.create_task(self._filler(rate_limit))
             self._fillerTask = asyncio.create_task(self._filler())
         
      
 
     def _get_sleep(self) -> list:
-        if self.rate_limit != None:
-            return max(1/self.rate_limit, self.MIN_SLEEP)
-        return None
+        if self.rate_limit == None:
+            return None
+        else:
+            return 1/self.rate_limit
 
 
     def get_rate(self) -> float:
@@ -108,14 +107,28 @@ class ThrottledClientSession(aiohttp.ClientSession):
         await super().close()
 
 
-    # async def _filler(self, rate_limit: float = 1):
+    async def _filler_simple(self):
+        """Filler task to fill the leaky bucket algo"""
+        try:
+            if self._queue == None:
+                return 
+            sleep = self._get_sleep()
+            while True:
+                self._queue.put(None)
+                await asyncio.sleep(sleep)
+        except asyncio.CancelledError:
+            debug('Cancelled')
+        except Exception as err:
+            error(exception=err)
+
+
     async def _filler(self):
         """Filler task to fill the leaky bucket algo"""
         try:
             if self._queue == None:
                 return 
             sleep = self._get_sleep()
-            debug('SLEEP: ' + str(sleep))
+            # debug('SLEEP: ' + str(sleep))
             updated_at = time.monotonic()
             fraction = 0
             extra_increment = 0
@@ -137,6 +150,8 @@ class ThrottledClientSession(aiohttp.ClientSession):
             debug('Cancelled')
         except Exception as err:
             error(exception=err)
+
+
 
 
     async def _request(self, *args,**kwargs):
