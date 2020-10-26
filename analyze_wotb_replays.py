@@ -164,6 +164,11 @@ class BattleRecordCategory():
 	
 	
 	@classmethod
+	def get_categories_all(cls):
+		return cls._result_categories.keys()
+
+
+	@classmethod
 	def get_default_categories(cls):
 		return cls._result_categories_default
 
@@ -873,7 +878,7 @@ async def main(argv):
 		parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
 		parser.add_argument('-a', '--account', type=str, default=WG_ACCOUNT, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 		parser.add_argument('--mode', default=OPT_MODE, choices=OPT_MODES, help='Select stats mode. Options: ' + ', '.join(OPT_MODES[1:]))
-		parser.add_argument('--extra', choices=BattleRecordCategory.get_extra_categories(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleRecordCategory._result_categories[cat][0]  for cat in BattleRecordCategory.get_extra_categories()))
+		parser.add_argument('--extra', choices=BattleRecordCategory.get_categories_all(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleRecordCategory._result_categories[cat][0]  for cat in BattleRecordCategory.get_categories_all()))
 		parser.add_argument('--only_extra', action='store_true', default=False, help='Print only the extra categories')
 		parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms: ' + ', '.join( histogram_fields[k][0] for k in histogram_fields))
 		parser.add_argument('--stat_func', default=OPT_STAT_FUNC, choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
