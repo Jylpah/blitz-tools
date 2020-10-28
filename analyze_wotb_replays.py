@@ -933,7 +933,7 @@ async def main(argv):
 
 		# TBD
 		if args.mode == OPT_MODE_HELP: 
-			await help_filters(db, parser)
+			await help_extended(db, parser)
 			sys.exit(0)
 		
 		# rebase file arguments due to moving the working directory to the script location
@@ -996,10 +996,13 @@ async def main(argv):
 	return None
 
 
-async def help_filters(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, parser: argparse.ArgumentParser = None):
+async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, parser: argparse.ArgumentParser = None):
 	"""Help for --filters"""
 	if parser != None:
 		parser.print_help()
+	# Result category options
+
+	# Filter usage
 	print("\nSyntax: --filters '{ \"replay.param\": VALUE, \"replay.param2\": { \"$MONGO_OPERATOR\" : VALUE }, ... }'")
 	print("\tExample: --filters '{ \"data.summary.protagonist\": ACCOUNT_ID, \"data.summary.battle_start_timestamp\": { \"$gt\" : 1602853200 } }'")
 	if db != None:
