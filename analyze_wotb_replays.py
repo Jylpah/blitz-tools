@@ -398,7 +398,7 @@ class BattleRecordCategory():
 					row = [ self.RESULT_CAT_FRMT.format(cat) ]
 					row.extend(self.categories[cat].get_results())
 					results.append(row)
-			if self.type == 'bucket':
+			elif self.type == 'bucket':
 				for cat in [ c for c in self.bucket_labels if c in self.categories.keys()]:
 					row = [ self.RESULT_CAT_FRMT.format(cat) ]
 					row.extend(self.categories[cat].get_results())
@@ -450,11 +450,12 @@ class BattleRecord():
 		'time_alive%'		: [ 'T alive%', 'Percentage of time being alive in a battle', 		8, '{:8.0%}' ], 
 		'top_tier'			: [ 'Top tier', 'Share of games as top tier', 						8, '{:8.0%}' ],
 		'player_wins'		: [ 'Player WR', 'Average WR of the player', 						9, '{:9.2%}' ],
-		'player_battles'	: [ 'Player Btls', 'Average number battles of the player', 			11, '{:11.0f}' ],
 		'allies_wins'		: [ 'Allies WR', 'Average WR of allies at the tier of their tank', 	9, '{:9.2%}' ],
 		'enemies_wins'		: [ 'Enemies WR', 'Average WR of enemies at the tier of their tank', 10, '{:10.2%}' ],
+		'player_battles'	: [ 'Player Btls', 'Average number battles of the player', 			11, '{:11.0f}' ],
 		'allies_battles'	: [ 'Allies Btls', 'Average number battles of the allies', 			11, '{:11.0f}' ],
 		'enemies_battles'	: [ 'Enemies Btls', 'Average number battles of the enemies', 		12, '{:12.0f}' ],
+		'player_damage_dealt'	: [ 'Player Avg Dmg', 'Player Average damage', 					11, '{:11.0f}' ],
 		'allies_damage_dealt'	: [ 'Allies Avg Dmg', 'Average damage of the allies', 			11, '{:11.0f}' ],
 		'enemies_damage_dealt'	: [ 'Enemies Avg Dmg', 'Average damage of the enemies', 		12, '{:12.0f}' ],
 		MISSING_STATS		: [ 'No stats', 'Players without stats avail', 						8, '{:8.1%}']		
@@ -481,8 +482,10 @@ class BattleRecord():
 		'player_wins',
 		'allies_wins',
 		'enemies_wins',
+		'player_damage_dealt', 
 		'allies_damage_dealt',
 		'enemies_damage_dealt',
+		'player_battles',
 		'allies_battles',
 		'enemies_battles'
 	]
