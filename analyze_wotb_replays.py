@@ -190,12 +190,12 @@ class BattleCategorizationList():
 			bu.error(exception=err)
 		return None
 		
-	
+
 	def __init__(self, default_cats: list, args : argparse.Namespace):
 		extra_cats = args.extra
 		only_extra = args.only_extra
 
-		cats = list()
+		self.categorizations_list = list()
 		if not only_extra:
 			if default_cats == None:
 				cats = self.get_categorizations_default()
@@ -216,32 +216,48 @@ class BattleCategorizationList():
 			cparams 	= self.get_categorization_params(cat)
 			self.categorizations[cat] = BattleCategorization(cat, ctitle, ctype, cparams)
 
+			try:
+				cat = None
+				if self.type == 'total':
+					cat = 'Total'
+				elif self.type == 'number':
+					cat = str(result[self.category_key])
+				elif self.type == 'string':
+					cat = result[self.category_key]
+				elif self.type == 'category':
+					cat = self.get_category(result[self.category_key])
+					#cat = self._categorizations[self.category_key][2][result[self.category_key]]
+				elif self.type == 'bucket':
+					cat = self.get_bucket(result)				
+				return cat
+			except KeyError as err:
+				bu.error('Category: ', str(cat))
+				bu.error('Key not found', exception=err)			
+			except Exception as err:
+				bu.error('Category: ', str(cat))
+				bu.error('Unknown error', exception=err) 
+		return None
+
 
 class BattleCategorization():
 
-	total_battles = 0
-
 	RESULT_CAT_FRMT = '{:>20s}'
 	
-	#def __init__(self, cat : str, title: str, cat_type:str, params: list = None ):
-	def __init__(self, cat : str, title: str):
-		self.categorization = cat
-		self.title 	= title
-		# self.type 	= cat_type		# is this needed? 
-		self.categories = collections.defaultdict(def_value_BattleRecord)
+	def __init__(self, cat_key : str, title: str):
+		self.total_battles 	= 0
+		self.category_key 	= cat_key
+		self.title 			= title
+		self.categories 	= collections.defaultdict(def_value_BattleRecord)
 
-		# self.bucket_labels = list()
-		# if self.type == 'bucket':			
-		# 	self.bucket_format = self.get_label_prefix()
-		# 	self.buckets = BattleCategorizationList.get_bucket_breaks(self.categorization)
-		# 	for start in range(len(self.buckets)):
-		# 		self.bucket_labels.append(self.mk_bucket_label(start, self.buckets))
-
-		# else:
-		# 	self.type = 'category'	
 
 	def get_categories(self):
-		return self.categories
+		"""Get categorie keys sorted"""
+		return sorted(self.categories.keys() , key=str.casefold)
+
+	### PER Child Class
+	def get_category(self, result: dict) -> str: 
+		"""Get category. Must implement in the child classes"""
+		pass
 
 
 	def record_result(self, result: dict):
@@ -251,21 +267,32 @@ class BattleCategorization():
 			self.total_battles += 1
 			return True
 		except KeyError as err:
-			bu.error('Key not found', err)
-			bu.error('Category: ', str(cat))
-			bu.error(exception = err)
+			bu.error('Category key not found: ' + cat, exception=err)
 		except Exception as err:
-			bu.error('Category: ', str(cat))
-			bu.error(exception = err) 
+			bu.error('Category key: ' + cat, exception = err) 
 		return False
 	
 
 	def calc_results(self):
 		try:
-			for sub_cat in self.get_categories().keys():
-				self.categories[sub_cat].calc_results(self.total_battles)
+			for cat in self.categories.keys():
+				self.categories[cat].calc_results(self.total_battles)
 		except Exception as err:
 			bu.error(exception = err)
+
+	## Change to return a dict? Also change BattleRecord.get_results() to return a dict? 
+	def get_results(self) -> list:
+		"""Get results as a list"""
+		try:
+			results = []
+			for cat in self.get_categories():
+				row = [ self.RESULT_CAT_FRMT.format(cat) ]
+				row.extend(self.categories[cat].get_results())
+				results.append(row)
+			return results
+		except KeyError as err:
+			bu.error('Key not found', exception=err)  
+		return None
 
 
 	def print_results(self):
@@ -279,32 +306,6 @@ class BattleCategorization():
 			bu.error('Key not found', err)  
 		except Exception as err:
 			bu.error(exception = err) 
-		return None
-
-
-	def get_results(self):
-		try:
-			results = []
-			# results.append(self.get_headers())			
-			if self.type == 'number':
-				for cat in sorted( [ int(s) for s in self.categories.keys() ] ):
-					cat = str(cat) 
-					row = [ self.RESULT_CAT_FRMT.format(cat) ]
-					row.extend(self.categories[cat].get_results())
-					results.append(row)
-			elif self.type == 'bucket':
-				for cat in [ c for c in self.bucket_labels if c in self.categories.keys()]:
-					row = [ self.RESULT_CAT_FRMT.format(cat) ]
-					row.extend(self.categories[cat].get_results())
-					results.append(row)
-			else:
-				for cat in sorted(self.categories.keys() , key=str.casefold):
-					row = [ self.RESULT_CAT_FRMT.format(cat) ]
-					row.extend(self.categories[cat].get_results())
-					results.append(row)
-			return results
-		except KeyError as err:
-			bu.error('Key not found', err)  
 		return None
 
 
@@ -338,121 +339,127 @@ class BattleCategorization():
 	# 		fields[col] = sub_category.get_field_name(col)
 	# 	return fields
 
-	### PER Child Class
-	def get_category(self, result: dict) -> str: 
-		"""Get category"""
-		try:
-			cat = None
-			if self.type == 'total':
-				cat = 'Total'
-			elif self.type == 'number':
-				cat = str(result[self.categorization])
-			elif self.type == 'string':
-				cat = result[self.categorization]
-			elif self.type == 'category':
-				cat = self.get_category(result[self.categorization])
-				#cat = self._categorizations[self.categorization][2][result[self.categorization]]
-			elif self.type == 'bucket':
-				cat = self.get_bucket(result)				
-			return cat
-		except KeyError as err:
-			bu.error('Category: ', str(cat))
-			bu.error('Key not found', exception=err)			
-		except Exception as err:
-			bu.error('Category: ', str(cat))
-			bu.error('Unknown error', exception=err) 
-		return None
-	
 
 class BattleTotals(BattleCategorization):
+	TOTAL = 'Total'
+
+	def __init__(self, title: str):
+		super().__init__(self.TOTAL, title)
+
+
 	def get_category(self, result: dict) -> str: 
-		return 'total'
+		return self.TOTAL
+
+	def get_categories(self, result: dict) -> str: 
+		return [ self.TOTAL ]
 
 
 class BattleClassCategorization(BattleCategorization):
 	"""Class for categorization by fixed classes with ID (int)"""
-	def __init__(self, cat : str, title: str, classes: list):
-		super().__init__(cat, title)
-		self.categories = classes
+	def __init__(self, cat_key : str, title: str, classes: list):
+		super().__init__(cat_key, title)
+		self.category_labels = classes
 
 
 	def get_category(self, result: dict) -> str: 
 		"""Get category"""
 		cat_id = -1
 		try:
-			cat_id	= result[self.categorization]
-			return self.categories[cat_id]
+			cat_id	= result[self.category_key]
+			return self.category_labels[cat_id]
 		except KeyError as err:
-			bu.error('Category: ' + str(self.categorization) + 'cat ID: ' + str(cat_id), exception=err)
+			bu.error('Category: ' + str(self.category_key) + ' ID: ' + str(cat_id), exception=err)
 		except Exception as err:
-			bu.error('Category: ' + str(self.categorization) + 'cat ID: ' + str(cat_id), exception=err)
+			bu.error('Category: ' + str(self.category_key) + ' ID: ' + str(cat_id), exception=err)
+		return None
+
+	
+	def get_categories(self) -> list:
+		try:
+			cats = list()
+			for cat in self.category_labels:
+				if cat in self.categories.keys():
+					cats.append(cat)
+			return cats 
+		except KeyError as err:
+			bu.error('Key not found', exception = err)  
+		except Exception as err:
+			bu.error(exception = err) 
+		return None
+
+
+class BattleStringCategorization(BattleCategorization):
+	"""Class for categorization by string"""
+
+	def get_category(self, result: dict) -> str: 
+		"""Get category"""
+		try:
+			return result[self.category_key]			
+		except KeyError as err:
+			bu.error('Category key: ' + self.category_key + ' not found', exception=err)
+		except Exception as err:
+			bu.error('Category: ' +  self.category_key, exception=err)
 		return None
 
 
 class BattleNumberCategorization(BattleCategorization):
 	"""Class for categorization by number"""
+
 	def get_category(self, result: dict) -> str: 
 		"""Get category as """
 		try:
-			return str(result[self.categorization])
+			return str(result[self.category_key])
 		except KeyError as err:
-			bu.error('Category: ', str(self.categorization), exception=err)
+			bu.error('Category: ', str(self.category_key), exception=err)
 			
 		except Exception as err:
-			bu.error('Category: ', str(self.categorization), exception=err)
+			bu.error('Category: ', str(self.category_key), exception=err)
+		return None
+
+
+	def get_categories(self) -> list:
+		try:
+			return map(str, sorted( map(int, self.categories.keys())))
+		except KeyError as err:
+			bu.error('Key not found', exception=err)  
 		return None
 
 
 class BattleBucketCategorization(BattleCategorization):
 	"""Class for categorization by buckets based on value"""
 
-	def __init__(self, cat : str, title: str, breaks: list, bucket_format = ''):
-		super().__init__(cat, title)
+	def __init__(self, cat_key : str, title: str, breaks: list, bucket_format = ''):
+		super().__init__(cat_key, title)
 		self.breaks = breaks
 		self.bucket_format = bucket_format
-		self.categories = self.mk_bucket_labels(breaks)
+		self.category_labels = self.mk_category_labels(breaks, bucket_format)
 
 
 	def get_category(self, result: dict) -> str: 
 		"""Get category"""
 		cat_id = -1
 		try:
-			cat_id = self.find_bucket(result[self.categorization], self.breaks)
-			return self.categories[cat_id]
+			cat_id = self.find_bucket(result[self.category_key], self.breaks)
+			return self.category_labels[cat_id]
 		except KeyError as err:
-			bu.error('Category: ' + str(self.categorization) + 'cat ID: ' + str(cat_id), exception=err)
+			bu.error('Category: ' + str(self.category_key) + 'cat ID: ' + str(cat_id), exception=err)
 		except Exception as err:
-			bu.error('Category: ' + str(self.categorization) + 'cat ID: ' + str(cat_id), exception=err)
+			bu.error('Category: ' + str(self.category_key) + 'cat ID: ' + str(cat_id), exception=err)
 		return None
 
 
-	def get_bucket_breaks(self) -> list:
-		"""Return bucket breaks"""
+	def get_categories(self) -> list:
 		try:
-			return sorted(self._categorizations[self.categorization][2])
+			cats = list()
+			for cat in self.category_labels:
+				if cat in self.categories.keys():
+					cats.append(cat)
+			return cats 
+		except KeyError as err:
+			bu.error('Key not found', exception = err)  
 		except Exception as err:
-			bu.error(exception=err)
+			bu.error(exception = err) 
 		return None
-
-	
-	def get_label_prefix(self) -> str:
-		"""Return bucket label type, if any"""
-		try:
-			if len(self._categorizations[self.categorization]) > 3:
-				return self._categorizations[self.categorization][3]
-			return ''			
-		except Exception as err:
-			bu.error(exception=err)
-		return None
-
-
-	# def get_bucket(self, result: dict) -> str:
-	# 	try:
-	# 		ndx = self.find_bucket(result[self.categorization], self.buckets)
-	# 		return self.bucket_labels[ndx]			
-	# 	except Exception as err:
-	# 		bu.error('Category: ' + self.categorization + ' Unknown error', exception=err) 
-	# 	return None
 
 
 	def find_bucket(self, value, bucket_breaks: list):
@@ -469,20 +476,18 @@ class BattleBucketCategorization(BattleCategorization):
 			return ndx
 
 
-	def mk_bucket_labels(self, bucket_breaks: list) -> list:
+	def mk_category_labels(self, bucket_breaks: list, bucket_format: str) -> list:
 		try:
-			# low = bucket_breaks[ndx]
-			# if ndx >= len(bucket_breaks)-1:
-			# 	high = None
-			# else:
-			# 	high = bucket_breaks[min(ndx+1, len(bucket_breaks)-1)]
 			multiplier  = 1
-			if self.bucket_format == '%':
+			prefix = ''
+			if bucket_format == '%':
 				frmt = '{:2.0f}'
 				multiplier = 100
 				prefix = '%'
-			elif self.bucket_format == 'float':
+			elif bucket_format == 'float':
 				frmt = '{:.2f}'
+			elif bucket_format == 'int':
+				frmt = '{:.0f}'
 			else:
 				frmt = '{:.0f}'
 
@@ -491,15 +496,21 @@ class BattleBucketCategorization(BattleCategorization):
 				low 	= bucket_breaks[ndx]
 				high 	= bucket_breaks[ndx +1]
 
-				## IF NONE 
-
-				label = frmt.format(low) + ' - '
-				if high != None:
-					label = label + frmt.format(high)
+				# None makes open ended category label: '1500 - ' 				
+				if low == None: 
+					label = '   - '
 				else:
+					label = frmt.format(low*multiplier) + ' - '
+				
+				if high == None:
 					label = label + '  '
+				else:
+					label = label + frmt.format(high*multiplier)
+
 				label = label + prefix
-				return label
+				labels.append(labels)
+			return labels
+
 		except KeyError as err:
 			bu.error('KeyError: ndx=' + str(ndx) + ' buckets=' + str(bucket_breaks), exception=err)
 		except Exception as err:			
