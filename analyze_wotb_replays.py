@@ -791,12 +791,13 @@ OPT_MODE_HELP		= 'help'
 OPT_MODES = [ None, OPT_MODE_TEAM, OPT_MODE_EXTENDED, OPT_MODE_HELP ]
 
 async def main(argv):
-	global wg, wi, WG_APP_ID
+	global wg, wi, WG_APP_ID, OPT_MODE
 	# set the directory for the script
 	current_dir = os.getcwd()
 	os.chdir(os.path.dirname(sys.argv[0]))
 
 	## Default options:
+	OPT_MODE 		= OPT_MODE_DEFAULT
 	OPT_DB			= False
 	OPT_HIST		= False
 	OPT_STAT_FUNC	= 'player'
