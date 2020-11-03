@@ -158,6 +158,20 @@ class BattleCategorizationList():
 
 
 	@classmethod
+	def set_categorizations_default(cls, cat_defaults: list):
+		try:
+			defaults = list()
+			for cat in cat_defaults:
+				if cat in cls.get_categorizations_all():
+					defaults.append(cat)
+				else:
+					bu.error(cat + ' is not a defined categorization')
+			cls._categorizations_default = defaults
+		except Exception as err:
+			bu.error(exception=err)
+
+
+	@classmethod
 	def get_categorizations_extra(cls) -> list:
 		#return cls._categorizations_extra
 		return list( set(cls._categorizations.keys() ) - set(cls.get_categorizations_default() ) )
@@ -185,59 +199,110 @@ class BattleCategorizationList():
 	def get_categorization_params(cls, cat: str) -> list:
 		try:
 			if len(cls._categorizations[cat]) > 2:
-				return cls._categorizations[cat][3:]
+				return cls._categorizations[cat][2:]
 		except Exception as err:
 			bu.error(exception=err)
 		return None
 		
 
-	def __init__(self, default_cats: list, args : argparse.Namespace):
+	def __init__(self, args : argparse.Namespace):
+		self.urls 				= collections.OrderedDict()
+		self.url_title_max_len 	= 0
 		extra_cats = args.extra
 		only_extra = args.only_extra
-
-		self.categorizations_list = list()
-		if not only_extra:
-			if default_cats == None:
-				cats = self.get_categorizations_default()
-			else:
-				cats = default_cats
+		
+		if only_extra:
+			cats = list()
+		else:
+			cats = self.get_categorizations_default()
 		
 		if extra_cats != None: 
 			cats = cats + extra_cats
 		
 		cats = list(set(cats))  	# remove duplicates
 		# ordering		
-		cats = [ cat for cat in self._categorizations if cat in cats ]
+		self.categorizations_list = [ cat for cat in self._categorizations if cat in cats ]
 		
 		self.categorizations = dict()
-		for cat in cats:
-			ctitle 	= self.get_categorization_title(cat)
-			ctype 	= self.get_categorization_type(cat)
-			cparams 	= self.get_categorization_params(cat)
-			self.categorizations[cat] = BattleCategorization(cat, ctitle, ctype, cparams)
-
+		for cat in self.categorizations_list:
 			try:
-				cat = None
-				if self.type == 'total':
-					cat = 'Total'
-				elif self.type == 'number':
-					cat = str(result[self.category_key])
-				elif self.type == 'string':
-					cat = result[self.category_key]
-				elif self.type == 'category':
-					cat = self.get_category(result[self.category_key])
-					#cat = self._categorizations[self.category_key][2][result[self.category_key]]
-				elif self.type == 'bucket':
-					cat = self.get_bucket(result)				
-				return cat
+				ctitle 	= self.get_categorization_title(cat)
+				ctype 	= self.get_categorization_type(cat)
+				cparams = self.get_categorization_params(cat)
+						
+				if ctype == 'total':
+					self.categorizations[cat] = BattleTotals(ctitle)
+				elif ctype == 'number':
+					self.categorizations[cat] = BattleNumberCategorization(cat, ctitle)
+				elif ctype == 'string':
+					self.categorizations[cat] = BattleStringCategorization(cat, ctitle)
+				elif ctype == 'category':					
+					self.categorizations[cat] = BattleClassCategorization(cat, ctitle, cparams[0])
+				elif ctype == 'bucket':
+					self.categorizations[cat] = BattleBucketCategorization(cat, ctitle, cparams[0], cparams[1])
+
 			except KeyError as err:
-				bu.error('Category: ', str(cat))
-				bu.error('Key not found', exception=err)			
+				bu.error('BattleCategorizationList(): Key not found: Category: ' + cat, exception=err)			
 			except Exception as err:
-				bu.error('Category: ', str(cat))
-				bu.error('Unknown error', exception=err) 
+				bu.error('BattleCategorizationList()', exception=err) 
+		
+	
+	def record_result(self, result: dict):
+		try:
+			for cat in self.categorizations_list:
+				self.categorizations[cat].record_result(result)
+		except Exception as err:
+			bu.error(exception=err)
 		return None
 
+
+	def calc_results(self):
+		try:
+			for cat in self.categorizations_list:
+				self.categorizations[cat].calc_results()
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
+
+	def record_url(self, result):
+		try:
+			self.url_title_max_len = max(self.url_title_max_len, len(result['title']))
+			self.urls[result['title']] =  result['url']
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
+	def print_results(self):
+		try:
+			for cat in self.categorizations_list:
+				self.categorizations[cat].print_results()
+			self.print_urls()
+
+		except Exception as err:
+			bu.error(exception=err)	
+
+
+	def print_urls(self):
+		try:
+			if len(self.urls) > 0:
+				print('\nURLs to Battle replays:')
+				for title in self.urls:
+					print(('{:' + str(3 + self.url_title_max_len) + '}').format(title) + ' : ' + self.urls[title])
+		except Exception as err:
+			bu.error(exception=err)		
+
+
+	def get_results_json(self):
+		try:
+			res = dict()
+			for cat in self.categorizations_list:
+				res[cat] = self.categorizations[cat].get_results_json()
+			res['replay_urls'] = self.urls
+			return res
+		except Exception as err:
+			bu.error(exception=err)
+		return None
 
 class BattleCategorization():
 
@@ -251,13 +316,14 @@ class BattleCategorization():
 
 
 	def get_categories(self):
-		"""Get categorie keys sorted"""
+		"""Get category keys sorted"""
 		return sorted(self.categories.keys() , key=str.casefold)
+
 
 	### PER Child Class
 	def get_category(self, result: dict) -> str: 
-		"""Get category. Must implement in the child classes"""
-		pass
+		"""Get category. Must be implemented in the child classes"""
+		return 'NONE'
 
 
 	def record_result(self, result: dict):
@@ -275,33 +341,46 @@ class BattleCategorization():
 
 	def calc_results(self):
 		try:
-			for cat in self.categories.keys():
+			for cat in self.get_categories():
 				self.categories[cat].calc_results(self.total_battles)
 		except Exception as err:
 			bu.error(exception = err)
 
 	## Change to return a dict? Also change BattleRecord.get_results() to return a dict? 
-	def get_results(self) -> list:
-		"""Get results as a list"""
-		try:
-			results = []
-			for cat in self.get_categories():
-				row = [ self.RESULT_CAT_FRMT.format(cat) ]
-				row.extend(self.categories[cat].get_results())
-				results.append(row)
-			return results
-		except KeyError as err:
-			bu.error('Key not found', exception=err)  
-		return None
+	# def get_results(self) -> list:
+	# 	"""Get results as a list"""
+	# 	try:
+	# 		results = []
+	# 		for cat in self.get_categories():
+	# 			row = [ self.RESULT_CAT_FRMT.format(cat) ]
+	# 			row.extend(self.categories[cat].get_results())
+	# 			results.append(row)
+	# 		return results
+	# 	except KeyError as err:
+	# 		bu.error('Key not found', exception=err)  
+	# 	return None
 
+	# ## v2 : re
+	# def get_results(self) -> dict:
+	# 	"""Get results as a list without format"""
+	# 	try:
+	# 		if self.results == None:
+	# 			self.results = dict()
+	# 			self.results['categories'] = self.get_categories()
+	# 			for cat in self.results['categories']:
+	# 				self.results[cat] = self.categories[cat].get_results()
+				
+	# 		return self.results
+	# 	except KeyError as err:
+	# 		bu.error('Key not found', exception=err)  
+	# 	return None
 
 	def print_results(self):
-		try:
-			# FIX use BattleRecord.get_results_fields()
-			first_btl_record = list(self.categories.values())[0]
-			print('   '.join(first_btl_record.get_headers(self.get_category_name())))
-			for row in self.get_results():
-				print(' : '.join(row))
+		try:			
+			BattleRecord.print_headers(self.title)
+			for cat in self.get_categories():
+				print(self.RESULT_CAT_FRMT.format(cat), end='')
+				self.categories[cat].print_results()
 		except KeyError as err:
 			bu.error('Key not found', err)  
 		except Exception as err:
@@ -313,16 +392,10 @@ class BattleCategorization():
 		"""Get results in JSON format"""
 		try:
 			results = dict()
-			results['name' ] = self.get_category_name()
-			# results.append(self.get_headers())			
-			if self.type == 'number':
-				for cat in sorted( [ int(s) for s in self.categories.keys() ] ):
-					cat = str(cat) 
-					results[cat] = self.categories[cat].get_results_json()					
-			else:
-				for cat in sorted(self.categories.keys() , key=str.casefold):
-					cat = str(cat) 
-					results[cat] = self.categories[cat].get_results_json()					
+			results['categorization'] 	= self.title
+			results['category_key'] 	= self.category_key			
+			for cat in self.get_categories():
+				results[cat] = self.categories[cat].get_results()			
 			return results
 		except KeyError as err:
 			bu.error('Key not found', err)  
@@ -350,12 +423,13 @@ class BattleTotals(BattleCategorization):
 	def get_category(self, result: dict) -> str: 
 		return self.TOTAL
 
-	def get_categories(self, result: dict) -> str: 
+	def get_categories(self) -> str: 
 		return [ self.TOTAL ]
 
 
 class BattleClassCategorization(BattleCategorization):
 	"""Class for categorization by fixed classes with ID (int)"""
+	
 	def __init__(self, cat_key : str, title: str, classes: list):
 		super().__init__(cat_key, title)
 		self.category_labels = classes
@@ -410,10 +484,10 @@ class BattleNumberCategorization(BattleCategorization):
 		try:
 			return str(result[self.category_key])
 		except KeyError as err:
-			bu.error('Category: ', str(self.category_key), exception=err)
+			bu.error('Category: ' + str(self.category_key), exception=err)
 			
 		except Exception as err:
-			bu.error('Category: ', str(self.category_key), exception=err)
+			bu.error('Category: ' + str(self.category_key), exception=err)
 		return None
 
 
@@ -558,46 +632,7 @@ class BattleRecord():
 
 	_team_fields = [ 'wins', 'battles', 'damage_dealt' ]
 
-	# _result_fields_default = [
-	# 	'battles',
-	# 	'battles%',
-	# 	'win',
-	# 	'damage_made',
-	# 	'player_wins',
-	# 	'allies_wins',
-	# 	'enemies_wins',
-	# 	'allies_battles',
-	# 	'enemies_battles'
-	# ]
-
-
-	# _result_fields_team = [
-	# 	'battles',
-	# 	'player_wins',
-	# 	'allies_wins',
-	# 	'enemies_wins',
-	# 	'allies_damage_dealt',
-	# 	'enemies_damage_dealt',
-	# 	'allies_battles',
-	# 	'enemies_battles'
-	# ]
-
-
-	# _result_fields_extended = [
-	# 	'enemies_spotted',
-	# 	'top_tier',
-	# 	'DR',
-	# 	'KDR',
-	# 	'hit_rate',
-	# 	'pen_rate',
-	# 	'survived',
-	# 	'time_alive%',
-	# 	'player_battles',
-	# 	'allies_damage_dealt',
-	# 	'enemies_damage_dealt',
-	# 	MISSING_STATS
-	# ]
-
+	
 	count_fields = [
 		'battles', 
 		MISSING_STATS, 
@@ -693,6 +728,35 @@ class BattleRecord():
 		return cls._team_fields
 
 
+	# @classmethod
+	# def get_headers(cls, cat_name: str) -> list:
+	# 	"""Return unformatted headers"""
+	# 	try:
+	# 		headers = [ cat_name ]
+	# 		for field in cls.result_fields:
+	# 			headers.append(cls.get_field_name(field))
+	# 		return headers
+	# 	except KeyError as err:
+	# 		bu.error('Key not found', exception=err)  
+	# 	except Exception as err:
+	# 		bu.error(exception=err) 
+	# 	return None
+
+	@classmethod
+	def print_headers(cls, cat_name: str):
+		try:
+			headers = [ cls.RESULT_CAT_HEADER_FRMT.format(cat_name) ]
+			for field in cls.result_fields:
+				print_format = '{:^' + str(cls.get_field_width(field)) + 's}'
+				headers.append(print_format.format(cls.get_field_name(field)))
+			print('   '.join(headers))
+		except KeyError as err:
+			bu.error('Key not found', exception=err)  
+		except Exception as err:
+			bu.error(exception=err) 
+		return None
+
+
 	def __init__(self):
 		try:
 			
@@ -704,7 +768,7 @@ class BattleRecord():
 			self.results = collections.defaultdict(def_value_zero)
 
 		except KeyError as err:
-			bu.error('Key not found', err) 
+			bu.error('BattleRecord(): Key not found', err) 
 
 
 	def record_result(self, result : dict) -> bool:
@@ -760,38 +824,25 @@ class BattleRecord():
 		return False
 
 
-	def get_headers(self, cat_name: str):
-		try:
-			headers = [ self.RESULT_CAT_HEADER_FRMT.format(cat_name) ]
-			for field in self.result_fields:
-				print_format = '{:^' + str(self.get_field_width(field)) + 's}'
-				headers.append(print_format.format(self.get_field_name(field)))
-			return headers
-		except KeyError as err:
-			bu.error('Key not found', err)  
-		except Exception as err:
-			bu.error(str(err)) 
-		return None
-
-
-	def get_results(self) -> list:
-		"""Return results for printing"""
-		if not self.results_ready:
-			bu.error('Stats have not been calculated yet. call calc_results() before get_results()')
-		try:
-			results = []
-			for field in self.result_fields:
-				results.append(self._result_fields[field][3].format(self.results[field]) )
-			return results
-		except KeyError as err:
-			bu.error('Key not found', err)  
-		except Exception as err:
-			bu.error(exception=err) 
-		return None
+	# def get_results(self) -> list:
+	# 	"""Return results as list"""
+	# 	if not self.results_ready:
+	# 		bu.error('Stats have not been calculated yet. call calc_results() before get_results()')
+	# 	try:
+	# 		res = []
+	# 		for field in self.result_fields:
+	# 			# res.append(self._result_fields[field][3].format(self.results[field]) )
+	# 			res.append(self.results[field])
+	# 		return res
+	# 	except KeyError as err:
+	# 		bu.error('Key not found', err)  
+	# 	except Exception as err:
+	# 		bu.error(exception=err) 
+	# 	return None
 	
 
-	def get_results_json(self) -> dict:
-		"""Return results in JSON format"""
+	def get_results(self) -> dict:
+		"""Return results as a dict"""
 		if not self.results_ready:
 			bu.error('Stats have not been calculated yet. call calc_results() before get_results()')
 		try:
@@ -806,9 +857,20 @@ class BattleRecord():
 		return None
 	
 
-
 	def print_results(self):
-		print(' : '.join(self.get_results()))
+		if not self.results_ready:
+			bu.error('Stats have not been calculated yet. call calc_results() before printing()')
+		try:
+			results = []
+			for field in self.result_fields:
+				results.append(self._result_fields[field][3].format(self.results[field]) )				
+			print(' : '.join(results))
+			return True
+		except KeyError as err:
+			bu.error('Key not found', err)  
+		except Exception as err:
+			bu.error(exception=err) 
+		return False
 
 
 class PlayerHistogram():
@@ -888,11 +950,11 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
 
 ## main() -------------------------------------------------------------
 
-OPT_MODE_DEFAULT 	= None
+OPT_MODE_DEFAULT 	= 'default'
 OPT_MODE_TEAM 		= 'team'
 OPT_MODE_EXTENDED 	= 'extended'
 OPT_MODE_HELP		= 'help'
-OPT_MODES = [ None, OPT_MODE_TEAM, OPT_MODE_EXTENDED, OPT_MODE_HELP ]
+OPT_MODES = [ OPT_MODE_DEFAULT, OPT_MODE_TEAM, OPT_MODE_EXTENDED, OPT_MODE_HELP ]
 
 async def main(argv):
 	global wg, wi, WG_APP_ID
@@ -905,7 +967,6 @@ async def main(argv):
 	OPT_HIST			= False
 	OPT_STAT_FUNC		= 'player'
 	OPT_WORKERS_N 		= 10
-	OPT_CATEGORIZATIONS = None
 
 	WG_ACCOUNT 		= None 	# format: nick@server, where server is either 'eu', 'ru', 'na', 'asia' or 'china'. 
 	  					 	# China is not supported since WG API stats are not available there
@@ -942,7 +1003,8 @@ async def main(argv):
 					OPT_WORKERS_N 	= configAnalyzer.getint('workers', OPT_WORKERS_N)
 					res_categorizations  = configAnalyzer.get('categorizations', None)
 					if res_categorizations != None:
-						OPT_CATEGORIZATIONS = res_categorizations.split(',')
+						res_categorizations.replace(' ','')
+						BattleCategorizationList.set_categorizations_default(res_categorizations.split(','))
 					histogram_fields_str = configAnalyzer.get('histogram_buckets', None)
 					if histogram_fields_str != None:
 						set_histogram_buckets(json.loads(histogram_fields_str))
@@ -985,7 +1047,7 @@ async def main(argv):
 		parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
 		parser.add_argument('-a', '--account', type=str, default=WG_ACCOUNT, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 		parser.add_argument('--mode', default=OPT_MODE, choices=OPT_MODES, help='Select stats mode. Options: ' + ', '.join(OPT_MODES[1:]))
-		parser.add_argument('--extra', choices=BattleCategorizationList.get_categorizations_all(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleCategorization._categorizations[cat][0]  for cat in BattleCategorization.get_categorizations_all()))
+		parser.add_argument('--extra', choices=BattleCategorizationList.get_categorizations_all(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleCategorizationList.get_categorization_title(cat)  for cat in BattleCategorizationList.get_categorizations_all()))
 		parser.add_argument('--only_extra', action='store_true', default=False, help='Print only the extra categories')
 		parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms: ' + ', '.join( histogram_fields[k][0] for k in histogram_fields))
 		parser.add_argument('--stat_func', default=OPT_STAT_FUNC, choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
@@ -1007,7 +1069,7 @@ async def main(argv):
 		except Exception as err:
 			raise
 
-		res_categories = BattleCategorization.get_categorizations(OPT_CATEGORIZATIONS, args)
+		# res_categories = BattleCategorization.get_categorizations(OPT_CATEGORIZATIONS, args)
 
 		bu.set_log_level(args.silent, args.verbose, args.debug)
 		bu.set_progress_step(250)  						# Set the frequency of the progress dots. 
@@ -1021,7 +1083,7 @@ async def main(argv):
 
 		BattleRecord.set_fields(args.mode)
 
-		#### Connect to MongoDB (TBD)
+		#### Connect to MongoDB. You are unlikely to have this set up... 
 		bu.debug('DB_SERVER: ' + DB_SERVER)
 		bu.debug('DB_PORT: ' + str(DB_PORT))
 		bu.debug('DB_SSL: ' + "True" if DB_SSL else "False")
@@ -1048,8 +1110,7 @@ async def main(argv):
 			await help_extended(db, parser)
 			sys.exit(0)
 		elif len(args.files) == 0:
-			bu.error('No FILES argument given: No replays to analyse')
-			sys.exit(1)
+			raise UserWarning('No FILES argument given: No replays to analyse')			
 		
 		# rebase file arguments due to moving the working directory to the script location
 		args.files = bu.rebase_file_args(current_dir, args.files)
@@ -1088,22 +1149,26 @@ async def main(argv):
 			bu.verbose('')
 			bu.debug('Number of player stats: ' + str(len(player_stats)))
 			teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
-			res = process_battle_results(teamresults, args, res_categories)	
+
+			blt_cat_list = process_battle_results(teamresults, args)
+			blt_cat_list.print_results()
+			hist = None
 			if args.hist: 				
-				res['histograms'] = process_player_dist(results, player_stats, stat_id_map, args.json)
+				 hist = process_player_dist(results, player_stats, stat_id_map, args.json)
 			if args.json:
+				res = blt_cat_list.get_results_json()
+				res['histograms'] = hist
 				if args.outfile == '-':
-					args.outfile = 'export.json'
-					bu.verbose_std('Data exported to ' + args.outfile)
-				await bu.save_JSON(args.outfile, res, pretty=False) 
+					args.outfile = 'export.json'					
+				await bu.save_JSON(args.outfile, res, pretty=False) ## Excel does not understand pretty JSON
+				bu.verbose_std('Data exported to ' + args.outfile)
 			bu.debug('Finished. Cleaning up..................')
 		except Exception as err:
 			bu.error(exception=err)
 	except UserWarning as err:
-		bu.verbose(str(err))
-		pass
+		bu.warning(str(err))
 	except Exception as err:
-			bu.error(exception=err)
+		bu.error(exception=err)
 	finally:
 		## Need to close the aiohttp.session since Python destructors do not support async methods... 
 		if wg != None: await wg.close()
@@ -1180,48 +1245,23 @@ def process_player_dist(results: list, player_stats: dict, stat_id_map: dict, re
 	return None
 
 
-def process_battle_results(results: dict, args : argparse.Namespace, cats: list):
+def process_battle_results(results: dict, args : argparse.Namespace):
 	"""Process replay battle results""" 
 	try:
 		url 		= args.url
-		ret_json 	= args.json
-		urls 		= collections.OrderedDict()
-		categories 	= {}
 
-		for cat in cats:
-			categories[cat] = BattleCategorization(cat)
-
-		max_title_len = 0
-		for result in results:
-			for cat in cats:
-				categories[cat].record_result(result)
-			if url:
-				max_title_len = max(max_title_len, len(result['title']))
-				urls[result['title']] = result['url']
+		blt_cat_list = BattleCategorizationList(args)
 		
-		res = dict()
-		if ret_json:
-			cat = next(iter(categories))			
-			res['fields'] = categories[cat].get_fields()			
-		for cat in categories:
-			categories[cat].calc_results()
-			print('')
-			categories[cat].print_results()
-			if ret_json:
-				res[cat] = categories[cat].get_results_json()
-		if url:
-			print('\nURLs to Battle replays:\n')
-			json_urls = dict()
-			for title in urls.keys():
-				print(('{:' + str(3 + max_title_len) + '}').format(title) + ' : ' + urls[title])
-				if ret_json:
-					json_urls[title] = urls[title]
-			
-			if ret_json:
-				res['replay_urls'] = json_urls
+		for result in results:
+			blt_cat_list.record_result(result)
+			if url:
+				blt_cat_list.record_url(result)
+
+		blt_cat_list.calc_results()
+
 	except Exception as err:
 		bu.error(exception=err)
-	return res
+	return blt_cat_list
 
 
 async def process_player_stats(players, N_workers: int, args : argparse.Namespace, db : motor.motor_asyncio.AsyncIOMotorDatabase) -> dict:
