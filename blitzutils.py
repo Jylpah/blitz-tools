@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from progress.bar import IncrementalBar
 from progress.counter import Counter
 from decimal import Decimal
+from datetime import datetime
 
 MAX_RETRIES= 3
 SLEEP = 1.5
@@ -98,12 +99,12 @@ class ThrottledClientSession(aiohttp.ClientSession):
         """Close rate-limiter's "bucket filler" task"""
         # DEBUG 
         debug(self.get_stats_str())
-        if self._fillerTask != None:
-            self._fillerTask.cancel()
         try:
+            if self._fillerTask != None:
+                self._fillerTask.cancel()
             await asyncio.wait_for(self._fillerTask, timeout= 0.5)
-        except asyncio.TimeoutError as err:
-            error(exception=err)
+        except (asyncio.exceptions.CancelledError, asyncio.TimeoutError):
+            pass
         await super().close()
 
 
@@ -146,12 +147,10 @@ class ThrottledClientSession(aiohttp.ClientSession):
                         self._queue.put_nowait(i)
                     updated_at = now
                 await asyncio.sleep(sleep)
-        except asyncio.CancelledError:
+        except (asyncio.exceptions.CancelledError, asyncio.CancelledError):
             debug('Cancelled')
         except Exception as err:
             error(exception=err)
-
-
 
 
     async def _request(self, *args,**kwargs):
@@ -274,12 +273,17 @@ def get_log_level_str() -> str:
     error('Unknown log level: ' + str(_log_level))
 
 
-async def set_file_logging(logfn = None):
+async def set_file_logging(logfn = None, add_timestamp = False):
     """Set logging to file"""
     global LOG, LOGGER
     LOG = True
     if logfn == None:
-        logfn = 'LOG_' + _randomword(6) + '.log'
+        logfn = 'LOG_' + _randomword(6)
+    else:
+        dateTimeObj = datetime.now()
+        timestampStr = dateTimeObj.strftime("%y%m%d%H%M%S")
+        logfn = logfn + '_' + timestampStr
+    logfn = logfn + '.log'
     try:
         LOGGER = AsyncLogger()
         await LOGGER.open(logfn)
@@ -585,19 +589,16 @@ def  get_JSON_keypath(keypath: str, key: str):
         return '.'.join([keypath, key])
 
 def get_JSON_value(json, key : str = None, keys : list = None, keypath = None):
-    if keys == None:
+    if (keys == None) and (key != None):
         keys = key.split('.')   
-    
     if len(keys) == 0:
         return json
-
     key = keys.pop(0)
     if type(json) == dict:
         if key in json:
             return get_JSON_value(json[key], keys=keys, keypath=get_JSON_keypath(keypath, key))
         else:
             raise KeyError('Key: '+ get_JSON_keypath(keypath, key) + ' not found')
-    
     if type(json) == list:
         p = re.compile(r'^\[(\d+)\]$')
         m = p.match(key)
@@ -608,7 +609,6 @@ def get_JSON_value(json, key : str = None, keys : list = None, keypath = None):
             return get_JSON_value(json[ndx], keys=keys, keypath=get_JSON_keypath(keypath, key))
         except IndexError:
             raise KeyError('JSON array index out of range: ' + get_JSON_keypath(keypath, key))
-    
     raise KeyError('Key not found: ' + get_JSON_keypath(keypath, keys[0]))
 
 
@@ -838,30 +838,32 @@ class WG:
 
     async def close(self):
         # close stats queue 
-        if self.statsQ != None:
-            debug('WG.close(): Waiting for statsQ to finish')
-            await self.statsQ.join()
-            debug('WG.close(): statsQ finished')
-            self.stat_saver_task.cancel()
-            debug('statsCacheTask cancelled')
-            await self.stat_saver_task 
+        try:
+            if self.statsQ != None:
+                debug('WG.close(): Waiting for statsQ to finish')
+                await self.statsQ.join()
+                debug('WG.close(): statsQ finished')
+                self.stat_saver_task.cancel()
+                debug('statsCacheTask cancelled')
+                await self.stat_saver_task 
                 
-        # close cacheDB
-        if self.cache != None:
-            # prune old cache records
-            await self.cleanup_cache()   
-            await self.cache.commit()
-            await self.cache.close()
-        
-        if self.session != None:
-            if self.global_rate_limit:
-                await self.session.close()
-            else:
-                for server in self.session:
-                    await self.session[server].close()
-   
-        return
+            # close cacheDB
+            if self.cache != None:
+                # prune old cache records
+                await self.cleanup_cache()   
+                await self.cache.commit()
+                await self.cache.close()
+            
+            if self.session != None:
+                if self.global_rate_limit:
+                    await self.session.close()
+                else:
+                    for server in self.session:
+                        await self.session[server].close()
+        except Exception as err:
+            error(exception=err)
 
+        
     ## Class methods  ----------------------------------------------------------
 
     @classmethod
@@ -1262,13 +1264,11 @@ class WG:
                 return stats
 
         except StatsNotFound as err:
+            debug('No Cached stats for account_id=' + str(account_id))
             if cache_only: 
                return None
-            
             # No cached stats found, need to retrieve
-            debug(exception=err)
-            pass
-        
+            
         try:
             # Cached stats not found, fetching new ones
             url = self.get_url_player_stats(account_id, fields)
@@ -1751,8 +1751,10 @@ class WoTinspector:
     def chk_JSON_replay(cls, json_resp):
         """"Check String for being a valid JSON file"""
         try:
+            # FIX The replay can have allies/enemies i.e. be useful for 
+            # team composition analysis, but does not have player contribution
             if ('status' in json_resp) and json_resp['status'] == 'ok' and \
-                (get_JSON_value(json_resp, key='data.summary.exp_base') != None) :
+                (get_JSON_value(json_resp, key='data.summary.allies') != None) :
                 debug("JSON check OK")
                 return True 
         except KeyError as err:
