@@ -346,34 +346,6 @@ class BattleCategorization():
 		except Exception as err:
 			bu.error(exception = err)
 
-	## Change to return a dict? Also change BattleRecord.get_results() to return a dict? 
-	# def get_results(self) -> list:
-	# 	"""Get results as a list"""
-	# 	try:
-	# 		results = []
-	# 		for cat in self.get_categories():
-	# 			row = [ self.RESULT_CAT_FRMT.format(cat) ]
-	# 			row.extend(self.categories[cat].get_results())
-	# 			results.append(row)
-	# 		return results
-	# 	except KeyError as err:
-	# 		bu.error('Key not found', exception=err)  
-	# 	return None
-
-	# ## v2 : re
-	# def get_results(self) -> dict:
-	# 	"""Get results as a list without format"""
-	# 	try:
-	# 		if self.results == None:
-	# 			self.results = dict()
-	# 			self.results['categories'] = self.get_categories()
-	# 			for cat in self.results['categories']:
-	# 				self.results[cat] = self.categories[cat].get_results()
-				
-	# 		return self.results
-	# 	except KeyError as err:
-	# 		bu.error('Key not found', exception=err)  
-	# 	return None
 
 	def print_results(self):
 		try:			
@@ -401,17 +373,6 @@ class BattleCategorization():
 		except KeyError as err:
 			bu.error('Key not found', err)  
 		return None
-
-
-	## Get it gtorm BattleRecord.get_result_fields() 
-	# def get_fields(self):
-	# 	"""Return fields as dict"""
-	# 	key = next(iter(self.get_categories()))
-	# 	sub_category = self.categories[key]
-	# 	fields = dict()
-	# 	for col in sub_category.get_result_fields():
-	# 		fields[col] = sub_category.get_field_name(col)
-	# 	return fields
 
 
 class BattleTotals(BattleCategorization):
@@ -688,15 +649,8 @@ class BattleRecord():
 			cls.mode = mode
 			cls.result_fields = cls.get_mode_fields(cls.mode)
 			cls.result_fields_ratio = set(cls._result_ratios.keys()) & set(cls.result_fields)
-
-			# # sort results fields according to _results_fields		
-			# cls.result_fields.sort(key = lambda i: list(cls._result_fields.keys()).index(i)) 
-			
 			cls.avg_fields = set(cls.result_fields) - set(cls._result_ratios.keys()) - set(cls.count_fields)
-
-			# for field in (set(cls.count_fields) & cls.avg_fields):
-			# 	cls.avg_fields.remove(field)
-			
+		
 			for ratio in cls.result_fields_ratio:
 				cls.ratio_fields.add(cls._result_ratios[ratio][0])
 				cls.ratio_fields.add(cls._result_ratios[ratio][1])
@@ -737,20 +691,6 @@ class BattleRecord():
 	def get_fields_team(cls) -> list:
 		return cls._team_fields
 
-
-	# @classmethod
-	# def get_headers(cls, cat_name: str) -> list:
-	# 	"""Return unformatted headers"""
-	# 	try:
-	# 		headers = [ cat_name ]
-	# 		for field in cls.result_fields:
-	# 			headers.append(cls.get_field_name(field))
-	# 		return headers
-	# 	except KeyError as err:
-	# 		bu.error('Key not found', exception=err)  
-	# 	except Exception as err:
-	# 		bu.error(exception=err) 
-	# 	return None
 
 	@classmethod
 	def print_headers(cls, cat_name: str):
@@ -833,23 +773,6 @@ class BattleRecord():
 			bu.error(exception=err) 
 		return False
 
-
-	# def get_results(self) -> list:
-	# 	"""Return results as list"""
-	# 	if not self.results_ready:
-	# 		bu.error('Stats have not been calculated yet. call calc_results() before get_results()')
-	# 	try:
-	# 		res = []
-	# 		for field in self.result_fields:
-	# 			# res.append(self._result_fields[field][3].format(self.results[field]) )
-	# 			res.append(self.results[field])
-	# 		return res
-	# 	except KeyError as err:
-	# 		bu.error('Key not found', err)  
-	# 	except Exception as err:
-	# 		bu.error(exception=err) 
-	# 	return None
-	
 
 	def get_results(self) -> dict:
 		"""Return results as a dict"""
@@ -978,11 +901,10 @@ async def main(argv):
 	OPT_STAT_FUNC		= 'player'
 	OPT_WORKERS_N 		= 10
 
-	WG_ACCOUNT 		= None 	# format: nick@server, where server is either 'eu', 'ru', 'na', 'asia' or 'china'. 
+	#WG_ACCOUNT 		= None 	# format: nick@server, where server is either 'eu', 'ru', 'na', 'asia' or 'china'. 
 	  					 	# China is not supported since WG API stats are not available there
-	WG_ID			= None  # WG account_id in integer format. 
+	#WG_ID			= None  # WG account_id in integer format. 
 							# WG_ACCOUNT will be used to retrieve the account_id, but it can be set directly too
-	# WG_APP_ID		= WG_APP_ID
 	WG_RATE_LIMIT	= 10  ## WG standard. Do not edit unless you have your
 						  ## own server app ID, it will REDUCE the performance
 	
@@ -1027,8 +949,8 @@ async def main(argv):
 					configWG 		= config['WG']
 					# WG account id of the uploader: 
 					# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
-					WG_ID			= configWG.getint('wg_id', WG_ID)
-					WG_ACCOUNT		= configWG.get('wg_account', WG_ACCOUNT)
+					#WG_ID			= configWG.getint('wg_id', WG_ID)
+					#WG_ACCOUNT		= configWG.get('wg_account', WG_ACCOUNT)
 					WG_APP_ID		= configWG.get('wg_app_id', WG_APP_ID)
 					WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', WG_RATE_LIMIT)
 			except (KeyError, configparser.NoSectionError) as err:
@@ -1054,8 +976,8 @@ async def main(argv):
 		parser = ErrorCatchingArgumentParser(description='Analyze Blitz replay JSON files from WoTinspector.com. Use \'upload_wotb_replays.py\' to upload the replay files first.')
 
 		parser.add_argument('--output', default='plain', choices=['plain', 'db'], help='Select output mode: plain text or database')
-		parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
-		parser.add_argument('-a', '--account', type=str, default=WG_ACCOUNT, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
+		parser.add_argument('-id', dest='account_id', type=int, default=None, help='WG account_id to analyze. Replays without the account_id will be ignored.')
+		parser.add_argument('-a', '--account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 		parser.add_argument('--mode', default=OPT_MODE, choices=OPT_MODES, help='Select stats mode. Options: ' + ', '.join(OPT_MODES[1:]))
 		parser.add_argument('--extra', choices=BattleCategorizationList.get_categorizations_all(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleCategorizationList.get_categorization_title(cat)  for cat in BattleCategorizationList.get_categorizations_all()))
 		parser.add_argument('--only_extra', action='store_true', default=False, help='Print only the extra categories')
@@ -1068,6 +990,7 @@ async def main(argv):
 		parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
 		parser.add_argument('--db', action='store_true', default=OPT_DB, help='Use DB - You are unlikely to have it')
 		parser.add_argument('--filters', type=str, default=None, help='Filters for DB based analyses. MongoDB find() filter JSON format. see --help_filters')
+		parser.add_argument('--min', type=int, default=None, help='Only select replays from players with minimum number of replays in the dataset')
 		parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 		parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
 		parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
@@ -1076,23 +999,14 @@ async def main(argv):
 		## parser.add_argument('--help_filters', action='store_true', default=False, help='Extended help for --filters')		
 
 		try:
-			args = parser.parse_args()
-		except Exception as err:
-			raise
+			args = parser.parse_args()			
+		except Exception as err:			
+			sys.exit(0)
 
 		# res_categories = BattleCategorization.get_categorizations(OPT_CATEGORIZATIONS, args)
 
 		bu.set_log_level(args.silent, args.verbose, args.debug)
 		bu.set_progress_step(250)  						# Set the frequency of the progress dots. 
-		
-		wg = WG(WG_APP_ID, args.tankfile, args.mapfile, stats_cache=True, rate_limit=WG_RATE_LIMIT)
-		wi = WoTinspector(rate_limit=10)
-
-		if args.account != None:
-			args.account_id = await wg.get_account_id(args.account)
-			bu.debug('WG  account_id: ' + str(args.account_id))
-
-		BattleRecord.set_fields(args.mode)
 
 		#### Connect to MongoDB. You are unlikely to have this set up... 
 		bu.debug('DB_SERVER: ' + DB_SERVER)
@@ -1107,12 +1021,10 @@ async def main(argv):
 			try:
 				client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ, ssl_certfile=DB_CERT, tlsCAFile=DB_CA)
 				db = client[DB_NAME]
-				args.account_id = None
 				bu.debug('Database connection initiated')
 			except Exception as err: 
 				bu.error("Could no initiate DB connection: Disabling DB", err) 
-				args.db = False
-				pass
+				args.db = False				
 		else:
 			bu.debug('No DB in use')
 
@@ -1121,12 +1033,22 @@ async def main(argv):
 			await help_extended(db, parser)
 			sys.exit(0)
 		elif len(args.files) == 0:
-			raise UserWarning('No FILES argument given: No replays to analyse')			
-		
+			raise UserWarning('No FILES argument given: No replays to analyse')
+
+		if args.log:
+			bu.set_file_logging('analyze_wotb_replays', add_timestamp=True)
 		# rebase file arguments due to moving the working directory to the script location
 		args.files = bu.rebase_file_args(current_dir, args.files)
 
+		wg = WG(WG_APP_ID, args.tankfile, args.mapfile, stats_cache=True, rate_limit=WG_RATE_LIMIT)
+		wi = WoTinspector(rate_limit=10)
+
+		if args.account != None:
+			args.account_id = await wg.get_account_id(args.account)
+			bu.debug('WG  account_id: ' + str(args.account_id))
+
 		try:
+			BattleRecord.set_fields(args.mode)
 			replayQ  = asyncio.Queue(maxsize=1000)			
 			reader_tasks = []
 			# Make replay Queue
@@ -1156,6 +1078,10 @@ async def main(argv):
 			if len(players) == 0:
 				raise Exception("No players found to fetch stats for. No replays found?")
 
+			if args.min != None:
+				results = filter_min_replays_by_player(results, args.min)
+				players = get_players(results)
+
 			(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
 			bu.debug('Number of player stats: ' + str(len(player_stats)))
 			teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
@@ -1177,12 +1103,16 @@ async def main(argv):
 			bu.error(exception=err)
 	except UserWarning as err:
 		bu.warning(str(err))
+	except asyncio.exceptions.CancelledError:
+		pass
 	except Exception as err:
 		bu.error(exception=err)
 	finally:
 		## Need to close the aiohttp.session since Python destructors do not support async methods... 
-		if wg != None: await wg.close()
-		if wi != None: await wi.close()
+		if wg != None: 
+			await wg.close()
+		if wi != None: 
+			await wi.close()		
 	return None
 
 
@@ -1213,7 +1143,7 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 		except Exception as err:
 			bu.error(exception=err)
 
-
+## move the class PlayerHistogram?
 def set_histogram_buckets(json: dict):
 	global histogram_fields
 	try:
@@ -1222,6 +1152,42 @@ def set_histogram_buckets(json: dict):
 	except (KeyError, Exception) as err:
 		bu.error(exception=err)
 	return histogram_fields
+
+
+def get_players(results: list) -> set:
+	try:
+		players = set()
+		for res in results:
+			players.add(res['player'])
+			players.update(res['allies'])
+			players.update(res['enemies'])				
+		return players
+	except Exception as err:
+		bu.error(exception=err)
+	return None
+
+
+def filter_min_replays_by_player(results: list, min_replays: int) -> list:
+	try:
+		replay_counter = collections.defaultdict(def_value_zero)
+		for res in results:
+			replay_counter[res['protagonist']] +=1
+		
+		players_enough_replays = set()
+		for player in replay_counter.keys():
+			if replay_counter[player] >= min_replays:
+				players_enough_replays.add(player)
+		
+		res_ret = list()
+		for res in results:
+			if res['protagonist'] in players_enough_replays:
+				res_ret.append(res)
+
+		return res_ret
+
+	except Exception as err:
+		bu.error(exception=err)
+	return None	
 
 
 def process_player_dist(results: list, player_stats: dict, stat_id_map: dict, res_json: bool = False) -> dict:
@@ -1761,7 +1727,7 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 				# if (account_id != None):						
 				playerstanks.update(set(result['allies']))
 				playerstanks.update(set(result['enemies']))	
-				playerstanks.update(set([ result['player'] ]))
+				playerstanks.update(set([result['player']]))
 				
 				results.append(result)
 				bu.debug('Marking task ' + str(replayID) + ' done')
@@ -1792,6 +1758,9 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		# TBD... 
 		protagonist = int(replay_json['data']['summary']['protagonist'])
 		
+		# For filtering replays per submitter
+		result['protagonist'] = protagonist
+
 		if account_id == None:
 			account_id = protagonist
 		elif protagonist != account_id:
@@ -1805,11 +1774,14 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 				tmp = replay_json['data']['summary']['enemies']
 				replay_json['data']['summary']['enemies'] = replay_json['data']['summary']['allies']
 				replay_json['data']['summary']['allies'] = tmp
-			elif account_id not in replay_json['data']['summary']['allies']:
+			elif account_id in replay_json['data']['summary']['allies']:
 				# account_id looked for but not found in teams
-				bu.debug('Replay ' + replay_json['data']['summary']['title'] + ' does not have account_id ' + str(account_id) + '. Skipping.')
-				account_id = protagonist
-				# return None
+				#bu.debug('Replay ' + replay_json['data']['summary']['title'] + ' does not have account_id ' + str(account_id) + '. Skipping.')
+				# account_id = protagonist
+				pass 			
+			else:		
+				# looking for an account_id, but account_id not found in the teams => skipping the replay
+				return None
 		if url: 
 			result['url'] = replay_json['data']['view_url']
 				
@@ -1924,25 +1896,33 @@ def get_stat_id(account_id: int, tank_id: int, battletime: int) -> str:
 def get_stat_id_tank_tier(stat_id_str: str) -> str:
 	"""Return stat_id = account_id:tank_tier"""
 	try:
-		stat_id 	= stat_id_str.split(':')
-		tank_tier = wg.get_tank_tier(int(stat_id[1]))
-		battle_time = (int(stat_id[2]) // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
-		return ':'.join([ stat_id[0], str(tank_tier), str(battle_time) ])
+		stat_id 	= str2ints(stat_id_str)
+		tank_tier = wg.get_tank_tier(stat_id[1])
+		battle_time = (stat_id[2] // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
+		return ':'.join(map(str, [stat_id[0],tank_tier, battle_time ]))
 	except Exception as err:
-		bu.error('Stats_id: ' + stat_id_str)
-		bu.error(exception=err)
+		bu.error('Stats_id: ' + stat_id_str, exception=err)
 	return None
 
 
 def get_stat_id_player(stat_id_str: str) -> str:
-	"""Return stat_id = account_id:tank_tier"""
+	"""Return stat_id = account_id:battletime"""
 	try:
-		stat_id 	= stat_id_str.split(':')
-		battle_time = (int(stat_id[2]) // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
-		return ':'.join([ stat_id[0], str(battle_time) ])
+		stat_id 	= str2ints(stat_id_str)
+		battle_time = (stat_id[2] // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
+		return ':'.join(map(str, [ stat_id[0], battle_time ]))
 	except Exception as err:
-		bu.error('Stats_id: ' + stat_id_str)
-		bu.error(exception=err)
+		bu.error('Stats_id: ' + stat_id_str, exception=err)		
+	return None
+
+
+def get_player_f_stat_id(stat_id_str: str) -> int:
+	"""get account_id from a stat_id"""
+	try:
+		stat_id 	= str2ints(stat_id_str)
+		return stat_id[0]
+	except Exception as err:
+		bu.error('Stats_id: ' + stat_id_str, exception=err)
 	return None
 
 
