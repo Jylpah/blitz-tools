@@ -1710,7 +1710,6 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 				msg_str = 'Replay[' + str(replayID) + ']: ' 
 				if replay_json == None:
 					bu.warning(msg_str + 'Invalid replay. Skipping: '  + (replay_file if replay_file != None else '') )
-					#SKIPPED_N += 1
 					queue.task_done()
 					continue
 						
@@ -1723,7 +1722,6 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 					queue.task_done()
 					continue
 				
-				# if (account_id != None):						
 				playerstanks.update(set(result['allies']))
 				playerstanks.update(set(result['enemies']))	
 				playerstanks.update(set([result['player']]))
@@ -1774,9 +1772,6 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 				replay_json['data']['summary']['enemies'] = replay_json['data']['summary']['allies']
 				replay_json['data']['summary']['allies'] = tmp
 			elif account_id in replay_json['data']['summary']['allies']:
-				# account_id looked for but not found in teams
-				#bu.debug('Replay ' + replay_json['data']['summary']['title'] + ' does not have account_id ' + str(account_id) + '. Skipping.')
-				# account_id = protagonist
 				pass 			
 			else:		
 				# looking for an account_id, but account_id not found in the teams => skipping the replay
