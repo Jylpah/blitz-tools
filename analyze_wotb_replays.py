@@ -133,9 +133,9 @@ class BattleCategorizationList():
 		'player_name'		: [ 'Player', 		'string' ],
 		'protagonist'		: [ 'account_id', 	'number' ],
 		'battle_i'			: [ 'Battle #', 	'number' ], 
-		'player_wins'		: [ 'Player WR', 	'bucket', [ 0, .35, .45, .50, .55, .65], '%'],
-		'player_battles'	: [ 'Player Battles', 	'bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3]],
-		'player_damage_dealt'	: [ 'Player Avg Dmg', 	'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500]]
+		'player_wins'		: [ 'Player WR', 	'bucket', [ 0, .35, .45, .50, .55, .65], '%' ],
+		'player_battles'	: [ 'Player Battles', 	'bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3], 'int' ],
+		'player_damage_dealt'	: [ 'Player Avg Dmg', 	'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ]
 		}
 
 	_categorizations_default = [
@@ -503,11 +503,13 @@ class BattleBucketCategorization(BattleCategorization):
 	"""Class for categorization by buckets based on value"""
 
 	def __init__(self, cat_key : str, title: str, breaks: list, bucket_format = ''):
-		super().__init__(cat_key, title)
-		self.breaks = breaks
-		self.bucket_format = bucket_format
-		self.category_labels = self.mk_category_labels(breaks, bucket_format)
-
+		try:
+			super().__init__(cat_key, title)
+			self.breaks = breaks
+			self.bucket_format = bucket_format
+			self.category_labels = self.mk_category_labels(breaks, bucket_format)			
+		except Exception as err:
+			bu.error('BattleBucketCategorization()', exception=err) 
 
 	def get_category(self, result: dict) -> str: 
 		"""Get category"""
@@ -516,9 +518,9 @@ class BattleBucketCategorization(BattleCategorization):
 			cat_id = self.find_bucket(result[self.category_key], self.breaks)
 			return self.category_labels[cat_id]
 		except KeyError as err:
-			bu.error('Category: ' + str(self.category_key) + 'cat ID: ' + str(cat_id), exception=err)
+			bu.error('Category: ' + str(self.category_key) + ' cat ID: ' + str(cat_id), exception=err)
 		except Exception as err:
-			bu.error('Category: ' + str(self.category_key) + 'cat ID: ' + str(cat_id), exception=err)
+			bu.error('Category: ' + str(self.category_key) + ' cat ID: ' + str(cat_id), exception=err)
 		return None
 
 
@@ -538,20 +540,28 @@ class BattleBucketCategorization(BattleCategorization):
 
 	def find_bucket(self, value, bucket_breaks: list):
 		"""Find bucket for value"""
-		max = len(bucket_breaks)
-		if max <= 1:
-			return 0
-		ndx = int(max//2)
-		if value > bucket_breaks[ndx]:
-			return ndx + self.find_bucket(value, bucket_breaks[ndx:])
-		elif value < bucket_breaks[ndx]:
-			return self.find_bucket(value, bucket_breaks[:ndx])
-		else:
-			return ndx
+		try:
+			max = len(bucket_breaks)
+			if max <= 1:
+				return 0
+			ndx = int(max//2)
+			if value > bucket_breaks[ndx]:
+				return ndx + self.find_bucket(value, bucket_breaks[ndx:])
+			elif value < bucket_breaks[ndx]:
+				return self.find_bucket(value, bucket_breaks[:ndx])
+			else:
+				return ndx
+		except KeyError as err:
+			bu.error('Key not found ndx=' + str(ndx) + ', value=' + str(value), exception = err)  
+		except Exception as err:
+			bu.error('ndx=' + str(ndx) + ', value=' + str(value), exception = err) 
+		return None
 
 
 	def mk_category_labels(self, bucket_breaks: list, bucket_format: str) -> list:
 		try:
+			# add open-ended last category. list.append() modifies by reference self.breaks (not OK)!!
+			bucket_breaks = bucket_breaks + [ None ]  
 			multiplier  = 1
 			prefix = ''
 			if bucket_format == '%':
@@ -564,7 +574,6 @@ class BattleBucketCategorization(BattleCategorization):
 				frmt = '{:.0f}'
 			else:
 				frmt = '{:.0f}'
-
 			labels = list()
 			for ndx in range(0,len(bucket_breaks) - 1):
 				low 	= bucket_breaks[ndx]
@@ -582,7 +591,7 @@ class BattleBucketCategorization(BattleCategorization):
 					label = label + frmt.format(high*multiplier)
 
 				label = label + prefix
-				labels.append(labels)
+				labels.append(label)
 			return labels
 
 		except KeyError as err:
