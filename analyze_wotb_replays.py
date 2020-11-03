@@ -369,6 +369,7 @@ class BattleCategorization():
 			results['category_key'] 	= self.category_key			
 			for cat in self.get_categories():
 				results[cat] = self.categories[cat].get_results()			
+
 			return results
 		except KeyError as err:
 			bu.error('Key not found', err)  
@@ -581,11 +582,12 @@ class BattleRecord():
 		'time_alive%'		: [ 'T alive%', 'Percentage of time being alive in a battle', 		8, '{:8.0%}' ], 
 		'top_tier'			: [ 'Top tier', 'Share of games as top tier', 						8, '{:8.0%}' ],
 		'player_wins'		: [ 'Player WR', 'Average WR of the player', 						9, '{:9.2%}' ],
-		'player_battles'	: [ 'Player Btls', 'Average number battles of the player', 			11, '{:11.0f}' ],
 		'allies_wins'		: [ 'Allies WR', 'Average WR of allies at the tier of their tank', 	9, '{:9.2%}' ],
 		'enemies_wins'		: [ 'Enemies WR', 'Average WR of enemies at the tier of their tank', 10, '{:10.2%}' ],
+		'player_battles'	: [ 'Player Btls', 'Average number battles of the player', 			11, '{:11.0f}' ],
 		'allies_battles'	: [ 'Allies Btls', 'Average number battles of the allies', 			11, '{:11.0f}' ],
 		'enemies_battles'	: [ 'Enemies Btls', 'Average number battles of the enemies', 		12, '{:12.0f}' ],
+		'player_damage_dealt'	: [ 'Player Avg Dmg', 'Player Average damage', 					11, '{:11.0f}' ],
 		'allies_damage_dealt'	: [ 'Allies Avg Dmg', 'Average damage of the allies', 			11, '{:11.0f}' ],
 		'enemies_damage_dealt'	: [ 'Enemies Avg Dmg', 'Average damage of the enemies', 		12, '{:12.0f}' ],
 		MISSING_STATS		: [ 'No stats', 'Players without stats avail', 						8, '{:8.1%}']		
@@ -600,9 +602,7 @@ class BattleRecord():
 		'extended'		: [ 'battles',	'battles%',	'win','damage_made','enemies_spotted', 'top_tier', 'DR', 'KDR', 'hit_rate',	'pen_rate',	'survived',	'time_alive%', 'player_wins', 'allies_damage_wins', 'enemies_wins', MISSING_STATS ]
 	}
 
-
 	_team_fields = [ 'wins', 'battles', 'damage_dealt' ]
-
 	
 	count_fields = [
 		'battles', 
@@ -890,7 +890,7 @@ OPT_MODE_HELP		= 'help'
 OPT_MODES = [ OPT_MODE_DEFAULT, OPT_MODE_TEAM, OPT_MODE_EXTENDED, OPT_MODE_HELP ]
 
 async def main(argv):
-	global wg, wi, WG_APP_ID
+	global wg, wi, WG_APP_ID, OPT_MODE
 	# set the directory for the script
 	current_dir = os.getcwd()
 	os.chdir(os.path.dirname(sys.argv[0]))
@@ -900,6 +900,7 @@ async def main(argv):
 	OPT_HIST			= False
 	OPT_STAT_FUNC		= 'player'
 	OPT_WORKERS_N 		= 10
+
 
 	#WG_ACCOUNT 		= None 	# format: nick@server, where server is either 'eu', 'ru', 'na', 'asia' or 'china'. 
 	  					 	# China is not supported since WG API stats are not available there
