@@ -90,11 +90,11 @@ def def_value_zero():
 def def_value_BattleRecord():
 	return BattleRecord()
 
-class BattleRecordCategory():
-
+class BattleCategorizationList():
+	
 	@staticmethod
 	def mk_battle_modes(modes: dict):
-		"""Make a list of battle modes as required for the _result_categories"""
+		"""Make a list of battle modes as required for the _categorizations"""
 		mode_ids = modes.values()
 		id_max = max(mode_ids)
 		ret_modes = ['-'] * (id_max+16)		# create a list of '-' elements
@@ -119,7 +119,7 @@ class BattleRecordCategory():
 
 	_BATTLE_MODES = mk_battle_modes.__func__(_battle_modes)
 
-	_result_categories = {
+	_categorizations = {
 		'total'				: [ 'TOTAL', 		'total' ],
 		'battle_result'		: [ 'Result', 		'category', 	[ 'Loss', 'Win', 'Draw']],
 		'battle_type'		: [ 'Battle Type', 	'category', 	['Encounter', 'Supremacy']],
@@ -133,12 +133,12 @@ class BattleRecordCategory():
 		'player_name'		: [ 'Player', 		'string' ],
 		'protagonist'		: [ 'account_id', 	'number' ],
 		'battle_i'			: [ 'Battle #', 	'number' ], 
-		'player_wins'		: [ 'Player WR', 	'bucket', [ 0, .35, .45, .50, .55, .65], '%'],
-		'player_battles'	: [ 'Player Battles', 	'bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3]],
-		'player_damage_dealt'	: [ 'Player Avg Dmg', 	'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500]]
+		'player_wins'		: [ 'Player WR', 	'bucket', [ 0, .35, .45, .50, .55, .65], '%' ],
+		'player_battles'	: [ 'Player Battles', 	'bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3], 'int' ],
+		'player_damage_dealt'	: [ 'Player Avg Dmg', 	'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ]
 		}
 
-	_result_categories_default = [
+	_categorizations_default = [
 		'total',
 		'battle_result',
 		'battle_type',
@@ -146,271 +146,218 @@ class BattleRecordCategory():
 		'top_tier'
 		]
 
-	# _result_categories_extra = [
-	# 	'mastery_badge',	
-	# 	'room_type',
-	# 	'tank_name',
-	# 	'map_name', 
-	# 	'team_result',
-	# 	'battle_i',
-	# 	'player_wins',
-	# 	'player_name',
-	# 	'protagonist'		
-	# 	]
 
-	total_battles = 0
-
-	RESULT_CAT_FRMT = '{:>20s}'
-	
-	
 	@classmethod
-	def get_categories_all(cls):
-		return cls._result_categories.keys()
+	def get_categorizations_all(cls):
+		return cls._categorizations.keys()
 
 
 	@classmethod
-	def get_default_categories(cls):
-		return cls._result_categories_default
+	def get_categorizations_default(cls):
+		return cls._categorizations_default
 
 
 	@classmethod
-	def get_result_categories(cls, default_cats: list, args : argparse.Namespace):
-		extra_cats = args.extra
-		only_extra = args.only_extra
-
-		if only_extra:
-			res_categories = list()
-		else:
-			if default_cats == None:
-				res_categories = cls.get_default_categories()
-			else:
-				res_categories = default_cats
-		if extra_cats != None: 
-			res_categories = res_categories + extra_cats
-		res_categories = list(set(res_categories))  	# remove duplicates
-				
-		return [ cat for cat in cls._result_categories if cat in res_categories ]
-
-
-
-	@classmethod
-	def get_extra_categories(cls) -> list:
-		#return cls._result_categories_extra
-		return list( set(cls._result_categories.keys() ) - set(cls.get_default_categories() ) )
-
-
-	def __init__(self, cat_name : str):
-		self.category_name = cat_name
-		self.bucket_labels = list()
-		self.categories = collections.defaultdict(def_value_BattleRecord)
-		if self._result_categories[self.category_name][1] == 'string':
-			self.type = 'string'
-		elif self._result_categories[self.category_name][1] == 'number':
-			self.type = 'number'
-		elif self._result_categories[self.category_name][1] == 'total':
-			self.type = 'total'
-		elif self._result_categories[self.category_name][1] == 'bucket':
-			self.type = 'bucket'
-			self.bucket_format = self.get_bucket_label_format()
-			self.buckets = self.get_bucket_breaks()
-			for start in range(len(self.buckets)):
-				self.bucket_labels.append(self.mk_bucket_label(start, self.buckets))
-
-		else:
-			self.type = 'category'
-	
-
-	def get_sub_categories(self):
-		return self.categories
-
-
-	def get_fields(self):
-		"""Return fields as dict"""
-		key = next(iter(self.get_sub_categories()))
-		sub_category = self.categories[key]
-		fields = dict()
-		for col in sub_category.get_result_fields():
-			fields[col] = sub_category.get_field_name(col)
-		return fields
-
-	
-	def get_category_name(self) -> str:
-		return self._result_categories[self.category_name][0]
-
-
-	def get_category(self, id):
-		"""Get category of 'category' type of BattleRecordCategory"""
+	def set_categorizations_default(cls, cat_defaults: list):
 		try:
-			return self._result_categories[self.category_name][2][id]
-		except Exception as err:
-			bu.error(exception=err)	
-		return None
-
-
-	def get_bucket_breaks(self) -> list:
-		"""Return bucket breaks"""
-		try:
-			return sorted(self._result_categories[self.category_name][2])
+			defaults = list()
+			for cat in cat_defaults:
+				if cat in cls.get_categorizations_all():
+					defaults.append(cat)
+				else:
+					bu.error(cat + ' is not a defined categorization')
+			cls._categorizations_default = defaults
 		except Exception as err:
 			bu.error(exception=err)
-		return None
 
-	
-	def get_bucket_label_format(self) -> str:
-		"""Return bucket label type, if any"""
+
+	@classmethod
+	def get_categorizations_extra(cls) -> list:
+		#return cls._categorizations_extra
+		return list( set(cls._categorizations.keys() ) - set(cls.get_categorizations_default() ) )
+
+
+	@classmethod
+	def get_categorization_title(cls, cat: str) -> str:
 		try:
-			if len(self._result_categories[self.category_name]) > 3:
-				return self._result_categories[self.category_name][3]
-			return ''			
+			return cls._categorizations[cat][0]
 		except Exception as err:
 			bu.error(exception=err)
 		return None
 
 
-	def get_bucket(self, result: dict) -> str:
+	@classmethod
+	def get_categorization_type(cls, cat: str) -> str:
 		try:
-			ndx = self.find_bucket(result[self.category_name], self.buckets)
-			return self.bucket_labels[ndx]			
+			return cls._categorizations[cat][1]
 		except Exception as err:
-			bu.error('Category: ' + self.category_name)
-			bu.error('Unknown error', exception=err) 
+			bu.error(exception=err)
 		return None
 
 
-	def find_bucket(self, value, buckets):
-		"""Find bucket for value"""
-		max = len(buckets)
-		if max <= 1:
-			return 0
-		ndx = int(max//2)
-		if value > buckets[ndx]:
-			return ndx + self.find_bucket(value, buckets[ndx:])
-		elif value < buckets[ndx]:
-			return self.find_bucket(value, buckets[:ndx])
-		else:
-			return ndx
-
-
-	def mk_bucket_label(self, ndx: int, buckets: list) -> str:
+	@classmethod
+	def get_categorization_params(cls, cat: str) -> list:
 		try:
-			low = buckets[ndx]
-			if ndx >= len(buckets)-1:
-				high = None
-			else:
-				high = buckets[min(ndx+1, len(buckets)-1)]
-			
-			prefix = ''
-			if self.bucket_format == '%':
-				frmt = '{:2.0f}'
-				if low != None:
-					low *= 100
-				if high != None:
-					high *= 100
-				prefix = '%'
-			elif self.bucket_format == 'ratio':
-				frmt = '{:.2f}'
-			else:
-				frmt = '{:.0f}'
-
-			label = frmt.format(low) + ' - '
-			if high != None:
-				label = label + frmt.format(high)
-			else:
-				label = label + '  '
-			label = label + prefix
-			return label
-		except KeyError as err:
-			bu.error('KeyError: ndx=' + str(ndx) + ' buckets=' + str(buckets), exception=err)
-		except Exception as err:			
-			bu.error('Unknown error', exception=err) 
-		return None
-
-
-	def get_sub_category(self, result: dict) -> str: 
-		"""Get category"""
-		try:
-			cat = None
-			if self.type == 'total':
-				cat = 'Total'
-			elif self.type == 'number':
-				cat = str(result[self.category_name])
-			elif self.type == 'string':
-				cat = result[self.category_name]
-			elif self.type == 'category':
-				cat = self.get_category(result[self.category_name])
-				#cat = self._result_categories[self.category_name][2][result[self.category_name]]
-			elif self.type == 'bucket':
-				cat = self.get_bucket(result)				
-			return cat
-		except KeyError as err:
-			bu.error('Category: ', str(cat))
-			bu.error('Key not found', exception=err)			
+			if len(cls._categorizations[cat]) > 2:
+				return cls._categorizations[cat][2:]
 		except Exception as err:
-			bu.error('Category: ', str(cat))
-			bu.error('Unknown error', exception=err) 
+			bu.error(exception=err)
 		return None
 		
 
+	def __init__(self, args : argparse.Namespace):
+		self.urls 				= collections.OrderedDict()
+		self.url_title_max_len 	= 0
+		extra_cats = args.extra
+		only_extra = args.only_extra
+		
+		if only_extra:
+			cats = list()
+		else:
+			cats = self.get_categorizations_default()
+		
+		if extra_cats != None: 
+			cats = cats + extra_cats
+		
+		cats = list(set(cats))  	# remove duplicates
+		# ordering		
+		self.categorizations_list = [ cat for cat in self._categorizations if cat in cats ]
+		
+		self.categorizations = dict()
+		for cat in self.categorizations_list:
+			try:
+				ctitle 	= self.get_categorization_title(cat)
+				ctype 	= self.get_categorization_type(cat)
+				cparams = self.get_categorization_params(cat)
+						
+				if ctype == 'total':
+					self.categorizations[cat] = BattleTotals(ctitle)
+				elif ctype == 'number':
+					self.categorizations[cat] = BattleNumberCategorization(cat, ctitle)
+				elif ctype == 'string':
+					self.categorizations[cat] = BattleStringCategorization(cat, ctitle)
+				elif ctype == 'category':					
+					self.categorizations[cat] = BattleClassCategorization(cat, ctitle, cparams[0])
+				elif ctype == 'bucket':
+					self.categorizations[cat] = BattleBucketCategorization(cat, ctitle, cparams[0], cparams[1])
+
+			except KeyError as err:
+				bu.error('BattleCategorizationList(): Key not found: Category: ' + cat, exception=err)			
+			except Exception as err:
+				bu.error('BattleCategorizationList()', exception=err) 
+		
+	
 	def record_result(self, result: dict):
 		try:
-			cat = self.get_sub_category(result)
+			for cat in self.categorizations_list:
+				self.categorizations[cat].record_result(result)
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
+
+	def calc_results(self):
+		try:
+			for cat in self.categorizations_list:
+				self.categorizations[cat].calc_results()
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
+
+	def record_url(self, result):
+		try:
+			self.url_title_max_len = max(self.url_title_max_len, len(result['title']))
+			self.urls[result['title']] =  result['url']
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
+	def print_results(self):
+		try:
+			for cat in self.categorizations_list:
+				self.categorizations[cat].print_results()
+			self.print_urls()
+
+		except Exception as err:
+			bu.error(exception=err)	
+
+
+	def print_urls(self):
+		try:
+			if len(self.urls) > 0:
+				print('\nURLs to Battle replays:')
+				for title in self.urls:
+					print(('{:' + str(3 + self.url_title_max_len) + '}').format(title) + ' : ' + self.urls[title])
+		except Exception as err:
+			bu.error(exception=err)		
+
+
+	def get_results_json(self):
+		try:
+			res = dict()
+			for cat in self.categorizations_list:
+				res[cat] = self.categorizations[cat].get_results_json()
+			res['replay_urls'] = self.urls
+			return res
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
+class BattleCategorization():
+
+	RESULT_CAT_FRMT = '{:>20s}'
+	
+	def __init__(self, cat_key : str, title: str):
+		self.total_battles 	= 0
+		self.category_key 	= cat_key
+		self.title 			= title
+		self.categories 	= collections.defaultdict(def_value_BattleRecord)
+
+
+	def get_categories(self):
+		"""Get category keys sorted"""
+		return sorted(self.categories.keys() , key=str.casefold)
+
+
+	### PER Child Class
+	def get_category(self, result: dict) -> str: 
+		"""Get category. Must be implemented in the child classes"""
+		return 'NONE'
+
+
+	def record_result(self, result: dict):
+		try:
+			cat = self.get_category(result)
 			self.categories[cat].record_result(result)
 			self.total_battles += 1
 			return True
 		except KeyError as err:
-			bu.error('Key not found', err)
-			bu.error('Category: ', str(cat))
-			bu.error(exception = err)
+			bu.error('Category key not found: ' + cat, exception=err)
 		except Exception as err:
-			bu.error('Category: ', str(cat))
-			bu.error(exception = err) 
+			bu.error('Category key: ' + cat, exception = err) 
 		return False
 	
 
 	def calc_results(self):
 		try:
-			for sub_cat in self.get_sub_categories().keys():
-				self.categories[sub_cat].calc_results(self.total_battles)
+			for cat in self.get_categories():
+				self.categories[cat].calc_results(self.total_battles)
 		except Exception as err:
 			bu.error(exception = err)
 
 
 	def print_results(self):
-		try:
-			first_btl_record = list(self.categories.values())[0]
-			print('   '.join(first_btl_record.get_headers(self.get_category_name())))
-			for row in self.get_results():
-				print(' : '.join(row))
+		try:			
+			bu.print_new_line()
+			BattleRecord.print_headers(self.title)
+			for cat in self.get_categories():
+				print(self.RESULT_CAT_FRMT.format(cat), end='   ')
+				self.categories[cat].print_results()
 		except KeyError as err:
 			bu.error('Key not found', err)  
 		except Exception as err:
 			bu.error(exception = err) 
-		return None
-
-
-	def get_results(self):
-		try:
-			results = []
-			# results.append(self.get_headers())			
-			if self.type == 'number':
-				for cat in sorted( [ int(s) for s in self.categories.keys() ] ):
-					cat = str(cat) 
-					row = [ self.RESULT_CAT_FRMT.format(cat) ]
-					row.extend(self.categories[cat].get_results())
-					results.append(row)
-			elif self.type == 'bucket':
-				for cat in [ c for c in self.bucket_labels if c in self.categories.keys()]:
-					row = [ self.RESULT_CAT_FRMT.format(cat) ]
-					row.extend(self.categories[cat].get_results())
-					results.append(row)
-			else:
-				for cat in sorted(self.categories.keys() , key=str.casefold):
-					row = [ self.RESULT_CAT_FRMT.format(cat) ]
-					row.extend(self.categories[cat].get_results())
-					results.append(row)
-			return results
-		except KeyError as err:
-			bu.error('Key not found', err)  
 		return None
 
 
@@ -418,29 +365,214 @@ class BattleRecordCategory():
 		"""Get results in JSON format"""
 		try:
 			results = dict()
-			results['name' ] = self.get_category_name()
-			# results.append(self.get_headers())			
-			if self.type == 'number':
-				for cat in sorted( [ int(s) for s in self.categories.keys() ] ):
-					cat = str(cat) 
-					results[cat] = self.categories[cat].get_results_json()					
-			else:
-				for cat in sorted(self.categories.keys() , key=str.casefold):
-					cat = str(cat) 
-					results[cat] = self.categories[cat].get_results_json()					
+			results['categorization'] 	= self.title
+			results['category_key'] 	= self.category_key			
+			for cat in self.get_categories():
+				results[cat] = self.categories[cat].get_results()			
+
 			return results
 		except KeyError as err:
 			bu.error('Key not found', err)  
 		return None
 
+
+class BattleTotals(BattleCategorization):
+	TOTAL = 'Total'
+
+	def __init__(self, title: str):
+		super().__init__(self.TOTAL, title)
+
+
+	def get_category(self, result: dict) -> str: 
+		return self.TOTAL
+
+	def get_categories(self) -> str: 
+		return [ self.TOTAL ]
+
+
+class BattleClassCategorization(BattleCategorization):
+	"""Class for categorization by fixed classes with ID (int)"""
+	
+	def __init__(self, cat_key : str, title: str, classes: list):
+		super().__init__(cat_key, title)
+		self.category_labels = classes
+
+
+	def get_category(self, result: dict) -> str: 
+		"""Get category"""
+		cat_id = -1
+		try:
+			cat_id	= result[self.category_key]
+			return self.category_labels[cat_id]
+		except KeyError as err:
+			bu.error('Category: ' + str(self.category_key) + ' ID: ' + str(cat_id), exception=err)
+		except Exception as err:
+			bu.error('Category: ' + str(self.category_key) + ' ID: ' + str(cat_id), exception=err)
+		return None
+
+	
+	def get_categories(self) -> list:
+		try:
+			cats = list()
+			for cat in self.category_labels:
+				if cat in self.categories.keys():
+					cats.append(cat)
+			return cats 
+		except KeyError as err:
+			bu.error('Key not found', exception = err)  
+		except Exception as err:
+			bu.error(exception = err) 
+		return None
+
+
+class BattleStringCategorization(BattleCategorization):
+	"""Class for categorization by string"""
+
+	def get_category(self, result: dict) -> str: 
+		"""Get category"""
+		try:
+			return result[self.category_key]			
+		except KeyError as err:
+			bu.error('Category key: ' + self.category_key + ' not found', exception=err)
+		except Exception as err:
+			bu.error('Category: ' +  self.category_key, exception=err)
+		return None
+
+
+class BattleNumberCategorization(BattleCategorization):
+	"""Class for categorization by number"""
+
+	def get_category(self, result: dict) -> str: 
+		"""Get category as """
+		try:
+			return str(result[self.category_key])
+		except KeyError as err:
+			bu.error('Category: ' + str(self.category_key), exception=err)
+			
+		except Exception as err:
+			bu.error('Category: ' + str(self.category_key), exception=err)
+		return None
+
+
+	def get_categories(self) -> list:
+		try:
+			return map(str, sorted( map(int, self.categories.keys())))
+		except KeyError as err:
+			bu.error('Key not found', exception=err)  
+		return None
+
+
+class BattleBucketCategorization(BattleCategorization):
+	"""Class for categorization by buckets based on value"""
+
+	def __init__(self, cat_key : str, title: str, breaks: list, bucket_format = ''):
+		try:
+			super().__init__(cat_key, title)
+			self.breaks = breaks
+			self.bucket_format = bucket_format
+			self.category_labels = self.mk_category_labels(breaks, bucket_format)			
+		except Exception as err:
+			bu.error('BattleBucketCategorization()', exception=err) 
+
+	def get_category(self, result: dict) -> str: 
+		"""Get category"""
+		cat_id = -1
+		try:
+			cat_id = self.find_bucket(result[self.category_key], self.breaks)
+			return self.category_labels[cat_id]
+		except KeyError as err:
+			bu.error('Category: ' + str(self.category_key) + ' cat ID: ' + str(cat_id), exception=err)
+		except Exception as err:
+			bu.error('Category: ' + str(self.category_key) + ' cat ID: ' + str(cat_id), exception=err)
+		return None
+
+
+	def get_categories(self) -> list:
+		try:
+			cats = list()
+			for cat in self.category_labels:
+				if cat in self.categories.keys():
+					cats.append(cat)
+			return cats 
+		except KeyError as err:
+			bu.error('Key not found', exception = err)  
+		except Exception as err:
+			bu.error(exception = err) 
+		return None
+
+
+	def find_bucket(self, value, bucket_breaks: list):
+		"""Find bucket for value"""
+		try:
+			max = len(bucket_breaks)
+			if max <= 1:
+				return 0
+			ndx = int(max//2)
+			if value > bucket_breaks[ndx]:
+				return ndx + self.find_bucket(value, bucket_breaks[ndx:])
+			elif value < bucket_breaks[ndx]:
+				return self.find_bucket(value, bucket_breaks[:ndx])
+			else:
+				return ndx
+		except KeyError as err:
+			bu.error('Key not found ndx=' + str(ndx) + ', value=' + str(value), exception = err)  
+		except Exception as err:
+			bu.error('ndx=' + str(ndx) + ', value=' + str(value), exception = err) 
+		return None
+
+
+	def mk_category_labels(self, bucket_breaks: list, bucket_format: str) -> list:
+		try:
+			# add open-ended last category. list.append() modifies by reference self.breaks (not OK)!!
+			bucket_breaks = bucket_breaks + [ None ]  
+			multiplier  = 1
+			prefix = ''
+			if bucket_format == '%':
+				frmt = '{:2.0f}'
+				multiplier = 100
+				prefix = '%'
+			elif bucket_format == 'float':
+				frmt = '{:.2f}'
+			elif bucket_format == 'int':
+				frmt = '{:.0f}'
+			else:
+				frmt = '{:.0f}'
+			labels = list()
+			for ndx in range(0,len(bucket_breaks) - 1):
+				low 	= bucket_breaks[ndx]
+				high 	= bucket_breaks[ndx +1]
+
+				# None makes open ended category label: '1500 - ' 				
+				if low == None: 
+					label = '   - '
+				else:
+					label = frmt.format(low*multiplier) + ' - '
+				
+				if high == None:
+					label = label + '  '
+				else:
+					label = label + frmt.format(high*multiplier)
+
+				label = label + prefix
+				labels.append(label)
+			return labels
+
+		except KeyError as err:
+			bu.error('KeyError: ndx=' + str(ndx) + ' buckets=' + str(bucket_breaks), exception=err)
+		except Exception as err:			
+			bu.error('Unknown error', exception=err) 
+		return None
+
+
 class BattleRecord():
 	
 	## Syntax: Check how the replay JSON files look. The algorithm is counting/recording fields
 	_result_fields = {
-		'battles'			: [ 'Battles', 'Number of battles', 								8, '{:^8.0f}' ],
-		'battles%'			: [ '% Battles', 'Share of Battles',								6, '{:6.0%}' ],
+		'battles'			: [ 'Battles', 'Number of battles', 								7, '{:7.0f}' ],
+		'battles%'			: [ '% Battles', 'Share of Battles',								9, '{:9.0%}' ],
 		'win'				: [ 'WR', 'Win rate', 												6, '{:6.1%}' ],
 		'damage_made'		: [ 'DPB', 'Average Damage', 										5, '{:5.0f}' ],
+		'frags'				: [ 'KDB', 'Kills / Battle', 										4, '{:4.2f}' ],
 		'DR'				: [ 'DR', 'Damage Ratio', 											5, '{:5.1f}' ],
 		'KDR'				: [ 'KDR', 'Kills / Death', 										4, '{:4.1f}' ],
 		'enemies_spotted'	: [ 'Spot', 'Enemies spotted per battle', 							4, '{:4.1f}' ],
@@ -461,56 +593,23 @@ class BattleRecord():
 		MISSING_STATS		: [ 'No stats', 'Players without stats avail', 						8, '{:8.1%}']		
 	}
 
-	_team_fields = [ 'wins', 'battles', 'damage_dealt' ]
 
 	# fields to display in results
-	_result_fields_default = [
-		'battles',
-		'battles%',
-		'win',
-		'damage_made',
-		'player_wins',
-		'allies_wins',
-		'enemies_wins',
-		'allies_battles',
-		'enemies_battles'
-	]
+	_result_fields_modes = {
+		'default'		: [ 'battles',	'battles%',	'win','damage_made', 'frags', 'enemies_spotted', 'top_tier', 'DR', 'survived', 'allies_wins', 'enemies_wins'],
+		'team'			: [ 'battles',	'battles%',	'win','player_wins','allies_wins','enemies_wins'],
+		'team-extended'	: [ 'battles',	'battles%',	'win','player_wins','allies_wins','enemies_wins',	'player_damage_dealt', 'allies_damage_dealt', 'enemies_damage_dealt', 'player_battles','allies_battles','enemies_battles' ],
+		'extended'		: [ 'battles',	'battles%',	'win','damage_made','enemies_spotted', 'top_tier', 'DR', 'KDR', 'hit_rate',	'pen_rate',	'survived',	'time_alive%', 'player_wins', 'allies_damage_wins', 'enemies_wins', MISSING_STATS ]
+	}
 
-
-	_result_fields_team = [
-		'battles',
-		'player_wins',
-		'allies_wins',
-		'enemies_wins',
-		'player_damage_dealt', 
-		'allies_damage_dealt',
-		'enemies_damage_dealt',
-		'player_battles',
-		'allies_battles',
-		'enemies_battles'
-	]
-
-
-	_result_fields_extended = [
-		'enemies_spotted',
-		'top_tier',
-		'DR',
-		'KDR',
-		'hit_rate',
-		'pen_rate',
-		'survived',
-		'time_alive%',
-		'player_battles',
-		'allies_damage_dealt',
-		'enemies_damage_dealt',
-		MISSING_STATS
-	]
-
-	_result_counts = [
+	_team_fields = [ 'wins', 'battles', 'damage_dealt' ]
+	
+	count_fields = [
 		'battles', 
 		MISSING_STATS, 
 		'mastery_badge'
 	]
+
 	_result_ratios = {
 		'KDR'				: [ 'enemies_destroyed', 'destroyed' ],
 		'DR'				: [ 'damage_made', 'damage_received' ],
@@ -527,27 +626,31 @@ class BattleRecord():
 		
 	RESULT_CAT_HEADER_FRMT = '{:_<20s}'
 
+	@classmethod
+	def get_modes(cls) -> list:
+		return list(cls._result_fields_modes.keys())
+
+	@classmethod
+	def get_mode_fields(cls, mode: str):
+		try:
+			return cls._result_fields_modes[mode]
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
 
 	@classmethod
 	def set_fields(cls, mode: str = None):
 		try:
-			cls._mode = mode
-			
-			if cls._mode == OPT_MODE_EXTENDED:
-				cls.result_fields  = cls._result_fields_default + cls._result_fields_extended
-			elif cls._mode == OPT_MODE_TEAM:
-				cls.result_fields = cls._result_fields_team
-			else:
-				cls.result_fields  = cls._result_fields_default
-			cls.result_fields_ratio = set(cls._result_ratios.keys()) & set(cls.result_fields)
+			if mode not in cls.get_modes():
+				bu.error('Mode ' + mode + ' not in defined modes: ' + ', '.join(cls.get_modes()))
+				sys.exit(2)
 
-			# sort results fields according to _results_fields		
-			cls.result_fields.sort(key = lambda i: list(cls._result_fields.keys()).index(i)) 
-			
-			cls.avg_fields = set(cls.result_fields)
-			for field in (set(cls._result_counts) & cls.avg_fields):
-				cls.avg_fields.remove(field)
-			cls.avg_fields.difference_update(set(cls._result_ratios.keys()))
+			cls.mode = mode
+			cls.result_fields = cls.get_mode_fields(cls.mode)
+			cls.result_fields_ratio = set(cls._result_ratios.keys()) & set(cls.result_fields)
+			cls.avg_fields = set(cls.result_fields) - set(cls._result_ratios.keys()) - set(cls.count_fields)
+		
 			for ratio in cls.result_fields_ratio:
 				cls.ratio_fields.add(cls._result_ratios[ratio][0])
 				cls.ratio_fields.add(cls._result_ratios[ratio][1])
@@ -556,8 +659,17 @@ class BattleRecord():
 		
 
 	@classmethod
-	def get_result_fields(cls) -> set:
+	def get_result_fields(cls) -> list:
 		return cls.result_fields
+
+	@classmethod
+	def get_avg_fields(cls) -> set:
+		return cls.avg_fields
+
+
+	@classmethod
+	def get_ratio_fields(cls) -> set:
+		return cls.ratio_fields
 
 
 	@classmethod
@@ -576,18 +688,23 @@ class BattleRecord():
 
 
 	@classmethod
-	def get_fields_avg(cls) -> set:
-		return cls.avg_fields
-
-
-	@classmethod
-	def get_fields_ratio(cls) -> set:
-		return cls.ratio_fields
-
-
-	@classmethod
-	def get_team_fields(cls) -> list:
+	def get_fields_team(cls) -> list:
 		return cls._team_fields
+
+
+	@classmethod
+	def print_headers(cls, cat_name: str):
+		try:
+			headers = [ cls.RESULT_CAT_HEADER_FRMT.format(cat_name) ]
+			for field in cls.result_fields:
+				print_format = '{:^' + str(cls.get_field_width(field)) + 's}'
+				headers.append(print_format.format(cls.get_field_name(field)))
+			print('   '.join(headers))
+		except KeyError as err:
+			bu.error('Key not found', exception=err)  
+		except Exception as err:
+			bu.error(exception=err) 
+		return None
 
 
 	def __init__(self):
@@ -601,7 +718,7 @@ class BattleRecord():
 			self.results = collections.defaultdict(def_value_zero)
 
 		except KeyError as err:
-			bu.error('Key not found', err) 
+			bu.error('BattleRecord(): Key not found', err) 
 
 
 	def record_result(self, result : dict) -> bool:
@@ -657,38 +774,8 @@ class BattleRecord():
 		return False
 
 
-	def get_headers(self, cat_name: str):
-		try:
-			headers = [ self.RESULT_CAT_HEADER_FRMT.format(cat_name) ]
-			for field in self.result_fields:
-				print_format = '{:^' + str(self.get_field_width(field)) + 's}'
-				headers.append(print_format.format(self.get_field_name(field)))
-			return headers
-		except KeyError as err:
-			bu.error('Key not found', err)  
-		except Exception as err:
-			bu.error(str(err)) 
-		return None
-
-
-	def get_results(self) -> list:
-		"""Return results for printing"""
-		if not self.results_ready:
-			bu.error('Stats have not been calculated yet. call calc_results() before get_results()')
-		try:
-			results = []
-			for field in self.result_fields:
-				results.append(self._result_fields[field][3].format(self.results[field]) )
-			return results
-		except KeyError as err:
-			bu.error('Key not found', err)  
-		except Exception as err:
-			bu.error(exception=err) 
-		return None
-	
-
-	def get_results_json(self) -> dict:
-		"""Return results in JSON format"""
+	def get_results(self) -> dict:
+		"""Return results as a dict"""
 		if not self.results_ready:
 			bu.error('Stats have not been calculated yet. call calc_results() before get_results()')
 		try:
@@ -703,9 +790,20 @@ class BattleRecord():
 		return None
 	
 
-
 	def print_results(self):
-		print(' : '.join(self.get_results()))
+		if not self.results_ready:
+			bu.error('Stats have not been calculated yet. call calc_results() before printing()')
+		try:
+			results = []
+			for field in self.result_fields:
+				results.append(self._result_fields[field][3].format(self.results[field]) )				
+			print(' : '.join(results))
+			return True
+		except KeyError as err:
+			bu.error('Key not found', err)  
+		except Exception as err:
+			bu.error(exception=err) 
+		return False
 
 
 class PlayerHistogram():
@@ -782,13 +880,14 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
 			else:
 				raise UserWarning()
 
+
 ## main() -------------------------------------------------------------
 
-OPT_MODE_DEFAULT 	= None
+OPT_MODE_DEFAULT 	= 'default'
 OPT_MODE_TEAM 		= 'team'
 OPT_MODE_EXTENDED 	= 'extended'
 OPT_MODE_HELP		= 'help'
-OPT_MODES = [ None, OPT_MODE_TEAM, OPT_MODE_EXTENDED, OPT_MODE_HELP ]
+OPT_MODES = [ OPT_MODE_DEFAULT, OPT_MODE_TEAM, OPT_MODE_EXTENDED, OPT_MODE_HELP ]
 
 async def main(argv):
 	global wg, wi, WG_APP_ID, OPT_MODE
@@ -797,18 +896,16 @@ async def main(argv):
 	os.chdir(os.path.dirname(sys.argv[0]))
 
 	## Default options:
-	OPT_MODE 		= OPT_MODE_DEFAULT
-	OPT_DB			= False
-	OPT_HIST		= False
-	OPT_STAT_FUNC	= 'player'
-	OPT_WORKERS_N 	= 10
-	OPT_CATEGORIES  = None
+	OPT_DB				= False
+	OPT_HIST			= False
+	OPT_STAT_FUNC		= 'player'
+	OPT_WORKERS_N 		= 10
 
-	WG_ACCOUNT 		= None 	# format: nick@server, where server is either 'eu', 'ru', 'na', 'asia' or 'china'. 
+
+	#WG_ACCOUNT 		= None 	# format: nick@server, where server is either 'eu', 'ru', 'na', 'asia' or 'china'. 
 	  					 	# China is not supported since WG API stats are not available there
-	WG_ID			= None  # WG account_id in integer format. 
+	#WG_ID			= None  # WG account_id in integer format. 
 							# WG_ACCOUNT will be used to retrieve the account_id, but it can be set directly too
-	# WG_APP_ID		= WG_APP_ID
 	WG_RATE_LIMIT	= 10  ## WG standard. Do not edit unless you have your
 						  ## own server app ID, it will REDUCE the performance
 	
@@ -833,13 +930,14 @@ async def main(argv):
 			try:
 				if 'ANALYZER' in config.sections():
 					configAnalyzer	= config['ANALYZER']
-					OPT_MODE 		= configAnalyzer.getboolean('opt_mode', OPT_MODE_DEFAULT)
-					OPT_HIST		= configAnalyzer.getboolean('opt_hist', OPT_HIST)
-					OPT_STAT_FUNC	= configAnalyzer.get('opt_stat_func', fallback=OPT_STAT_FUNC)
-					OPT_WORKERS_N 	= configAnalyzer.getint('opt_workers', OPT_WORKERS_N)
-					res_categories  = configAnalyzer.get('opt_categories', None)
-					if res_categories != None:
-						OPT_CATEGORIES = res_categories.split(',')
+					OPT_MODE 		= configAnalyzer.getboolean('mode', OPT_MODE_DEFAULT)
+					OPT_HIST		= configAnalyzer.getboolean('histograms', OPT_HIST)
+					OPT_STAT_FUNC	= configAnalyzer.get('stat_func', fallback=OPT_STAT_FUNC)
+					OPT_WORKERS_N 	= configAnalyzer.getint('workers', OPT_WORKERS_N)
+					res_categorizations  = configAnalyzer.get('categorizations', None)
+					if res_categorizations != None:
+						res_categorizations.replace(' ','')
+						BattleCategorizationList.set_categorizations_default(res_categorizations.split(','))
 					histogram_fields_str = configAnalyzer.get('histogram_buckets', None)
 					if histogram_fields_str != None:
 						set_histogram_buckets(json.loads(histogram_fields_str))
@@ -852,8 +950,8 @@ async def main(argv):
 					configWG 		= config['WG']
 					# WG account id of the uploader: 
 					# # Find it here: https://developers.wargaming.net/reference/all/wotb/account/list/
-					WG_ID			= configWG.getint('wg_id', WG_ID)
-					WG_ACCOUNT		= configWG.get('wg_account', WG_ACCOUNT)
+					#WG_ID			= configWG.getint('wg_id', WG_ID)
+					#WG_ACCOUNT		= configWG.get('wg_account', WG_ACCOUNT)
 					WG_APP_ID		= configWG.get('wg_app_id', WG_APP_ID)
 					WG_RATE_LIMIT	= configWG.getint('wg_rate_limit', WG_RATE_LIMIT)
 			except (KeyError, configparser.NoSectionError) as err:
@@ -878,11 +976,11 @@ async def main(argv):
 
 		parser = ErrorCatchingArgumentParser(description='Analyze Blitz replay JSON files from WoTinspector.com. Use \'upload_wotb_replays.py\' to upload the replay files first.')
 
+		parser.add_argument('--mode', default=OPT_MODE, choices=OPT_MODES, help='Select stats mode. Options: ' + ', '.join(OPT_MODES))
+		parser.add_argument('--extra', choices=BattleCategorizationList.get_categorizations_all(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleCategorizationList.get_categorization_title(cat)  for cat in BattleCategorizationList.get_categorizations_all()))
 		parser.add_argument('--output', default='plain', choices=['plain', 'db'], help='Select output mode: plain text or database')
-		parser.add_argument('-id', dest='account_id', type=int, default=WG_ID, help='WG account_id to analyze')
-		parser.add_argument('-a', '--account', type=str, default=WG_ACCOUNT, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
-		parser.add_argument('--mode', default=OPT_MODE, choices=OPT_MODES, help='Select stats mode. Options: ' + ', '.join(OPT_MODES[1:]))
-		parser.add_argument('--extra', choices=BattleRecordCategory.get_categories_all(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleRecordCategory._result_categories[cat][0]  for cat in BattleRecordCategory.get_categories_all()))
+		parser.add_argument('-id', dest='account_id', type=int, default=None, help='WG account_id to analyze. Replays without the account_id will be ignored.')
+		parser.add_argument('-a', '--account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 		parser.add_argument('--only_extra', action='store_true', default=False, help='Print only the extra categories')
 		parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms: ' + ', '.join( histogram_fields[k][0] for k in histogram_fields))
 		parser.add_argument('--stat_func', default=OPT_STAT_FUNC, choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
@@ -893,32 +991,25 @@ async def main(argv):
 		parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
 		parser.add_argument('--db', action='store_true', default=OPT_DB, help='Use DB - You are unlikely to have it')
 		parser.add_argument('--filters', type=str, default=None, help='Filters for DB based analyses. MongoDB find() filter JSON format. see --help_filters')
+		parser.add_argument('--min', type=int, default=None, help='Only select replays from players with minimum number of replays in the dataset')
 		parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 		parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
 		parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
-		parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='+', help='Files/dirs to read. Use \'-\' for STDIN, "db:" for database')
+		parser.add_argument('-l', '--log', action='store_true', default=False, help='Enable file logging')
+		parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='*', help='Files/dirs to read. Use \'-\' for STDIN, "db:" for database')
 		## parser.add_argument('--help_filters', action='store_true', default=False, help='Extended help for --filters')		
 
 		try:
-			args = parser.parse_args()
-		except Exception as err:
-			raise
+			args = parser.parse_args()			
+		except Exception as err:			
+			sys.exit(0)
 
-		res_categories = BattleRecordCategory.get_result_categories(OPT_CATEGORIES, args)
+		# res_categories = BattleCategorization.get_categorizations(OPT_CATEGORIZATIONS, args)
 
 		bu.set_log_level(args.silent, args.verbose, args.debug)
 		bu.set_progress_step(250)  						# Set the frequency of the progress dots. 
-		
-		wg = WG(WG_APP_ID, args.tankfile, args.mapfile, stats_cache=True, rate_limit=WG_RATE_LIMIT)
-		wi = WoTinspector(rate_limit=10)
 
-		if args.account != None:
-			args.account_id = await wg.get_account_id(args.account)
-			bu.debug('WG  account_id: ' + str(args.account_id))
-
-		BattleRecord.set_fields(args.mode)
-
-		#### Connect to MongoDB (TBD)
+		#### Connect to MongoDB. You are unlikely to have this set up... 
 		bu.debug('DB_SERVER: ' + DB_SERVER)
 		bu.debug('DB_PORT: ' + str(DB_PORT))
 		bu.debug('DB_SSL: ' + "True" if DB_SSL else "False")
@@ -931,12 +1022,10 @@ async def main(argv):
 			try:
 				client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ, ssl_certfile=DB_CERT, tlsCAFile=DB_CA)
 				db = client[DB_NAME]
-				args.account_id = None
 				bu.debug('Database connection initiated')
 			except Exception as err: 
 				bu.error("Could no initiate DB connection: Disabling DB", err) 
-				args.db = False
-				pass
+				args.db = False				
 		else:
 			bu.debug('No DB in use')
 
@@ -944,11 +1033,23 @@ async def main(argv):
 		if args.mode == OPT_MODE_HELP: 
 			await help_extended(db, parser)
 			sys.exit(0)
-		
+		elif len(args.files) == 0:
+			raise UserWarning('No FILES argument given: No replays to analyse')
+
+		if args.log:
+			await bu.set_file_logging('analyze_wotb_replays', add_timestamp=True)
 		# rebase file arguments due to moving the working directory to the script location
 		args.files = bu.rebase_file_args(current_dir, args.files)
 
+		wg = WG(WG_APP_ID, args.tankfile, args.mapfile, stats_cache=True, rate_limit=WG_RATE_LIMIT)
+		wi = WoTinspector(rate_limit=10)
+
+		if args.account != None:
+			args.account_id = await wg.get_account_id(args.account)
+			bu.debug('WG  account_id: ' + str(args.account_id))
+
 		try:
+			BattleRecord.set_fields(args.mode)
 			replayQ  = asyncio.Queue(maxsize=1000)			
 			reader_tasks = []
 			# Make replay Queue
@@ -978,30 +1079,41 @@ async def main(argv):
 			if len(players) == 0:
 				raise Exception("No players found to fetch stats for. No replays found?")
 
+			if args.min != None:
+				results = filter_min_replays_by_player(results, args.min)
+				players = get_players(results)
+
 			(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
-			bu.verbose('')
 			bu.debug('Number of player stats: ' + str(len(player_stats)))
 			teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
-			res = process_battle_results(teamresults, args, res_categories)	
+
+			blt_cat_list = process_battle_results(teamresults, args)
+			blt_cat_list.print_results()
+			hist = None
 			if args.hist: 				
-				res['histograms'] = process_player_dist(results, player_stats, stat_id_map, args.json)
+				 hist = process_player_dist(results, player_stats, stat_id_map, args.json)
 			if args.json:
+				res = blt_cat_list.get_results_json()
+				res['histograms'] = hist
 				if args.outfile == '-':
-					args.outfile = 'export.json'
-					bu.verbose_std('Data exported to ' + args.outfile)
-				await bu.save_JSON(args.outfile, res, pretty=False) 
+					args.outfile = 'export.json'					
+				await bu.save_JSON(args.outfile, res, pretty=False) ## Excel does not understand pretty JSON
+				bu.verbose_std('Data exported to ' + args.outfile)
 			bu.debug('Finished. Cleaning up..................')
 		except Exception as err:
 			bu.error(exception=err)
 	except UserWarning as err:
-		bu.verbose(str(err))
+		bu.warning(str(err))
+	except asyncio.exceptions.CancelledError:
 		pass
 	except Exception as err:
-			bu.error(exception=err)
+		bu.error(exception=err)
 	finally:
 		## Need to close the aiohttp.session since Python destructors do not support async methods... 
-		if wg != None: await wg.close()
-		if wi != None: await wi.close()
+		if wg != None: 
+			await wg.close()
+		if wi != None: 
+			await wi.close()		
 	return None
 
 
@@ -1012,7 +1124,11 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 	# Result category options
 
 	# Filter usage
-	print("\nSyntax: --filters '{ \"replay.param\": VALUE, \"replay.param2\": { \"$MONGO_OPERATOR\" : VALUE }, ... }'")
+	print('\n-------------------------------------------------------------------')
+	print('| Filter usage                                                    |')
+	print('-------------------------------------------------------------------')
+	
+	print("Syntax: --filters '{ \"replay.param\": VALUE, \"replay.param2\": { \"$MONGO_OPERATOR\" : VALUE }, ... }'")
 	print("\tExample: --filters '{ \"data.summary.protagonist\": ACCOUNT_ID, \"data.summary.battle_start_timestamp\": { \"$gt\" : 1602853200 } }'")
 	if db != None:
 		dbc = db[DB_C_REPLAYS]
@@ -1028,7 +1144,7 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 		except Exception as err:
 			bu.error(exception=err)
 
-
+## move the class PlayerHistogram?
 def set_histogram_buckets(json: dict):
 	global histogram_fields
 	try:
@@ -1037,6 +1153,42 @@ def set_histogram_buckets(json: dict):
 	except (KeyError, Exception) as err:
 		bu.error(exception=err)
 	return histogram_fields
+
+
+def get_players(results: list) -> set:
+	try:
+		players = set()
+		for res in results:
+			players.add(res['player'])
+			players.update(res['allies'])
+			players.update(res['enemies'])				
+		return players
+	except Exception as err:
+		bu.error(exception=err)
+	return None
+
+
+def filter_min_replays_by_player(results: list, min_replays: int) -> list:
+	try:
+		replay_counter = collections.defaultdict(def_value_zero)
+		for res in results:
+			replay_counter[res['protagonist']] +=1
+		
+		players_enough_replays = set()
+		for player in replay_counter.keys():
+			if replay_counter[player] >= min_replays:
+				players_enough_replays.add(player)
+		
+		res_ret = list()
+		for res in results:
+			if res['protagonist'] in players_enough_replays:
+				res_ret.append(res)
+
+		return res_ret
+
+	except Exception as err:
+		bu.error(exception=err)
+	return None	
 
 
 def process_player_dist(results: list, player_stats: dict, stat_id_map: dict, res_json: bool = False) -> dict:
@@ -1070,48 +1222,23 @@ def process_player_dist(results: list, player_stats: dict, stat_id_map: dict, re
 	return None
 
 
-def process_battle_results(results: dict, args : argparse.Namespace, cats: list):
+def process_battle_results(results: dict, args : argparse.Namespace):
 	"""Process replay battle results""" 
 	try:
 		url 		= args.url
-		ret_json 	= args.json
-		urls 		= collections.OrderedDict()
-		categories 	= {}
 
-		for cat in cats:
-			categories[cat] = BattleRecordCategory(cat)
-
-		max_title_len = 0
-		for result in results:
-			for cat in cats:
-				categories[cat].record_result(result)
-			if url:
-				max_title_len = max(max_title_len, len(result['title']))
-				urls[result['title']] = result['url']
+		blt_cat_list = BattleCategorizationList(args)
 		
-		res = dict()
-		if ret_json:
-			cat = next(iter(categories))			
-			res['fields'] = categories[cat].get_fields()			
-		for cat in categories:
-			categories[cat].calc_results()
-			print('')
-			categories[cat].print_results()
-			if ret_json:
-				res[cat] = categories[cat].get_results_json()
-		if url:
-			print('\nURLs to Battle replays:\n')
-			json_urls = dict()
-			for title in urls.keys():
-				print(('{:' + str(3 + max_title_len) + '}').format(title) + ' : ' + urls[title])
-				if ret_json:
-					json_urls[title] = urls[title]
-			
-			if ret_json:
-				res['replay_urls'] = json_urls
+		for result in results:
+			blt_cat_list.record_result(result)
+			if url:
+				blt_cat_list.record_url(result)
+
+		blt_cat_list.calc_results()
+
 	except Exception as err:
 		bu.error(exception=err)
-	return res
+	return blt_cat_list
 
 
 async def process_player_stats(players, N_workers: int, args : argparse.Namespace, db : motor.motor_asyncio.AsyncIOMotorDatabase) -> dict:
@@ -1123,14 +1250,13 @@ async def process_player_stats(players, N_workers: int, args : argparse.Namespac
 		stat_id_map = {}
 		stat_ids = set()
 
-		bu.set_progress_bar('Fetching player stats', len(players), 25, True)
-
 		stat_id_map_func = globals()[STAT_FUNC[args.stat_func][0]]
 
 		for player in players:
 			stat_id_map[player] = stat_id_map_func(player)
 			stat_ids.add(stat_id_map[player])
-			
+
+		bu.set_progress_bar('Fetching player stats', len(stat_ids), 25, True)	
 		# create statsQ
 		for stat_id in stat_ids:
 			await statsQ.put(stat_id)
@@ -1184,7 +1310,7 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 	## Bug here?? 
 	#stat_types = player_stats[list(player_stats.keys())[0]].keys()
 	stat_types = list()
-	stat_types = BattleRecord.get_team_fields()
+	stat_types = BattleRecord.get_fields_team()
 		
 	for result in results:
 		try:
@@ -1261,12 +1387,12 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 	stat_db_func = globals()[STAT_FUNC[args.stat_func][1]]
 	stat_wg_func = globals()[STAT_FUNC[args.stat_func][2]]
 
-	bu.debug("workedID: " + str(workerID) + ' started')
+	bu.debug("workedID: " + str(workerID) + ' started', id=workerID)
 	try:
 		while True:
 			stat_id = await queue.get()
 			try:
-				bu.debug('Stat_id: ' + stat_id)
+				bu.debug('Stat_id: ' + stat_id, id=workerID)
 				bu.print_progress()
 				# Analysing player performance based on their stats on the tier tanks they are playing 
 
@@ -1289,7 +1415,7 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 					
 					# try DB
 					stats[stat_id] = await stat_db_func(db, stat_id)				
-					bu.debug('get_db_' + args.stat_func + '_stats returned: ' + str(stats[stat_id]), workerID)
+					bu.debug('get_db_' + args.stat_func + '_stats returned: account_id=' + str(get_account_id_f_stat_id(stat_id)) + ': ' + str(stats[stat_id]), workerID)
 
 					# no DB stats found, trying WG AP
 					if (stats[stat_id] == None):							
@@ -1298,15 +1424,15 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 						del stats[stat_id]
 					
 			except KeyError as err:
-				bu.error('Key not found', err, workerID)
+				bu.error('Key not found', err, id=workerID)
 			except Exception as err:
-				bu.error('Unexpected error', err, workerID)
+				bu.error('Unexpected error', err, id=workerID)
 			queue.task_done()
 
 	except (asyncio.CancelledError, concurrent.futures._base.CancelledError):
-		bu.debug('Stats queue is empty', workerID)		
+		bu.debug('Stats queue is empty', id=workerID)		
 	except Exception as err:
-		bu.error(exception=err)
+		bu.error(exception=err, id=workerID)
 	finally:
 		# remove empty stats 
 		try:
@@ -1317,7 +1443,7 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 			for key in keys_2_del:
 				del stats[key]				
 		except KeyError as err:
-			bu.error('Error in pruning empty stats', err)
+			bu.error('Error in pruning empty stats', err, id=workerID)
 	# bu.debug('Returning stats & exiting')		
 	return (stats, stat_id_remap)
 	
@@ -1585,7 +1711,6 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 				msg_str = 'Replay[' + str(replayID) + ']: ' 
 				if replay_json == None:
 					bu.warning(msg_str + 'Invalid replay. Skipping: '  + (replay_file if replay_file != None else '') )
-					#SKIPPED_N += 1
 					queue.task_done()
 					continue
 						
@@ -1594,14 +1719,13 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 				result = await read_replay_JSON(replay_json, args)
 				bu.print_progress()
 				if result == None:
-					bu.warning(msg_str + 'Invalid replay' + (replay_file if replay_file != None else '') )
+					bu.warning(msg_str + 'Invalid replay ' + (replay_file if replay_file != None else '') )
 					queue.task_done()
 					continue
 				
-				# if (account_id != None):						
 				playerstanks.update(set(result['allies']))
 				playerstanks.update(set(result['enemies']))	
-				playerstanks.update(set([ result['player'] ]))
+				playerstanks.update(set([result['player']]))
 				
 				results.append(result)
 				bu.debug('Marking task ' + str(replayID) + ' done')
@@ -1632,6 +1756,9 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		# TBD... 
 		protagonist = int(replay_json['data']['summary']['protagonist'])
 		
+		# For filtering replays per submitter
+		result['protagonist'] = protagonist
+
 		if account_id == None:
 			account_id = protagonist
 		elif protagonist != account_id:
@@ -1645,11 +1772,11 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 				tmp = replay_json['data']['summary']['enemies']
 				replay_json['data']['summary']['enemies'] = replay_json['data']['summary']['allies']
 				replay_json['data']['summary']['allies'] = tmp
-			elif account_id not in replay_json['data']['summary']['allies']:
-				# account_id looked for but not found in teams
-				bu.debug('Replay ' + replay_json['data']['summary']['title'] + ' does not have account_id ' + str(account_id) + '. Skipping.')
-				account_id = protagonist
-				# return None
+			elif account_id in replay_json['data']['summary']['allies']:
+				pass 			
+			else:		
+				# looking for an account_id, but account_id not found in the teams => skipping the replay
+				return None
 		if url: 
 			result['url'] = replay_json['data']['view_url']
 				
@@ -1660,7 +1787,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		bu.error(exception=err)
 		return None
 	try:	
-		bu.debug('Part 2')
+		#bu.debug('Part 2')
 		result['allies'] = set()
 		result['enemies'] = set()
 		result['allies_survived']  = 0 	# for steamroller stats
@@ -1764,25 +1891,33 @@ def get_stat_id(account_id: int, tank_id: int, battletime: int) -> str:
 def get_stat_id_tank_tier(stat_id_str: str) -> str:
 	"""Return stat_id = account_id:tank_tier"""
 	try:
-		stat_id 	= stat_id_str.split(':')
-		tank_tier = wg.get_tank_tier(int(stat_id[1]))
-		battle_time = (int(stat_id[2]) // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
-		return ':'.join([ stat_id[0], str(tank_tier), str(battle_time) ])
+		stat_id 	= str2ints(stat_id_str)
+		tank_tier = wg.get_tank_tier(stat_id[1])
+		battle_time = (stat_id[2] // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
+		return ':'.join(map(str, [stat_id[0],tank_tier, battle_time ]))
 	except Exception as err:
-		bu.error('Stats_id: ' + stat_id_str)
-		bu.error(exception=err)
+		bu.error('Stats_id: ' + stat_id_str, exception=err)
 	return None
 
 
 def get_stat_id_player(stat_id_str: str) -> str:
-	"""Return stat_id = account_id:tank_tier"""
+	"""Return stat_id = account_id:battletime"""
 	try:
-		stat_id 	= stat_id_str.split(':')
-		battle_time = (int(stat_id[2]) // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
-		return ':'.join([ stat_id[0], str(battle_time) ])
+		stat_id 	= str2ints(stat_id_str)
+		battle_time = (stat_id[2] // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
+		return ':'.join(map(str, [ stat_id[0], battle_time ]))
 	except Exception as err:
-		bu.error('Stats_id: ' + stat_id_str)
-		bu.error(exception=err)
+		bu.error('Stats_id: ' + stat_id_str, exception=err)		
+	return None
+
+
+def get_account_id_f_stat_id(stat_id_str: str) -> int:
+	"""get account_id from a stat_id"""
+	try:
+		stat_id 	= str2ints(stat_id_str)
+		return stat_id[0]
+	except Exception as err:
+		bu.error('Stats_id: ' + stat_id_str, exception=err)
 	return None
 
 
