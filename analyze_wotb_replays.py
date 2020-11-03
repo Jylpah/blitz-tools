@@ -1036,7 +1036,7 @@ async def main(argv):
 			raise UserWarning('No FILES argument given: No replays to analyse')
 
 		if args.log:
-			bu.set_file_logging('analyze_wotb_replays', add_timestamp=True)
+			await bu.set_file_logging('analyze_wotb_replays', add_timestamp=True)
 		# rebase file arguments due to moving the working directory to the script location
 		args.files = bu.rebase_file_args(current_dir, args.files)
 
@@ -1249,14 +1249,13 @@ async def process_player_stats(players, N_workers: int, args : argparse.Namespac
 		stat_id_map = {}
 		stat_ids = set()
 
-		bu.set_progress_bar('Fetching player stats', len(players), 25, True)
-
 		stat_id_map_func = globals()[STAT_FUNC[args.stat_func][0]]
 
 		for player in players:
 			stat_id_map[player] = stat_id_map_func(player)
 			stat_ids.add(stat_id_map[player])
-			
+
+		bu.set_progress_bar('Fetching player stats', len(stat_ids), 25, True)	
 		# create statsQ
 		for stat_id in stat_ids:
 			await statsQ.put(stat_id)
@@ -1387,12 +1386,12 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 	stat_db_func = globals()[STAT_FUNC[args.stat_func][1]]
 	stat_wg_func = globals()[STAT_FUNC[args.stat_func][2]]
 
-	bu.debug("workedID: " + str(workerID) + ' started')
+	bu.debug("workedID: " + str(workerID) + ' started', id=workerID)
 	try:
 		while True:
 			stat_id = await queue.get()
 			try:
-				bu.debug('Stat_id: ' + stat_id)
+				bu.debug('Stat_id: ' + stat_id, id=workerID)
 				bu.print_progress()
 				# Analysing player performance based on their stats on the tier tanks they are playing 
 
@@ -1415,7 +1414,7 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 					
 					# try DB
 					stats[stat_id] = await stat_db_func(db, stat_id)				
-					bu.debug('get_db_' + args.stat_func + '_stats returned: ' + str(stats[stat_id]), workerID)
+					bu.debug('get_db_' + args.stat_func + '_stats returned: account_id=' + str(get_account_id_f_stat_id(stat_id)) + ': ' + str(stats[stat_id]), workerID)
 
 					# no DB stats found, trying WG AP
 					if (stats[stat_id] == None):							
@@ -1424,15 +1423,15 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 						del stats[stat_id]
 					
 			except KeyError as err:
-				bu.error('Key not found', err, workerID)
+				bu.error('Key not found', err, id=workerID)
 			except Exception as err:
-				bu.error('Unexpected error', err, workerID)
+				bu.error('Unexpected error', err, id=workerID)
 			queue.task_done()
 
 	except (asyncio.CancelledError, concurrent.futures._base.CancelledError):
-		bu.debug('Stats queue is empty', workerID)		
+		bu.debug('Stats queue is empty', id=workerID)		
 	except Exception as err:
-		bu.error(exception=err)
+		bu.error(exception=err, id=workerID)
 	finally:
 		# remove empty stats 
 		try:
@@ -1443,7 +1442,7 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 			for key in keys_2_del:
 				del stats[key]				
 		except KeyError as err:
-			bu.error('Error in pruning empty stats', err)
+			bu.error('Error in pruning empty stats', err, id=workerID)
 	# bu.debug('Returning stats & exiting')		
 	return (stats, stat_id_remap)
 	
@@ -1916,7 +1915,7 @@ def get_stat_id_player(stat_id_str: str) -> str:
 	return None
 
 
-def get_player_f_stat_id(stat_id_str: str) -> int:
+def get_account_id_f_stat_id(stat_id_str: str) -> int:
 	"""get account_id from a stat_id"""
 	try:
 		stat_id 	= str2ints(stat_id_str)
