@@ -377,9 +377,10 @@ class BattleCategorization():
 
 	def print_results(self):
 		try:			
+			bu.print_new_line()
 			BattleRecord.print_headers(self.title)
 			for cat in self.get_categories():
-				print(self.RESULT_CAT_FRMT.format(cat), end='')
+				print(self.RESULT_CAT_FRMT.format(cat), end='   ')
 				self.categories[cat].print_results()
 		except KeyError as err:
 			bu.error('Key not found', err)  
@@ -605,8 +606,8 @@ class BattleRecord():
 	
 	## Syntax: Check how the replay JSON files look. The algorithm is counting/recording fields
 	_result_fields = {
-		'battles'			: [ 'Battles', 'Number of battles', 								8, '{:^8.0f}' ],
-		'battles%'			: [ '% Battles', 'Share of Battles',								6, '{:6.0%}' ],
+		'battles'			: [ 'Battles', 'Number of battles', 								7, '{:7.0f}' ],
+		'battles%'			: [ '% Battles', 'Share of Battles',								9, '{:9.0%}' ],
 		'win'				: [ 'WR', 'Win rate', 												6, '{:6.1%}' ],
 		'damage_made'		: [ 'DPB', 'Average Damage', 										5, '{:5.0f}' ],
 		'frags'				: [ 'KDB', 'Kills / Battle', 										4, '{:4.2f}' ],
@@ -1070,6 +1071,7 @@ async def main(argv):
 		parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 		parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
 		parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
+		parser.add_argument('-l', '--log', action='store_true', default=False, help='Enable file logging')
 		parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='*', help='Files/dirs to read. Use \'-\' for STDIN, "db:" for database')
 		## parser.add_argument('--help_filters', action='store_true', default=False, help='Extended help for --filters')		
 
@@ -1155,7 +1157,6 @@ async def main(argv):
 				raise Exception("No players found to fetch stats for. No replays found?")
 
 			(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
-			bu.verbose('')
 			bu.debug('Number of player stats: ' + str(len(player_stats)))
 			teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
 
