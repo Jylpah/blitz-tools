@@ -890,7 +890,7 @@ OPT_MODE_HELP		= 'help'
 OPT_MODES = [ OPT_MODE_DEFAULT, OPT_MODE_TEAM, OPT_MODE_EXTENDED, OPT_MODE_HELP ]
 
 async def main(argv):
-	global wg, wi, WG_APP_ID, OPT_MODE
+	global wg, wi, WG_APP_ID, OPT_MODE_DEFAULT
 	# set the directory for the script
 	current_dir = os.getcwd()
 	os.chdir(os.path.dirname(sys.argv[0]))
@@ -930,7 +930,7 @@ async def main(argv):
 			try:
 				if 'ANALYZER' in config.sections():
 					configAnalyzer	= config['ANALYZER']
-					OPT_MODE 		= configAnalyzer.getboolean('mode', OPT_MODE_DEFAULT)
+					OPT_MODE_DEFAULT= configAnalyzer.getboolean('mode', OPT_MODE_DEFAULT)
 					OPT_HIST		= configAnalyzer.getboolean('histograms', OPT_HIST)
 					OPT_STAT_FUNC	= configAnalyzer.get('stat_func', fallback=OPT_STAT_FUNC)
 					OPT_WORKERS_N 	= configAnalyzer.getint('workers', OPT_WORKERS_N)
@@ -976,7 +976,7 @@ async def main(argv):
 
 		parser = ErrorCatchingArgumentParser(description='Analyze Blitz replay JSON files from WoTinspector.com. Use \'upload_wotb_replays.py\' to upload the replay files first.')
 
-		parser.add_argument('--mode', default=OPT_MODE, choices=OPT_MODES, help='Select stats mode. Options: ' + ', '.join(OPT_MODES))
+		parser.add_argument('--mode', default=OPT_MODE_DEFAULT, choices=OPT_MODES, help='Select stats mode. Options: ' + ', '.join(OPT_MODES))
 		parser.add_argument('--extra', choices=BattleCategorizationList.get_categorizations_all(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleCategorizationList.get_categorization_title(cat)  for cat in BattleCategorizationList.get_categorizations_all()))
 		parser.add_argument('--output', default='plain', choices=['plain', 'db'], help='Select output mode: plain text or database')
 		parser.add_argument('-id', dest='account_id', type=int, default=None, help='WG account_id to analyze. Replays without the account_id will be ignored.')
