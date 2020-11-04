@@ -1,0 +1,9 @@
+motor
+aiohttp
+aioconsole
+aiofiles
+aiosqlite
+beautifulsoup4
+lxml
+xmltodict 
+progress
