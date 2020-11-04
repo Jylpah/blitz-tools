@@ -87,8 +87,8 @@ histogram_fields = {
 def def_value_zero():
     return 0
 
-def def_value_BattleRecord():
-	return BattleRecord()
+def def_value_BattleCategory():
+	return BattleCategory()
 
 class BattleCategorizationList():
 	
@@ -312,7 +312,7 @@ class BattleCategorization():
 		self.total_battles 	= 0
 		self.category_key 	= cat_key
 		self.title 			= title
-		self.categories 	= collections.defaultdict(def_value_BattleRecord)
+		self.categories 	= collections.defaultdict(def_value_BattleCategory)
 
 
 	def get_categories(self):
@@ -350,7 +350,7 @@ class BattleCategorization():
 	def print_results(self):
 		try:			
 			bu.print_new_line()
-			BattleRecord.print_headers(self.title)
+			BattleCategory.print_headers(self.title)
 			for cat in self.get_categories():
 				print(self.RESULT_CAT_FRMT.format(cat), end='   ')
 				self.categories[cat].print_results()
@@ -564,7 +564,7 @@ class BattleBucketCategorization(BattleCategorization):
 		return None
 
 
-class BattleRecord():
+class BattleCategory():
 	
 	## Syntax: Check how the replay JSON files look. The algorithm is counting/recording fields
 	_result_fields = {
@@ -655,7 +655,7 @@ class BattleRecord():
 				cls.ratio_fields.add(cls._result_ratios[ratio][0])
 				cls.ratio_fields.add(cls._result_ratios[ratio][1])
 		except Exception as err:
-			bu.error('BattleRecord:' ,exception=err)
+			bu.error('BattleCategory:' ,exception=err)
 		
 
 	@classmethod
@@ -718,7 +718,7 @@ class BattleRecord():
 			self.results = collections.defaultdict(def_value_zero)
 
 		except KeyError as err:
-			bu.error('BattleRecord(): Key not found', err) 
+			bu.error('BattleCategory(): Key not found', err) 
 
 
 	def record_result(self, result : dict) -> bool:
@@ -734,7 +734,7 @@ class BattleRecord():
 			bu.error('Key not found', err)  
 			bu.error(str(result))
 		except Exception as err:
-			bu.error('BattleRecord:' ,exception=err)
+			bu.error('BattleCategory:' ,exception=err)
 		return False
 
 
@@ -885,7 +885,7 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
 
 OPT_MODE_DEFAULT 	= 'default'
 OPT_MODE_HELP		= 'help'
-OPT_MODES = BattleRecord.get_modes() + [OPT_MODE_HELP]
+OPT_MODES = BattleCategory.get_modes() + [OPT_MODE_HELP]
 
 async def main(argv):
 	global wg, wi, WG_APP_ID, OPT_MODE_DEFAULT
@@ -1047,7 +1047,7 @@ async def main(argv):
 			bu.debug('WG  account_id: ' + str(args.account_id))
 
 		try:
-			BattleRecord.set_fields(args.mode)
+			BattleCategory.set_fields(args.mode)
 			replayQ  = asyncio.Queue(maxsize=1000)			
 			reader_tasks = []
 			# Make replay Queue
@@ -1308,7 +1308,7 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 	## Bug here?? 
 	#stat_types = player_stats[list(player_stats.keys())[0]].keys()
 	stat_types = list()
-	stat_types = BattleRecord.get_fields_team()
+	stat_types = BattleCategory.get_fields_team()
 		
 	for result in results:
 		try:
