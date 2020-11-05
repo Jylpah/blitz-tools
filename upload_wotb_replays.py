@@ -270,7 +270,7 @@ def getTitle_old(replayfile: str, title: str, i : int) -> str:
 	return title 
 
 
-def getTitle(replayfile: str, title: str, i : int) -> str:
+def getTitle(replayfile: str, title: str = None, i : int = 0) -> str:
 	global wg
 	if title == None:
 		try:
@@ -301,6 +301,32 @@ def getTitle(replayfile: str, title: str, i : int) -> str:
 		title.replace('NN', str(i))	
 	bu.debug('Returning: '  + title)
 	return title 
+
+### UNIT TESTS - pytest
+
+class TestClass:
+	# def test_getTitle(self):
+	# 	#player = "jylpah"
+	# 	WG_appID  = '81381d3f45fa4aa75b78a7198eb216ad'
+	# 	wg = WG(WG_appID, 'tanks.json', 'maps.json')
+	# 	tank_name = "T28 Defender" 	# "A68_T28D"
+	# 	map_name = "Yukon" 			# "idle"
+	# 	replay = './test/' + '20201030_2358__jylpah_A_1157485188135816346.wotbreplay'
+	# 	res = tank_name + ' @ ' + map_name
+
+	# 	assert getTitle(replay) == res
+
+	@pytest.mark.asyncio
+	async def test_getTitle(self):
+		#player = "jylpah"
+		WG_appID  = '81381d3f45fa4aa75b78a7198eb216ad'
+		wg = WG(WG_appID, 'tanks.json', 'maps.json')
+		tank_name = "T28 Defender" 	# "A68_T28D"
+		map_name = "Yukon" 			# "idle"
+		replay = './test/' + '20201030_2358__jylpah_A_1157485188135816346.wotbreplay'
+		res = tank_name + ' @ ' + map_name
+
+		assert getTitle(replay) == res
 
 ### main() -------------------------------------------
 if __name__ == "__main__":
