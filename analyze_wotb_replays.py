@@ -1316,7 +1316,9 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 			n_players = len(result['allies']) + len(result['enemies'])
 			n_allies = collections.defaultdict(def_value_zero)
 			allies_stats = collections.defaultdict(def_value_zero)
-			
+			n_enemies = collections.defaultdict(def_value_zero)
+			enemies_stats = collections.defaultdict(def_value_zero)
+						
 			#bu.debug('Processing Allies')
 			for ally in result['allies']:
 				# Player itself is not in 'allies': see read_replay_JSON()
@@ -1330,8 +1332,6 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 						n_allies[stat] += 1
 			
 			#bu.debug('Processing Enemies')
-			n_enemies = collections.defaultdict(def_value_zero)
-			enemies_stats = collections.defaultdict(def_value_zero)
 			for enemy in result['enemies']:
 				enemy_mapped = stat_id_map[enemy]
 				if enemy_mapped not in player_stats: 
