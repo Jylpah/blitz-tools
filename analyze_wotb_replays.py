@@ -127,15 +127,15 @@ class BattleCategorizationList():
 		'top_tier'			: [ 'Tier', 		'category', 	['Bottom tier', 'Top tier']],
 		'room_type'			: [ 'Battle Mode', 	'category', 	_BATTLE_MODES ],
 		'mastery_badge'		: [ 'Battle Medal', 'category', 	['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
-		'team_result'		: [ 'Team Result', 	'string' ],
+		'team_result'		: [ 'Team Result', 	'string' ],	
+		'player_wins'		: [ 'Player WR', 	'bucket', [ 0, .35, .45, .50, .55, .65], '%' ],
+		'player_battles'	: [ 'Player Battles', 	'bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3], 'int' ],
+		'player_damage_dealt'	: [ 'Player Avg Dmg', 	'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ],
 		'map_name'			: [ 'Map', 			'string' ],
 		'tank_name'			: [ 'Tank', 		'string' ],
 		'player_name'		: [ 'Player', 		'string' ],
 		'protagonist'		: [ 'account_id', 	'number' ],
-		'battle_i'			: [ 'Battle #', 	'number' ], 
-		'player_wins'		: [ 'Player WR', 	'bucket', [ 0, .35, .45, .50, .55, .65], '%' ],
-		'player_battles'	: [ 'Player Battles', 	'bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3], 'int' ],
-		'player_damage_dealt'	: [ 'Player Avg Dmg', 	'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ]
+		'battle_i'			: [ 'Battle #', 	'number' ]		
 		}
 
 	_categorizations_default = [
