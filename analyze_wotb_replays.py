@@ -596,9 +596,9 @@ class BattleCategory():
 
 	# fields to display in results
 	_result_fields_modes = {
-		'default'		: [ 'battles',	'battles%',	'win','damage_made', 'frags', 'enemies_spotted', 'top_tier', 'DR', 'survived', 'allies_wins', 'enemies_wins'],
-		'team'			: [ 'battles',	'battles%',	'win','player_wins','allies_wins','enemies_wins'],
-		'team_extended'	: [ 'battles',	'battles%',	'win','player_wins','allies_wins','enemies_wins',	'player_damage_dealt', 'allies_damage_dealt', 'enemies_damage_dealt', 'player_battles','allies_battles','enemies_battles' ],
+		'default'		: [ 'battles',	'win','damage_made', 'frags', 'enemies_spotted', 'top_tier', 'DR', 'survived', 'allies_wins', 'enemies_wins'],
+		'team'			: [ 'battles',	'win','player_wins','allies_wins','enemies_wins'],
+		'team_extended'	: [ 'battles',	'battles%',	'win','player_wins','allies_wins','enemies_wins', 'player_damage_dealt', 'allies_damage_dealt', 'enemies_damage_dealt', 'player_battles','allies_battles','enemies_battles' ],
 		'extended'		: [ 'battles',	'battles%',	'win','damage_made','enemies_spotted', 'top_tier', 'DR', 'KDR', 'hit_rate',	'pen_rate',	'survived',	'time_alive%', 'player_wins', 'allies_damage_wins', 'enemies_wins', MISSING_STATS ]
 	}
 
