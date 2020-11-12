@@ -572,7 +572,7 @@ class BattleCategory():
 		'battles%'			: [ '% Battles', 'Share of Battles',								9, '{:9.0%}' ],
 		'win'				: [ 'WR', 'Win rate', 												6, '{:6.1%}' ],
 		'damage_made'		: [ 'DPB', 'Average Damage', 										5, '{:5.0f}' ],
-		'frags'				: [ 'KDB', 'Kills / Battle', 										4, '{:4.2f}' ],
+		'enemies_destroyed'	: [ 'KPB', 'Kills / Battle', 										4, '{:4.2f}' ],
 		'DR'				: [ 'DR', 'Damage Ratio', 											5, '{:5.1f}' ],
 		'KDR'				: [ 'KDR', 'Kills / Death', 										4, '{:4.1f}' ],
 		'enemies_spotted'	: [ 'Spot', 'Enemies spotted per battle', 							4, '{:4.1f}' ],
@@ -596,10 +596,10 @@ class BattleCategory():
 
 	# fields to display in results
 	_result_fields_modes = {
-		'default'		: [ 'battles',	'win','damage_made', 'frags', 'enemies_spotted', 'top_tier', 'DR', 'survived', 'allies_wins', 'enemies_wins'],
+		'default'		: [ 'battles',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 'top_tier', 'DR', 'survived', 'allies_wins', 'enemies_wins'],
 		'team'			: [ 'battles',	'win','player_wins','allies_wins','enemies_wins'],
 		'team_extended'	: [ 'battles',	'battles%',	'win','player_wins','allies_wins','enemies_wins', 'player_damage_dealt', 'allies_damage_dealt', 'enemies_damage_dealt', 'player_battles','allies_battles','enemies_battles' ],
-		'extended'		: [ 'battles',	'battles%',	'win','damage_made','enemies_spotted', 'top_tier', 'DR', 'KDR', 'hit_rate',	'pen_rate',	'survived',	'time_alive%', 'player_wins', 'allies_damage_wins', 'enemies_wins', MISSING_STATS ]
+		'extended'		: [ 'battles',	'battles%',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 'top_tier', 'DR', 'KDR', 'hit_rate',	'pen_rate',	'survived',	'time_alive%', 'player_wins', 'allies_damage_wins', 'enemies_wins', MISSING_STATS ]
 	}
 
 	_team_fields = [ 'wins', 'battles', 'damage_dealt' ]
