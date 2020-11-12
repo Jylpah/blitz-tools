@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 457
+        "count": 459
     },
     "data": {
         "1": {
@@ -3659,6 +3659,22 @@
             "is_premium": true,
             "type": "lightTank",
             "name": "Agent"
+        },
+        "5505": {
+            "tank_id": 5505,
+            "nation": "european",
+            "tier": 10,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "TVP T 50/51"
+        },
+        "21281": {
+            "tank_id": 21281,
+            "nation": "usa",
+            "tier": 6,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Rudolph"
         }
     },
     "userStr": {
@@ -4104,6 +4120,8 @@
         "S13_Leo": "Leo",
         "S17_EMIL_1952E2": "Emil II",
         "S18_EMIL_1951E1": "Emil I",
-        "VK2801_BP": "Agent"
+        "VK2801_BP": "Agent",
+        "Cz04_T50_51": "TVP T 50/51",
+        "M4A3E8_BP": "Rudolph"
     }
 }
