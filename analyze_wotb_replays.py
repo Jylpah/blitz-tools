@@ -116,6 +116,7 @@ class BattleCategorizationList():
 		'Mad Games'				: 8,
 		'Realistic Battles'		: 22,
 		'Gravity Mode'			: 24,
+		'Skirmish'				: 25,
 		'Burning Games'			: 26
 	}
 
