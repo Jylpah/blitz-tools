@@ -97,7 +97,9 @@ class BattleCategorizationList():
 		"""Make a list of battle modes as required for the _categorizations"""
 		mode_ids = modes.values()
 		id_max = max(mode_ids)
-		ret_modes = ['-'] * (id_max+16)		# create a list of '-' elements
+		ret_modes = ['-'] * (id_max+16)
+		for i in range(0, id_max+16):
+			ret_modes[i] = 'room_type=' + str(i)
 				
 		for mode in modes:
 			id = modes[mode]
@@ -114,6 +116,7 @@ class BattleCategorizationList():
 		'Mad Games'				: 8,
 		'Realistic Battles'		: 22,
 		'Gravity Mode'			: 24,
+		'Skirmish'				: 25,
 		'Burning Games'			: 26
 	}
 
