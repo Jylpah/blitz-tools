@@ -33,6 +33,7 @@ RE_SRC_IS_DB = re.compile(r'^DB:')
 # 1st function = for forming stat_id, 2nd for DB stats query, 3rd for WG API stats query
 STAT_FUNC	= {
 	'tank_tier': 	[ 'get_stat_id_tank_tier', 'get_db_tank_tier_stats', 'get_wg_tank_tier_stats' ],
+	'tank': 		[ 'get_stat_id_tank', 'get_db_tank_stats', 'get_wg_tank_stats' ],
 	'player': 		[ 'get_stat_id_player', 'get_db_player_stats', 'get_wg_player_stats' ]
 }
 
@@ -1448,6 +1449,58 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 	# bu.debug('Returning stats & exiting')		
 	return (stats, stat_id_remap)
 	
+
+## player stat functions: tank
+async def get_wg_tank_stats(stat_id_str: str, cache_only = False) -> dict:
+	"""Get player stats from WG. Returns WR per tier of tank_id"""
+	try:
+		(account_id, tank_id) = str2ints(stat_id_str)
+		
+		# 'battles' must always be there
+		hist_stats = [ 'all.' + x for x in histogram_fields.keys() ]
+		hist_stats.append('tank_id')
+
+		player_stats = await wg.get_player_tank_stats(account_id, [ tank_id ], hist_stats, cache_only = cache_only)
+		#bu.debug('account_id: ' + str(account_id) + ' ' + str(player_stats))
+
+		return await tank_stats_helper(player_stats)
+
+	except KeyError as err:
+		bu.error('account_id: ' + str(account_id) + ' tank_id:' + str(tank_id) +' : Key not found', err)
+	except Exception as err:
+		bu.error(exception=err)
+	return None
+
+
+async def get_db_tank_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, stat_id_str: str) -> dict:
+	"""Get player stats from MongoDB (you are very unlikely to have it, unless you have set it up)"""
+	if db == None:
+		return None
+	try:
+		dbc = db[DB_C_TANK_STATS]
+		( account_id, tank_id, battletime ) = str2ints(stat_id_str)
+		
+		time_buffer = 2*7*24*3600
+		
+		FIX ## find() rather than aggregate! 
+		cursor = dbc.find({ '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$lte': battletime + time_buffer }}, { 'tank_id' : tank_id } ]}).sort('last_battle_time',-1).limit(1)
+
+		# pipeline = 	[ { '$match': { '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$lte': battletime + time_buffer }}, { 'tank_id' : tank_id } ]}}, 
+		# 		{ '$sort': { 'last_battle_time': -1 }}, 
+		# 		{ '$group': { '_id': '$tank_id', 'doc': { '$first': '$$ROOT' }}}, 
+		# 		{ '$replaceRoot': { 'newRoot': '$doc' }}, 
+		# 		{ '$project': { '_id': 0 }} ]
+
+		# cursor = dbc.aggregate(pipeline, allowDiskUse=True)
+		#cursor = dbc.aggregate(pipeline)
+
+		return await tank_stats_helper(await cursor.to_list(10)) 
+				
+	except Exception as err:
+		bu.error('account_id: ' + str(account_id) + ' Error', err)
+	return None
+
+
 ## player stat functions: tank_tier
 async def get_wg_tank_tier_stats(stat_id_str: str, cache_only = False) -> dict:
 	"""Get player stats from WG. Returns WR per tier of tank_id"""
@@ -1890,16 +1943,29 @@ def get_stat_id(account_id: int, tank_id: int, battletime: int) -> str:
 
 
 def get_stat_id_tank_tier(stat_id_str: str) -> str:
-	"""Return stat_id = account_id:tank_tier"""
+	"""Return stat_id = account_id:tank_tier:battletime"""
 	try:
 		stat_id 	= str2ints(stat_id_str)
-		tank_tier = wg.get_tank_tier(stat_id[1])
+		account_id	= stat_id[0]
+		tank_tier 	= wg.get_tank_tier(stat_id[1])
 		battle_time = (stat_id[2] // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
-		return ':'.join(map(str, [stat_id[0],tank_tier, battle_time ]))
+		return ':'.join(map(str, [account_id, tank_tier, battle_time ]))
 	except Exception as err:
 		bu.error('Stats_id: ' + stat_id_str, exception=err)
 	return None
 
+
+def get_stat_id_tank(stat_id_str: str) -> str:
+	"""Return stat_id = account_id:tank_id:battletime"""
+	try:
+		stat_id 	= str2ints(stat_id_str)
+		account_id	= stat_id[0]
+		tank_id 	= stat_id[1]
+		battle_time = (stat_id[2] // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
+		return ':'.join(map(str, [account_id, tank_id, battle_time ]))
+	except Exception as err:
+		bu.error('Stats_id: ' + stat_id_str, exception=err)
+	return None
 
 def get_stat_id_player(stat_id_str: str) -> str:
 	"""Return stat_id = account_id:battletime"""
