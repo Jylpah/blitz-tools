@@ -235,11 +235,9 @@ class BattleCategorizationList():
 			except Exception as err:
 				bu.error('BattleCategorizationList()', exception=err) 
 
-	
 
-	def __init__(self, args : argparse.Namespace):
-		self.urls 				= collections.OrderedDict()
-		self.url_title_max_len 	= 0
+	@classmethod
+	def get_categorizations(cls, args : argparse.Namespace):
 		extra_cats = args.extra
 		only_extra = args.only_extra
 		
@@ -250,6 +248,13 @@ class BattleCategorizationList():
 		
 		if extra_cats != None: 
 			cats = cats + extra_cats
+		return cats
+
+
+	def __init__(self, cats: list):
+		self.urls 				= collections.OrderedDict()
+		self.url_title_max_len 	= 0
+		
 		
 		cats = list(set(cats))  	# remove duplicates
 		# ordering		
@@ -304,6 +309,7 @@ class BattleCategorizationList():
 		except Exception as err:
 			bu.error(exception=err)
 		return None
+
 
 	def print_results(self):
 		try:
@@ -1056,7 +1062,8 @@ async def main(argv):
 		parser.add_argument('-j', '--json', action='store_true', default=False, help='Export data in JSON')
 		parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
 		parser.add_argument('--db', action='store_true', default=OPT_DB, help='Use DB - You are unlikely to have it')
-		parser.add_argument('--filters', type=str, default=None, help='Filters for DB based analyses. MongoDB find() filter JSON format. see --help_filters')
+		parser.add_argument('--filters', type=str, default=None, help='Filter replays based on categories. Filters given in JSON format.\nUse array "[]" for multiple filters/values. see --mode help.\nExample: : [ {"tier" : [8,9,20] }, { "player_wins" : 5 }]')
+		parser.add_argument('--filters_db', type=str, default=None, help='[only for DB setup] Filter replays in DB based on categories. Filters given in MongoDB JSON format. See --mode help')
 		parser.add_argument('--min', type=int, default=None, help='Only select replays from players with minimum number of replays in the dataset')
 		parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 		parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
@@ -1298,9 +1305,11 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 	"""Process replay battle results""" 
 	try:
 		url 		= args.url
-
-		blt_cat_list = BattleCategorizationList(args)
+		cats = BattleCategorizationList.get_categorizations(args)
+		blt_cat_list = BattleCategorizationList(cats)
 		
+		if args.filters != None:
+			results = filter_replays(results, args.filters)
 		for result in results:
 			blt_cat_list.record_result(result)
 			if url:
@@ -1311,6 +1320,23 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 	except Exception as err:
 		bu.error(exception=err)
 	return blt_cat_list
+
+
+def filter_replays(results: list, filter_json) -> bool:
+	"""Filter replays based on battle category filters"""
+	
+	filters = json.loads(filter_json)
+	if type(filters) != dict:
+		bu.error('invalid --filter arguments: ' + str(filter))
+		sys.exit(1)
+	
+	res = list()
+	for result in results:
+		for filter in filters:
+
+	return res
+
+
 
 
 async def process_player_stats(players, N_workers: int, args : argparse.Namespace, db : motor.motor_asyncio.AsyncIOMotorDatabase) -> dict:
@@ -1751,9 +1777,9 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 		try:
 			dbc = db[DB_C_REPLAYS]
 			cursor = None
-			if args.filters  != None:
-				bu.debug(str(args.filters))
-				filters = json.loads(args.filters)
+			if args.filters_db  != None:
+				bu.debug(str(args.filters_db))
+				filters = json.loads(args.filters_db)
 				bu.debug(json.dumps(filters, indent=2))
 				cursor = dbc.find(filters)
 			else:
