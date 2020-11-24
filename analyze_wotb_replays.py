@@ -126,15 +126,15 @@ class BattleCategorizationList():
 	_categorizations = {
 		'total'				: [ 'TOTAL', 		'total' ],
 		'battle_result'		: [ 'Result', 		'category', 	[ 'Loss', 'Win', 'Draw']],
-		'battle_type'		: [ 'Battle Type', 	'category', 	['Encounter', 'Supremacy']],
+		'battle_type'		: [ 'Battle Type', 	'category', 	[ 'Encounter', 'Supremacy']],
 		'tank_tier'			: [ 'Tank Tier', 	'number' ],
-		'top_tier'			: [ 'Tier', 		'category', 	['Bottom tier', 'Top tier']],
+		'top_tier'			: [ 'Tier', 		'category', 	[ 'Bottom tier', 'Top tier']],
 		'room_type'			: [ 'Battle Mode', 	'category', 	_BATTLE_MODES ],
 		'mastery_badge'		: [ 'Battle Medal', 'category', 	['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
 		'team_result'		: [ 'Team Result', 	'string' ],	
 		'player_wins'		: [ 'Player WR', 	'bucket', [ 0, .35, .45, .50, .55, .65], '%' ],
-		'player_battles'	: [ 'Player Battles', 	'bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3], 'int' ],
-		'player_damage_dealt'	: [ 'Player Avg Dmg', 	'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ],
+		'player_battles'	: [ 'Player Battles','bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3], 'int' ],
+		'player_damage_dealt'	: [ 'Player Avg Dmg','bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ],
 		'map_name'			: [ 'Map', 			'string' ],
 		'tank_name'			: [ 'Tank', 		'string' ],
 		'player_name'		: [ 'Player', 		'string' ],
@@ -207,7 +207,35 @@ class BattleCategorizationList():
 		except Exception as err:
 			bu.error(exception=err)
 		return None
-		
+	
+
+	@classmethod
+	def help(cls):
+		for cat in cls.get_categorizations_all():
+			try:
+				ctitle 	= cls.get_categorization_title(cat)
+				ctype 	= cls.get_categorization_type(cat)
+				cparams = cls.get_categorization_params(cat)
+						
+				if ctype == 'number':
+					cat_tmp = BattleNumberCategorization(cat, ctitle)
+				elif ctype == 'string':
+					cat_tmp = BattleStringCategorization(cat, ctitle)
+				elif ctype == 'category':					
+					cat_tmp = BattleClassCategorization(cat, ctitle, cparams[0])
+				elif ctype == 'bucket':
+					cat_tmp = BattleBucketCategorization(cat, ctitle, cparams[0], cparams[1])
+				else:
+					cat_tmp = BattleTotals(ctitle)
+				
+				cat_tmp.help()
+
+			except KeyError as err:
+				bu.error('BattleCategorizationList(): Key not found: Category: ' + cat, exception=err)			
+			except Exception as err:
+				bu.error('BattleCategorizationList()', exception=err) 
+
+	
 
 	def __init__(self, args : argparse.Namespace):
 		self.urls 				= collections.OrderedDict()
@@ -329,6 +357,12 @@ class BattleCategorization():
 		"""Get category. Must be implemented in the child classes"""
 		return 'NONE'
 
+	
+	def help(self): 
+		"""Help"""
+		FORMAT = '\t{:<15s}\t{}. Options:'
+		print(FORMAT.format(self.category_key, self.title), end=' ')		
+
 
 	def record_result(self, result: dict):
 		try:
@@ -393,6 +427,10 @@ class BattleTotals(BattleCategorization):
 	def get_categories(self) -> str: 
 		return [ self.TOTAL ]
 
+	def help(self):
+		super().help()
+		print('-')
+
 
 class BattleClassCategorization(BattleCategorization):
 	"""Class for categorization by fixed classes with ID (int)"""
@@ -400,6 +438,14 @@ class BattleClassCategorization(BattleCategorization):
 	def __init__(self, cat_key : str, title: str, classes: list):
 		super().__init__(cat_key, title)
 		self.category_labels = classes
+
+
+	def help(self):
+		super().help()
+		labels = list()
+		for ndx in range(0, len(self.category_labels)):
+			labels.append(str(ndx) + '=' + self.category_labels[ndx])
+		print(', '.join(labels))
 
 
 	def get_category(self, result: dict) -> str: 
@@ -442,6 +488,11 @@ class BattleStringCategorization(BattleCategorization):
 			bu.error('Category: ' +  self.category_key, exception=err)
 		return None
 
+	
+	def help(self):
+		super().help()
+		print(self.title + ' name')
+
 
 class BattleNumberCategorization(BattleCategorization):
 	"""Class for categorization by number"""
@@ -466,6 +517,11 @@ class BattleNumberCategorization(BattleCategorization):
 		return None
 
 
+	def help(self):
+		super().help()
+		print('INTEGER')
+
+
 class BattleBucketCategorization(BattleCategorization):
 	"""Class for categorization by buckets based on value"""
 
@@ -477,6 +533,14 @@ class BattleBucketCategorization(BattleCategorization):
 			self.category_labels = self.mk_category_labels(breaks, bucket_format)			
 		except Exception as err:
 			bu.error('BattleBucketCategorization()', exception=err) 
+
+
+	def help(self):
+		super().help()
+		labels = list()
+		for ndx in range(0, len(self.category_labels)):
+			labels.append(str(ndx) + '=' + self.category_labels[ndx])
+		print(', '.join(labels))
 
 	def get_category(self, result: dict) -> str: 
 		"""Get category"""
@@ -1127,7 +1191,7 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 
 	# Filter usage
 	print('\n-------------------------------------------------------------------')
-	print('| Filter usage                                                    |')
+	print('| DB Filter usage                                                 |')
 	print('-------------------------------------------------------------------')
 	
 	print("Syntax: --filters '{ \"replay.param\": VALUE, \"replay.param2\": { \"$MONGO_OPERATOR\" : VALUE }, ... }'")
@@ -1145,6 +1209,12 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 				print("\tdata.summary.details.[]." + d)
 		except Exception as err:
 			bu.error(exception=err)
+
+	print('\n-------------------------------------------------------------------')
+	print('| Filter usage                                                    |')
+	print('-------------------------------------------------------------------')
+	BattleCategorizationList.help()
+
 
 ## move the class PlayerHistogram?
 def set_histogram_buckets(json: dict):
@@ -1422,8 +1492,10 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 					# no DB stats found, trying WG AP
 					if (stats[stat_id] == None):							
 						stats[pruned_stat_id] = await stat_wg_func(pruned_stat_id)
-						stat_id_remap[stat_id] = pruned_stat_id
+						stat_id_remap[stat_id] = pruned_stat_id						
 						del stats[stat_id]
+						bu.debug('get_wg_' + args.stat_func + '_stats returned: account_id=' + str(get_account_id_f_stat_id(pruned_stat_id)) + ': ' + str(stats[pruned_stat_id]), workerID)
+
 					
 			except KeyError as err:
 				bu.error('Key not found', err, id=workerID)
@@ -1479,11 +1551,18 @@ async def get_db_tank_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, stat_
 	try:
 		dbc = db[DB_C_TANK_STATS]
 		( account_id, tank_id, battletime ) = str2ints(stat_id_str)
-		
 		time_buffer = 2*7*24*3600
+
+		hist_stats = [ 'all.' + x for x in histogram_fields.keys() ]
+		hist_stats.append('tank_id')
+		hist_stats.append('account_id')
+		hist_stats.append('last_battle_time')
+		project = dict()
+		for stat in hist_stats:			
+			project[stat] = True
+		project['_id'] = False
 		
-		FIX ## find() rather than aggregate! 
-		cursor = dbc.find({ '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$lte': battletime + time_buffer }}, { 'tank_id' : tank_id } ]}).sort('last_battle_time',-1).limit(1)
+		cursor = dbc.find({ '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$gte': battletime - time_buffer }}, { 'tank_id' : tank_id } ] }, projection=project).sort('last_battle_time',-1).limit(1)
 
 		# pipeline = 	[ { '$match': { '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$lte': battletime + time_buffer }}, { 'tank_id' : tank_id } ]}}, 
 		# 		{ '$sort': { 'last_battle_time': -1 }}, 
@@ -1494,7 +1573,7 @@ async def get_db_tank_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, stat_
 		# cursor = dbc.aggregate(pipeline, allowDiskUse=True)
 		#cursor = dbc.aggregate(pipeline)
 
-		return await tank_stats_helper(await cursor.to_list(10)) 
+		return await tank_stats_helper(await cursor.to_list(1)) 
 				
 	except Exception as err:
 		bu.error('account_id: ' + str(account_id) + ' Error', err)
