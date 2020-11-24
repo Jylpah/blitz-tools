@@ -1480,15 +1480,7 @@ async def get_db_tank_tier_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, 
 		( account_id, tier, battletime ) = str2ints(stat_id_str)
 		tier_tanks = wg.get_tanks_by_tier(tier)
 		time_buffer = 2*7*24*3600
-		#bu.debug('Tank_ids: ' + ','.join(map(str, tier_tanks)))
-		
-		# if battletime == None:
-		# 	pipeline = 	[ { '$match': { '$and': [ { 'account_id': account_id }, { 'tank_id' : {'$in': tier_tanks} } ]}}, 
-		# 			{ '$sort': { 'last_battle_time': -1 }}, 
-		# 			{ '$group': { '_id': '$tank_id', 'doc': { '$first': '$$ROOT' }}}, 
-		# 			{ '$replaceRoot': { 'newRoot': '$doc' }}, 
-		# 			{ '$project': { '_id': 0 }} ]
-		# else:
+
 		pipeline = 	[ { '$match': { '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$lte': battletime + time_buffer }}, { 'tank_id' : {'$in': tier_tanks} } ]}}, 
 				{ '$sort': { 'last_battle_time': -1 }}, 
 				{ '$group': { '_id': '$tank_id', 'doc': { '$first': '$$ROOT' }}}, 
