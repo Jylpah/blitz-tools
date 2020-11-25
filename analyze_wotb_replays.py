@@ -828,8 +828,11 @@ class BattleCategory():
 
 
 	@classmethod
-	def get_result_fields_ratio(cls) -> list:
-		return cls.result_fields_ratio
+	def get_result_fields_ratio(cls, all: bool = False) -> list:
+		if all:
+			return cls._result_ratios.keys()
+		else:
+			return cls.result_fields_ratio
 
 
 	@classmethod
@@ -865,9 +868,11 @@ class BattleCategory():
 	@classmethod
 	def calc_ratio(cls, ratio: str, result: dict): 
 		try:
-			value = result[cls._result_ratios[ratio][0]]
+			value 	= result[cls._result_ratios[ratio][0]]
 			divider = result[cls._result_ratios[ratio][1]]
 			if divider != 0:
+				if value == None:
+					value = 0
 				return value / divider
 			else:
 				if value == 0:
@@ -875,7 +880,7 @@ class BattleCategory():
 				else:
 					return float('Inf')
 		except Exception as err:
-			bu.error(exception=err)
+			bu.error('Replay _id=' + result['_id'] , exception=err)
 		return None
 
 
@@ -1939,7 +1944,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 			bu.debug('Reading replays...')	
 			async for replay_json in cursor:
 				_id = replay_json['_id']
-				del(replay_json['_id'])
+				#del(replay_json['_id'])
 				await queue.put(await mk_readerQ_item(replay_json, 'DB: _id = ' + _id))
 				Nreplays += 1
 			bu.debug('All the matching replays have been read from the DB')
@@ -2054,6 +2059,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 			bu.debug('Invalid replay')
 			return None
 		
+		result['_id'] = replay_json['_id']
 		result['battle_start_timestamp'] = int(replay_json['data']['summary']['battle_start_timestamp'])
 		# TBD... 
 		protagonist = int(replay_json['data']['summary']['protagonist'])
@@ -2159,7 +2165,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 					# platoon buddy removed from stats 
 					result['allies'].remove(get_stat_id(tmp_account_id, tmp_tank_id, tmp_battletime))
 					break
-		for ratio in BattleCategory.get_result_fields_ratio():
+		for ratio in BattleCategory.get_result_fields_ratio(all=True):
 			result[ratio] = BattleCategory.calc_ratio(ratio, result)
 
 		result['time_alive%'] = result['time_alive'] / btl_duration  
