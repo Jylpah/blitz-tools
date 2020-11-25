@@ -124,17 +124,22 @@ class BattleCategorizationList():
 	_BATTLE_MODES = mk_battle_modes.__func__(_battle_modes)
 
 	_categorizations = {
-		'total'				: [ 'TOTAL', 		'total' ],
-		'battle_result'		: [ 'Result', 		'category', 	[ 'Loss', 'Win', 'Draw']],
-		'battle_type'		: [ 'Battle Type', 	'category', 	[ 'Encounter', 'Supremacy']],
-		'tank_tier'			: [ 'Tank Tier', 	'number' ],
-		'top_tier'			: [ 'Tier', 		'category', 	[ 'Bottom tier', 'Top tier']],
-		'room_type'			: [ 'Battle Mode', 	'category', 	_BATTLE_MODES ],
-		'mastery_badge'		: [ 'Battle Medal', 'category', 	['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
-		'team_result'		: [ 'Team Result', 	'string' ],	
-		'player_wins'		: [ 'Player WR', 	'bucket', [ 0, .35, .45, .50, .55, .65], '%' ],
-		'player_battles'	: [ 'Player Battles','bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3], 'int' ],
-		'player_damage_dealt'	: [ 'Player Avg Dmg','bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ],
+		'total'				: [ 'TOTAL', 			'total' ],
+		'battle_result'		: [ 'Result', 			'category', 	[ 'Loss', 'Win', 'Draw']],
+		'battle_type'		: [ 'Battle Type', 		'category', 	[ 'Encounter', 'Supremacy']],
+		'tank_tier'			: [ 'Tank Tier', 		'number' ],
+		'top_tier'			: [ 'Tier', 			'category', 	[ 'Bottom tier', 'Top tier']],
+		'room_type'			: [ 'Battle Mode', 		'category', 	_BATTLE_MODES ],
+		'mastery_badge'		: [ 'Battle Medal', 	'category', 	['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
+		'team_result'		: [ 'Team Result', 		'string' ],	
+		'player_wins'			: [ 'Player WR', 			'bucket', [ 0, .35, .45, .50, .55, .65], '%' ],
+		'player_battles'		: [ 'Player Battles',		'bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3], 'int' ],
+		'player_damage_dealt'	: [ 'Player Avg Dmg',		'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ],
+		'damage_made'			: [ 'Player Dmg made',		'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ],
+		'enemies_destroyed'		: [ 'Player Kills', 		'number'],
+		'enemies_spotted'		: [ 'Player Spots',  		'number'],
+		'hit_rate'				: [ 'Player Hit Rate', 		'bucket', [ 0, .25, .5, .6, .7, .8, .9, .95 ], '%' ],
+		'pen_rate'				: [ 'Player Pen Rate', 		'bucket', [ 0, .25, .5, .6, .7, .8, .9, .95 ], '%' ],
 		'map_name'			: [ 'Map', 			'string' ],
 		'tank_name'			: [ 'Tank', 		'string' ],
 		'player_name'		: [ 'Player', 		'string' ],
@@ -586,7 +591,7 @@ class BattleNumberCategorization(BattleCategorization):
 
 	def get_filter_categories(self, filters: list) -> list:
 		try:
-			return filters
+			return list(map(str,filters))
 		except Exception as err:
 			bu.error('Category: ' + str(self.category_key), exception=err)
 		return None
@@ -758,7 +763,7 @@ class BattleCategory():
 		'default'		: [ 'battles',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 'top_tier', 'DR', 'survived', 'allies_wins', 'enemies_wins'],
 		'team'			: [ 'battles',	'win','player_wins','allies_wins','enemies_wins'],
 		'team_extended'	: [ 'battles',	'battles%',	'win','player_wins','allies_wins','enemies_wins', 'player_damage_dealt', 'allies_damage_dealt', 'enemies_damage_dealt', 'player_battles','allies_battles','enemies_battles' ],
-		'extended'		: [ 'battles',	'battles%',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 'top_tier', 'DR', 'KDR', 'hit_rate',	'pen_rate',	'survived',	'time_alive%', 'player_wins', 'allies_damage_wins', 'enemies_wins', MISSING_STATS ]
+		'extended'		: [ 'battles',	'battles%',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 'top_tier', 'DR', 'KDR', 'hit_rate', 'pen_rate',	'survived',	'time_alive%', 'player_wins', 'allies_wins', 'enemies_wins', MISSING_STATS ]
 	}
 
 	_team_fields = [ 'wins', 'battles', 'damage_dealt' ]
@@ -821,6 +826,12 @@ class BattleCategory():
 	def get_result_fields(cls) -> list:
 		return cls.result_fields
 
+
+	@classmethod
+	def get_result_fields_ratio(cls) -> list:
+		return cls.result_fields_ratio
+
+
 	@classmethod
 	def get_avg_fields(cls) -> set:
 		return cls.avg_fields
@@ -849,6 +860,23 @@ class BattleCategory():
 	@classmethod
 	def get_fields_team(cls) -> list:
 		return cls._team_fields
+
+	
+	@classmethod
+	def calc_ratio(cls, ratio: str, result: dict): 
+		try:
+			value = result[cls._result_ratios[ratio][0]]
+			divider = result[cls._result_ratios[ratio][1]]
+			if divider != 0:
+				return value / divider
+			else:
+				if value == 0:
+					return 0
+				else:
+					return float('Inf')
+		except Exception as err:
+			bu.error(exception=err)
+		return None
 
 
 	@classmethod
@@ -1396,16 +1424,23 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 	try:
 		url 		= args.url
 		cats 		= BattleCategorizationList.get_categorizations(args)
-		blt_cat_list = BattleCategorizationList(cats)
+		
 		
 		if args.filters != None:
 			results = filter_replays(results, args.filters)
-		for result in results:
-			blt_cat_list.record_result(result)
-			if url:
-				blt_cat_list.record_url(result)
+		if len(results) > 0:
+			blt_cat_list = BattleCategorizationList(cats)
+			for result in results:
+				blt_cat_list.record_result(result)
+				if url:
+					blt_cat_list.record_url(result)
 
-		blt_cat_list.calc_results()
+			blt_cat_list.calc_results()
+		else:
+			warning_txt = 'No replays to process '
+			if args.filter != None: 
+				warning_txt = warning_txt + 'after filtering'
+			bu.warning(warning_txt)
 
 	except Exception as err:
 		bu.error(exception=err)
@@ -1433,16 +1468,20 @@ def filter_replays(results: list, filter_json : str) -> bool:
 		
 		res = list()
 		for result in results:
-			cats = filter_cats.get_categories(result)
-			ret = False
-			for cat in cats:
-				if cats[cat] not in filters[cat]:
-					ret = False
-					break
-				ret = True
-			if ret:
-				res.append(result)
-	
+			try:
+				cats = filter_cats.get_categories(result)
+				bu.debug(str(cats))
+				ret = False
+				for cat in cats:
+					if cats[cat] not in filters[cat]:
+						ret = False
+						break
+					ret = True
+				if ret:
+					res.append(result)
+			except Exception as err:
+				bu.error(exception=err)
+		bu.verbose('Battles after filtering: ' + str(len(res)))	
 		return res
 	except Exception as err:
 		bu.error(exception=err)
@@ -2120,6 +2159,8 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 					# platoon buddy removed from stats 
 					result['allies'].remove(get_stat_id(tmp_account_id, tmp_tank_id, tmp_battletime))
 					break
+		for ratio in BattleCategory.get_result_fields_ratio():
+			result[ratio] = BattleCategory.calc_ratio(ratio, result)
 
 		result['time_alive%'] = result['time_alive'] / btl_duration  
 		result['battle_tier'] = btl_tier
