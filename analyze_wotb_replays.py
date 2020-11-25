@@ -1481,7 +1481,7 @@ def filter_replays(results: list, filter_json : str) -> bool:
 					res.append(result)
 			except Exception as err:
 				bu.error(exception=err)
-		bu.verbose('Battles after filtering: ' + str(len(res)))	
+		bu.verbose('Replays after filtering: ' + str(len(res)))	
 		return res
 	except Exception as err:
 		bu.error(exception=err)
