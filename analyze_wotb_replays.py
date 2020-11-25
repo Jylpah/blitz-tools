@@ -244,7 +244,7 @@ class BattleCategorizationList():
 		if only_extra:
 			cats = list()
 		else:
-			cats = self.get_categorizations_default()
+			cats = cls.get_categorizations_default()
 		
 		if extra_cats != None: 
 			cats = cats + extra_cats
@@ -282,7 +282,15 @@ class BattleCategorizationList():
 				bu.error('BattleCategorizationList(): Key not found: Category: ' + cat, exception=err)			
 			except Exception as err:
 				bu.error('BattleCategorizationList()', exception=err) 
-		
+
+
+	def get_categorization(self, cat: str):	
+		"""Return a BattleCategorization for a category"""
+		try:
+			return self.categorizations[cat]
+		except Exception as err:
+			bu.error(exception=err)
+		return None
 	
 	def record_result(self, result: dict):
 		try:
@@ -331,6 +339,26 @@ class BattleCategorizationList():
 			bu.error(exception=err)		
 
 
+	def get_filter_categories(self, cat: str, filters: list) -> dict:
+		try:
+			return self.categorizations[cat].get_filter_categories(filters)
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
+
+	def get_categories(self, result: dict) -> dict:
+		"""Get categories for each categorization in the CategorizationList() for a battle result"""	
+		try:
+			res = dict()
+			for cat in self.categorizations_list:
+				res[cat] = self.categorizations[cat].get_category(result)
+			return res
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
+
 	def get_results_json(self):
 		try:
 			res = dict()
@@ -363,7 +391,13 @@ class BattleCategorization():
 		"""Get category. Must be implemented in the child classes"""
 		return 'NONE'
 
-	
+
+	def get_filter_categories(self, filters: list) -> list:
+		if type(filters) != list:
+			filters = [ filters ]
+		return [ x for x in filters if x in self.get_categories() ]
+
+
 	def help(self): 
 		"""Help"""
 		FORMAT = '\t{:<15s}\t{}. Options:'
@@ -430,8 +464,10 @@ class BattleTotals(BattleCategorization):
 	def get_category(self, result: dict) -> str: 
 		return self.TOTAL
 
+
 	def get_categories(self) -> str: 
 		return [ self.TOTAL ]
+
 
 	def help(self):
 		super().help()
@@ -466,7 +502,24 @@ class BattleClassCategorization(BattleCategorization):
 			bu.error('Category: ' + str(self.category_key) + ' ID: ' + str(cat_id), exception=err)
 		return None
 
-	
+
+	def get_filter_categories(self, filters: list) -> list:
+		try:
+			# bu.debug(str(filters), force=True)
+			if type(filters) != list:
+				filters = [ filters ]
+			bu.debug(str(self.category_labels))
+			res = list()
+			for ndx in filters:
+				if ndx in range(0,len(self.category_labels)):
+					res.append(self.category_labels[ndx])
+			return res
+			#return [ self.category_labels[int(x)] for x in filters if x in range(0, len(self.get_categories())) ]
+		except Exception as err:
+			bu.error('Category: ' + str(self.category_key), exception=err)
+		return None
+
+
 	def get_categories(self) -> list:
 		try:
 			cats = list()
@@ -492,6 +545,14 @@ class BattleStringCategorization(BattleCategorization):
 			bu.error('Category key: ' + self.category_key + ' not found', exception=err)
 		except Exception as err:
 			bu.error('Category: ' +  self.category_key, exception=err)
+		return None
+
+
+	def get_filter_categories(self, filters: list) -> list:
+		try:
+			return filters
+		except Exception as err:
+			bu.error('Category: ' + str(self.category_key), exception=err)
 		return None
 
 	
@@ -523,6 +584,13 @@ class BattleNumberCategorization(BattleCategorization):
 		return None
 
 
+	def get_filter_categories(self, filters: list) -> list:
+		try:
+			return filters
+		except Exception as err:
+			bu.error('Category: ' + str(self.category_key), exception=err)
+		return None
+
 	def help(self):
 		super().help()
 		print('INTEGER')
@@ -548,16 +616,19 @@ class BattleBucketCategorization(BattleCategorization):
 			labels.append(str(ndx) + '=' + self.category_labels[ndx])
 		print(', '.join(labels))
 
+
 	def get_category(self, result: dict) -> str: 
 		"""Get category"""
 		cat_id = -1
+		value = None
 		try:
-			cat_id = self.find_bucket(result[self.category_key], self.breaks)
+			value = result[self.category_key]
+			cat_id = self.find_bucket(value, self.breaks)
 			return self.category_labels[cat_id]
 		except KeyError as err:
-			bu.error('Category: ' + str(self.category_key) + ' cat ID: ' + str(cat_id), exception=err)
+			bu.error('Category: ' + str(self.category_key) + ' value: ' + str(value) + ' cat ID: ' + str(cat_id), exception=err)
 		except Exception as err:
-			bu.error('Category: ' + str(self.category_key) + ' cat ID: ' + str(cat_id), exception=err)
+			bu.error('Category: ' + str(self.category_key) + ' value: ' + str(value) + ' cat ID: ' + str(cat_id), exception=err)
 		return None
 
 
@@ -572,6 +643,20 @@ class BattleBucketCategorization(BattleCategorization):
 			bu.error('Key not found', exception = err)  
 		except Exception as err:
 			bu.error(exception = err) 
+		return None
+
+
+	def get_filter_categories(self, filters: list) -> list:
+		try:
+			if type(filters) != list:
+				filters = [ filters ]
+			res = list()
+			for ndx in filters:
+				if ndx in range(0,len(self.category_labels)):
+					res.append(self.category_labels[ndx])
+			return res			
+		except Exception as err:
+			bu.error('Category: ' + str(self.category_key), exception=err)
 		return None
 
 
@@ -592,7 +677,7 @@ class BattleBucketCategorization(BattleCategorization):
 			bu.error('Key not found ndx=' + str(ndx) + ', value=' + str(value), exception = err)  
 		except Exception as err:
 			bu.error('ndx=' + str(ndx) + ', value=' + str(value), exception = err) 
-		return None
+		return -2
 
 
 	def mk_category_labels(self, bucket_breaks: list, bucket_format: str) -> list:
@@ -1200,7 +1285,9 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 	print('\n-------------------------------------------------------------------')
 	print('| DB Filter usage                                                 |')
 	print('-------------------------------------------------------------------')
-	
+	print('')
+	print('You are unlikely to have DB setup required for these filters. This is "Jylpah\'s special"')
+	print('')
 	print("Syntax: --filters '{ \"replay.param\": VALUE, \"replay.param2\": { \"$MONGO_OPERATOR\" : VALUE }, ... }'")
 	print("\tExample: --filters '{ \"data.summary.protagonist\": ACCOUNT_ID, \"data.summary.battle_start_timestamp\": { \"$gt\" : 1602853200 } }'")
 	if db != None:
@@ -1218,8 +1305,11 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 			bu.error(exception=err)
 
 	print('\n-------------------------------------------------------------------')
-	print('| Filter usage                                                    |')
+	print('| Filters example: --filter \'{ "room_type" :1 }\'                  |')
 	print('-------------------------------------------------------------------')
+	print('')
+	print('\tThese filters let you filter only battles matching the filter. The filter has been proper JSON dict.')
+	print('')
 	BattleCategorizationList.help()
 
 
@@ -1305,7 +1395,7 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 	"""Process replay battle results""" 
 	try:
 		url 		= args.url
-		cats = BattleCategorizationList.get_categorizations(args)
+		cats 		= BattleCategorizationList.get_categorizations(args)
 		blt_cat_list = BattleCategorizationList(cats)
 		
 		if args.filters != None:
@@ -1322,19 +1412,41 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 	return blt_cat_list
 
 
-def filter_replays(results: list, filter_json) -> bool:
+def filter_replays(results: list, filter_json : str) -> bool:
 	"""Filter replays based on battle category filters"""
-	
-	filters = json.loads(filter_json)
-	if type(filters) != dict:
-		bu.error('invalid --filter arguments: ' + str(filter))
-		sys.exit(1)
-	
-	res = list()
-	for result in results:
+	try:
+		filters = json.loads(filter_json)
+		bu.debug(str(filters))
 		for filter in filters:
+			if type(filters[filter]) != list:
+				filters[filter] = [ filters[filter]]
 
-	return res
+		if type(filters) != dict:
+			bu.error('invalid --filter arguments: ' + str(filters))
+			sys.exit(1)
+		
+		filter_cats = BattleCategorizationList(filters.keys())
+		for cat in filters:
+			categorization = filter_cats.get_categorization(cat)
+			filters[cat] = categorization.get_filter_categories(filters[cat])
+			bu.verbose('filter: ' + cat + ': ' + ','.join(filters[cat]))		
+		
+		res = list()
+		for result in results:
+			cats = filter_cats.get_categories(result)
+			ret = False
+			for cat in cats:
+				if cats[cat] not in filters[cat]:
+					ret = False
+					break
+				ret = True
+			if ret:
+				res.append(result)
+	
+		return res
+	except Exception as err:
+		bu.error(exception=err)
+	return None
 
 
 
@@ -1407,7 +1519,7 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 
 	## Bug here?? 
 	#stat_types = player_stats[list(player_stats.keys())[0]].keys()
-	stat_types = list()
+	#stat_types = list()
 	stat_types = BattleCategory.get_fields_team()
 		
 	for result in results:
@@ -1449,16 +1561,16 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 			else:				
 				for stat in stat_types:
 					if player_stats[player_mapped][stat] != None:
-						result['player_' + str(stat)] = player_stats[player_mapped][stat]
+						result['player_' + stat] = player_stats[player_mapped][stat]
 
 			for stat in stat_types:
 				if  n_allies[stat] > 0:
-					result['allies_' + str(stat)] = allies_stats[stat] / n_allies[stat]
+					result['allies_' + stat] = allies_stats[stat] / n_allies[stat]
 				else:
 					bu.debug('No allies stats for: ' + str(result))
 				
 				if  n_enemies[stat] > 0:
-					result['enemies_' + str(stat)] = enemies_stats[stat] / n_enemies[stat]
+					result['enemies_' + stat] = enemies_stats[stat] / n_enemies[stat]
 				else:
 					bu.debug('No enemies stats for: ' + str(result))
 
@@ -2018,7 +2130,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		bu.debug(str(result))
 		return result
 	except KeyError as err:
-		bu.error('Key not found', err)
+		bu.warning('Invalid replay. Key not found', err)
 	except Exception as err:
 		bu.error(exception=err)
 	return None
