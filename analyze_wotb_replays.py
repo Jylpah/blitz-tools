@@ -1464,7 +1464,7 @@ def filter_replays(results: list, filter_json : str) -> bool:
 		for cat in filters:
 			categorization = filter_cats.get_categorization(cat)
 			filters[cat] = categorization.get_filter_categories(filters[cat])
-			bu.verbose('filter: ' + cat + ': ' + ','.join(filters[cat]))		
+			bu.verbose('Filter: ' + cat + ': ' + ','.join(filters[cat]))		
 		
 		res = list()
 		for result in results:
