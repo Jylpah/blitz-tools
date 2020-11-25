@@ -33,6 +33,7 @@ RE_SRC_IS_DB = re.compile(r'^DB:')
 # 1st function = for forming stat_id, 2nd for DB stats query, 3rd for WG API stats query
 STAT_FUNC	= {
 	'tank_tier': 	[ 'get_stat_id_tank_tier', 'get_db_tank_tier_stats', 'get_wg_tank_tier_stats' ],
+	'tank': 		[ 'get_stat_id_tank', 'get_db_tank_stats', 'get_wg_tank_stats' ],
 	'player': 		[ 'get_stat_id_player', 'get_db_player_stats', 'get_wg_player_stats' ]
 }
 
@@ -123,17 +124,22 @@ class BattleCategorizationList():
 	_BATTLE_MODES = mk_battle_modes.__func__(_battle_modes)
 
 	_categorizations = {
-		'total'				: [ 'TOTAL', 		'total' ],
-		'battle_result'		: [ 'Result', 		'category', 	[ 'Loss', 'Win', 'Draw']],
-		'battle_type'		: [ 'Battle Type', 	'category', 	['Encounter', 'Supremacy']],
-		'tank_tier'			: [ 'Tank Tier', 	'number' ],
-		'top_tier'			: [ 'Tier', 		'category', 	['Bottom tier', 'Top tier']],
-		'room_type'			: [ 'Battle Mode', 	'category', 	_BATTLE_MODES ],
-		'mastery_badge'		: [ 'Battle Medal', 'category', 	['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
-		'team_result'		: [ 'Team Result', 	'string' ],	
-		'player_wins'		: [ 'Player WR', 	'bucket', [ 0, .35, .45, .50, .55, .65], '%' ],
-		'player_battles'	: [ 'Player Battles', 	'bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3], 'int' ],
-		'player_damage_dealt'	: [ 'Player Avg Dmg', 	'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ],
+		'total'				: [ 'TOTAL', 			'total' ],
+		'battle_result'		: [ 'Result', 			'category', 	[ 'Loss', 'Win', 'Draw']],
+		'battle_type'		: [ 'Battle Type', 		'category', 	[ 'Encounter', 'Supremacy']],
+		'tank_tier'			: [ 'Tank Tier', 		'number' ],
+		'top_tier'			: [ 'Tier', 			'category', 	[ 'Bottom tier', 'Top tier']],
+		'room_type'			: [ 'Battle Mode', 		'category', 	_BATTLE_MODES ],
+		'mastery_badge'		: [ 'Battle Medal', 	'category', 	['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
+		'team_result'		: [ 'Team Result', 		'string' ],	
+		'player_wins'			: [ 'Player WR', 			'bucket', [ 0, .35, .45, .50, .55, .65], '%' ],
+		'player_battles'		: [ 'Player Battles',		'bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3], 'int' ],
+		'player_damage_dealt'	: [ 'Player Avg Dmg',		'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ],
+		'damage_made'			: [ 'Player Dmg made',		'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ],
+		'enemies_destroyed'		: [ 'Player Kills', 		'number'],
+		'enemies_spotted'		: [ 'Player Spots',  		'number'],
+		'hit_rate'				: [ 'Player Hit Rate', 		'bucket', [ 0, .25, .5, .6, .7, .8, .9, .95 ], '%' ],
+		'pen_rate'				: [ 'Player Pen Rate', 		'bucket', [ 0, .25, .5, .6, .7, .8, .9, .95 ], '%' ],
 		'map_name'			: [ 'Map', 			'string' ],
 		'tank_name'			: [ 'Tank', 		'string' ],
 		'player_name'		: [ 'Player', 		'string' ],
@@ -206,21 +212,54 @@ class BattleCategorizationList():
 		except Exception as err:
 			bu.error(exception=err)
 		return None
-		
+	
 
-	def __init__(self, args : argparse.Namespace):
-		self.urls 				= collections.OrderedDict()
-		self.url_title_max_len 	= 0
+	@classmethod
+	def help(cls):
+		for cat in cls.get_categorizations_all():
+			try:
+				ctitle 	= cls.get_categorization_title(cat)
+				ctype 	= cls.get_categorization_type(cat)
+				cparams = cls.get_categorization_params(cat)
+						
+				if ctype == 'number':
+					cat_tmp = BattleNumberCategorization(cat, ctitle)
+				elif ctype == 'string':
+					cat_tmp = BattleStringCategorization(cat, ctitle)
+				elif ctype == 'category':					
+					cat_tmp = BattleClassCategorization(cat, ctitle, cparams[0])
+				elif ctype == 'bucket':
+					cat_tmp = BattleBucketCategorization(cat, ctitle, cparams[0], cparams[1])
+				else:
+					cat_tmp = BattleTotals(ctitle)
+				
+				cat_tmp.help()
+
+			except KeyError as err:
+				bu.error('BattleCategorizationList(): Key not found: Category: ' + cat, exception=err)			
+			except Exception as err:
+				bu.error('BattleCategorizationList()', exception=err) 
+
+
+	@classmethod
+	def get_categorizations(cls, args : argparse.Namespace):
 		extra_cats = args.extra
 		only_extra = args.only_extra
 		
 		if only_extra:
 			cats = list()
 		else:
-			cats = self.get_categorizations_default()
+			cats = cls.get_categorizations_default()
 		
 		if extra_cats != None: 
 			cats = cats + extra_cats
+		return cats
+
+
+	def __init__(self, cats: list):
+		self.urls 				= collections.OrderedDict()
+		self.url_title_max_len 	= 0
+		
 		
 		cats = list(set(cats))  	# remove duplicates
 		# ordering		
@@ -248,7 +287,15 @@ class BattleCategorizationList():
 				bu.error('BattleCategorizationList(): Key not found: Category: ' + cat, exception=err)			
 			except Exception as err:
 				bu.error('BattleCategorizationList()', exception=err) 
-		
+
+
+	def get_categorization(self, cat: str):	
+		"""Return a BattleCategorization for a category"""
+		try:
+			return self.categorizations[cat]
+		except Exception as err:
+			bu.error(exception=err)
+		return None
 	
 	def record_result(self, result: dict):
 		try:
@@ -276,6 +323,7 @@ class BattleCategorizationList():
 			bu.error(exception=err)
 		return None
 
+
 	def print_results(self):
 		try:
 			for cat in self.categorizations_list:
@@ -294,6 +342,26 @@ class BattleCategorizationList():
 					print(('{:' + str(3 + self.url_title_max_len) + '}').format(title) + ' : ' + self.urls[title])
 		except Exception as err:
 			bu.error(exception=err)		
+
+
+	def get_filter_categories(self, cat: str, filters: list) -> dict:
+		try:
+			return self.categorizations[cat].get_filter_categories(filters)
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
+
+	def get_categories(self, result: dict) -> dict:
+		"""Get categories for each categorization in the CategorizationList() for a battle result"""	
+		try:
+			res = dict()
+			for cat in self.categorizations_list:
+				res[cat] = self.categorizations[cat].get_category(result)
+			return res
+		except Exception as err:
+			bu.error(exception=err)
+		return None
 
 
 	def get_results_json(self):
@@ -327,6 +395,18 @@ class BattleCategorization():
 	def get_category(self, result: dict) -> str: 
 		"""Get category. Must be implemented in the child classes"""
 		return 'NONE'
+
+
+	def get_filter_categories(self, filters: list) -> list:
+		if type(filters) != list:
+			filters = [ filters ]
+		return [ x for x in filters if x in self.get_categories() ]
+
+
+	def help(self): 
+		"""Help"""
+		FORMAT = '\t{:<15s}\t{}. Options:'
+		print(FORMAT.format(self.category_key, self.title), end=' ')		
 
 
 	def record_result(self, result: dict):
@@ -389,8 +469,14 @@ class BattleTotals(BattleCategorization):
 	def get_category(self, result: dict) -> str: 
 		return self.TOTAL
 
+
 	def get_categories(self) -> str: 
 		return [ self.TOTAL ]
+
+
+	def help(self):
+		super().help()
+		print('-')
 
 
 class BattleClassCategorization(BattleCategorization):
@@ -399,6 +485,14 @@ class BattleClassCategorization(BattleCategorization):
 	def __init__(self, cat_key : str, title: str, classes: list):
 		super().__init__(cat_key, title)
 		self.category_labels = classes
+
+
+	def help(self):
+		super().help()
+		labels = list()
+		for ndx in range(0, len(self.category_labels)):
+			labels.append(str(ndx) + '=' + self.category_labels[ndx])
+		print(', '.join(labels))
 
 
 	def get_category(self, result: dict) -> str: 
@@ -413,7 +507,24 @@ class BattleClassCategorization(BattleCategorization):
 			bu.error('Category: ' + str(self.category_key) + ' ID: ' + str(cat_id), exception=err)
 		return None
 
-	
+
+	def get_filter_categories(self, filters: list) -> list:
+		try:
+			# bu.debug(str(filters), force=True)
+			if type(filters) != list:
+				filters = [ filters ]
+			bu.debug(str(self.category_labels))
+			res = list()
+			for ndx in filters:
+				if ndx in range(0,len(self.category_labels)):
+					res.append(self.category_labels[ndx])
+			return res
+			#return [ self.category_labels[int(x)] for x in filters if x in range(0, len(self.get_categories())) ]
+		except Exception as err:
+			bu.error('Category: ' + str(self.category_key), exception=err)
+		return None
+
+
 	def get_categories(self) -> list:
 		try:
 			cats = list()
@@ -442,6 +553,19 @@ class BattleStringCategorization(BattleCategorization):
 		return None
 
 
+	def get_filter_categories(self, filters: list) -> list:
+		try:
+			return filters
+		except Exception as err:
+			bu.error('Category: ' + str(self.category_key), exception=err)
+		return None
+
+	
+	def help(self):
+		super().help()
+		print(self.title + ' name')
+
+
 class BattleNumberCategorization(BattleCategorization):
 	"""Class for categorization by number"""
 
@@ -465,6 +589,18 @@ class BattleNumberCategorization(BattleCategorization):
 		return None
 
 
+	def get_filter_categories(self, filters: list) -> list:
+		try:
+			return list(map(str,filters))
+		except Exception as err:
+			bu.error('Category: ' + str(self.category_key), exception=err)
+		return None
+
+	def help(self):
+		super().help()
+		print('INTEGER')
+
+
 class BattleBucketCategorization(BattleCategorization):
 	"""Class for categorization by buckets based on value"""
 
@@ -477,16 +613,27 @@ class BattleBucketCategorization(BattleCategorization):
 		except Exception as err:
 			bu.error('BattleBucketCategorization()', exception=err) 
 
+
+	def help(self):
+		super().help()
+		labels = list()
+		for ndx in range(0, len(self.category_labels)):
+			labels.append(str(ndx) + '=' + self.category_labels[ndx])
+		print(', '.join(labels))
+
+
 	def get_category(self, result: dict) -> str: 
 		"""Get category"""
 		cat_id = -1
+		value = None
 		try:
-			cat_id = self.find_bucket(result[self.category_key], self.breaks)
+			value = result[self.category_key]
+			cat_id = self.find_bucket(value, self.breaks)
 			return self.category_labels[cat_id]
 		except KeyError as err:
-			bu.error('Category: ' + str(self.category_key) + ' cat ID: ' + str(cat_id), exception=err)
+			bu.error('Category: ' + str(self.category_key) + ' value: ' + str(value) + ' cat ID: ' + str(cat_id), exception=err)
 		except Exception as err:
-			bu.error('Category: ' + str(self.category_key) + ' cat ID: ' + str(cat_id), exception=err)
+			bu.error('Category: ' + str(self.category_key) + ' value: ' + str(value) + ' cat ID: ' + str(cat_id), exception=err)
 		return None
 
 
@@ -501,6 +648,20 @@ class BattleBucketCategorization(BattleCategorization):
 			bu.error('Key not found', exception = err)  
 		except Exception as err:
 			bu.error(exception = err) 
+		return None
+
+
+	def get_filter_categories(self, filters: list) -> list:
+		try:
+			if type(filters) != list:
+				filters = [ filters ]
+			res = list()
+			for ndx in filters:
+				if ndx in range(0,len(self.category_labels)):
+					res.append(self.category_labels[ndx])
+			return res			
+		except Exception as err:
+			bu.error('Category: ' + str(self.category_key), exception=err)
 		return None
 
 
@@ -521,7 +682,7 @@ class BattleBucketCategorization(BattleCategorization):
 			bu.error('Key not found ndx=' + str(ndx) + ', value=' + str(value), exception = err)  
 		except Exception as err:
 			bu.error('ndx=' + str(ndx) + ', value=' + str(value), exception = err) 
-		return None
+		return -2
 
 
 	def mk_category_labels(self, bucket_breaks: list, bucket_format: str) -> list:
@@ -602,7 +763,7 @@ class BattleCategory():
 		'default'		: [ 'battles',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 'top_tier', 'DR', 'survived', 'allies_wins', 'enemies_wins'],
 		'team'			: [ 'battles',	'win','player_wins','allies_wins','enemies_wins'],
 		'team_extended'	: [ 'battles',	'battles%',	'win','player_wins','allies_wins','enemies_wins', 'player_damage_dealt', 'allies_damage_dealt', 'enemies_damage_dealt', 'player_battles','allies_battles','enemies_battles' ],
-		'extended'		: [ 'battles',	'battles%',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 'top_tier', 'DR', 'KDR', 'hit_rate',	'pen_rate',	'survived',	'time_alive%', 'player_wins', 'allies_damage_wins', 'enemies_wins', MISSING_STATS ]
+		'extended'		: [ 'battles',	'battles%',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 'top_tier', 'DR', 'KDR', 'hit_rate', 'pen_rate',	'survived',	'time_alive%', 'player_wins', 'allies_wins', 'enemies_wins', MISSING_STATS ]
 	}
 
 	_team_fields = [ 'wins', 'battles', 'damage_dealt' ]
@@ -665,6 +826,15 @@ class BattleCategory():
 	def get_result_fields(cls) -> list:
 		return cls.result_fields
 
+
+	@classmethod
+	def get_result_fields_ratio(cls, all: bool = False) -> list:
+		if all:
+			return cls._result_ratios.keys()
+		else:
+			return cls.result_fields_ratio
+
+
 	@classmethod
 	def get_avg_fields(cls) -> set:
 		return cls.avg_fields
@@ -693,6 +863,25 @@ class BattleCategory():
 	@classmethod
 	def get_fields_team(cls) -> list:
 		return cls._team_fields
+
+	
+	@classmethod
+	def calc_ratio(cls, ratio: str, result: dict): 
+		try:
+			value 	= result[cls._result_ratios[ratio][0]]
+			divider = result[cls._result_ratios[ratio][1]]
+			if divider != 0:
+				if value == None:
+					value = 0
+				return value / divider
+			else:
+				if value == 0:
+					return 0
+				else:
+					return float('Inf')
+		except Exception as err:
+			bu.error('Replay _id=' + result['_id'] , exception=err)
+		return None
 
 
 	@classmethod
@@ -991,7 +1180,8 @@ async def main(argv):
 		parser.add_argument('-j', '--json', action='store_true', default=False, help='Export data in JSON')
 		parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
 		parser.add_argument('--db', action='store_true', default=OPT_DB, help='Use DB - You are unlikely to have it')
-		parser.add_argument('--filters', type=str, default=None, help='Filters for DB based analyses. MongoDB find() filter JSON format. see --help_filters')
+		parser.add_argument('--filters', type=str, default=None, help='Filter replays based on categories. Filters given in JSON format.\nUse array "[]" for multiple filters/values. see --mode help.\nExample: : [ {"tier" : [8,9,20] }, { "player_wins" : 5 }]')
+		parser.add_argument('--filters_db', type=str, default=None, help='[only for DB setup] Filter replays in DB based on categories. Filters given in MongoDB JSON format. See --mode help')
 		parser.add_argument('--min', type=int, default=None, help='Only select replays from players with minimum number of replays in the dataset')
 		parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
 		parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
@@ -1126,9 +1316,11 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 
 	# Filter usage
 	print('\n-------------------------------------------------------------------')
-	print('| Filter usage                                                    |')
+	print('| DB Filter usage                                                 |')
 	print('-------------------------------------------------------------------')
-	
+	print('')
+	print('You are unlikely to have DB setup required for these filters. This is "Jylpah\'s special"')
+	print('')
 	print("Syntax: --filters '{ \"replay.param\": VALUE, \"replay.param2\": { \"$MONGO_OPERATOR\" : VALUE }, ... }'")
 	print("\tExample: --filters '{ \"data.summary.protagonist\": ACCOUNT_ID, \"data.summary.battle_start_timestamp\": { \"$gt\" : 1602853200 } }'")
 	if db != None:
@@ -1144,6 +1336,15 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 				print("\tdata.summary.details.[]." + d)
 		except Exception as err:
 			bu.error(exception=err)
+
+	print('\n-------------------------------------------------------------------')
+	print('| Filters example: --filter \'{ "room_type" :1 }\'                  |')
+	print('-------------------------------------------------------------------')
+	print('')
+	print('\tThese filters let you filter only battles matching the filter. The filter has been proper JSON dict.')
+	print('')
+	BattleCategorizationList.help()
+
 
 ## move the class PlayerHistogram?
 def set_histogram_buckets(json: dict):
@@ -1227,19 +1428,71 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 	"""Process replay battle results""" 
 	try:
 		url 		= args.url
-
-		blt_cat_list = BattleCategorizationList(args)
+		cats 		= BattleCategorizationList.get_categorizations(args)
 		
-		for result in results:
-			blt_cat_list.record_result(result)
-			if url:
-				blt_cat_list.record_url(result)
+		
+		if args.filters != None:
+			results = filter_replays(results, args.filters)
+		if len(results) > 0:
+			blt_cat_list = BattleCategorizationList(cats)
+			for result in results:
+				blt_cat_list.record_result(result)
+				if url:
+					blt_cat_list.record_url(result)
 
-		blt_cat_list.calc_results()
+			blt_cat_list.calc_results()
+		else:
+			warning_txt = 'No replays to process '
+			if args.filter != None: 
+				warning_txt = warning_txt + 'after filtering'
+			bu.warning(warning_txt)
 
 	except Exception as err:
 		bu.error(exception=err)
 	return blt_cat_list
+
+
+def filter_replays(results: list, filter_json : str) -> bool:
+	"""Filter replays based on battle category filters"""
+	try:
+		filters = json.loads(filter_json)
+		bu.debug(str(filters))
+		for filter in filters:
+			if type(filters[filter]) != list:
+				filters[filter] = [ filters[filter]]
+
+		if type(filters) != dict:
+			bu.error('invalid --filter arguments: ' + str(filters))
+			sys.exit(1)
+		
+		filter_cats = BattleCategorizationList(filters.keys())
+		for cat in filters:
+			categorization = filter_cats.get_categorization(cat)
+			filters[cat] = categorization.get_filter_categories(filters[cat])
+			bu.verbose('Filter: ' + cat + ': ' + ','.join(filters[cat]))		
+		
+		res = list()
+		for result in results:
+			try:
+				cats = filter_cats.get_categories(result)
+				bu.debug(str(cats))
+				ret = False
+				for cat in cats:
+					if cats[cat] not in filters[cat]:
+						ret = False
+						break
+					ret = True
+				if ret:
+					res.append(result)
+			except Exception as err:
+				bu.error(exception=err)
+		bu.verbose('Replays after filtering: ' + str(len(res)))	
+		return res
+	except Exception as err:
+		bu.error(exception=err)
+	return None
+
+
 
 
 async def process_player_stats(players, N_workers: int, args : argparse.Namespace, db : motor.motor_asyncio.AsyncIOMotorDatabase) -> dict:
@@ -1310,7 +1563,7 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 
 	## Bug here?? 
 	#stat_types = player_stats[list(player_stats.keys())[0]].keys()
-	stat_types = list()
+	#stat_types = list()
 	stat_types = BattleCategory.get_fields_team()
 		
 	for result in results:
@@ -1352,16 +1605,16 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 			else:				
 				for stat in stat_types:
 					if player_stats[player_mapped][stat] != None:
-						result['player_' + str(stat)] = player_stats[player_mapped][stat]
+						result['player_' + stat] = player_stats[player_mapped][stat]
 
 			for stat in stat_types:
 				if  n_allies[stat] > 0:
-					result['allies_' + str(stat)] = allies_stats[stat] / n_allies[stat]
+					result['allies_' + stat] = allies_stats[stat] / n_allies[stat]
 				else:
 					bu.debug('No allies stats for: ' + str(result))
 				
 				if  n_enemies[stat] > 0:
-					result['enemies_' + str(stat)] = enemies_stats[stat] / n_enemies[stat]
+					result['enemies_' + stat] = enemies_stats[stat] / n_enemies[stat]
 				else:
 					bu.debug('No enemies stats for: ' + str(result))
 
@@ -1421,8 +1674,10 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 					# no DB stats found, trying WG AP
 					if (stats[stat_id] == None):							
 						stats[pruned_stat_id] = await stat_wg_func(pruned_stat_id)
-						stat_id_remap[stat_id] = pruned_stat_id
+						stat_id_remap[stat_id] = pruned_stat_id						
 						del stats[stat_id]
+						bu.debug('get_wg_' + args.stat_func + '_stats returned: account_id=' + str(get_account_id_f_stat_id(pruned_stat_id)) + ': ' + str(stats[pruned_stat_id]), workerID)
+
 					
 			except KeyError as err:
 				bu.error('Key not found', err, id=workerID)
@@ -1448,6 +1703,65 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 	# bu.debug('Returning stats & exiting')		
 	return (stats, stat_id_remap)
 	
+
+## player stat functions: tank
+async def get_wg_tank_stats(stat_id_str: str, cache_only = False) -> dict:
+	"""Get player stats from WG. Returns WR per tier of tank_id"""
+	try:
+		(account_id, tank_id) = str2ints(stat_id_str)
+		
+		# 'battles' must always be there
+		hist_stats = [ 'all.' + x for x in histogram_fields.keys() ]
+		hist_stats.append('tank_id')
+
+		player_stats = await wg.get_player_tank_stats(account_id, [ tank_id ], hist_stats, cache_only = cache_only)
+		#bu.debug('account_id: ' + str(account_id) + ' ' + str(player_stats))
+
+		return await tank_stats_helper(player_stats)
+
+	except KeyError as err:
+		bu.error('account_id: ' + str(account_id) + ' tank_id:' + str(tank_id) +' : Key not found', err)
+	except Exception as err:
+		bu.error(exception=err)
+	return None
+
+
+async def get_db_tank_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, stat_id_str: str) -> dict:
+	"""Get player stats from MongoDB (you are very unlikely to have it, unless you have set it up)"""
+	if db == None:
+		return None
+	try:
+		dbc = db[DB_C_TANK_STATS]
+		( account_id, tank_id, battletime ) = str2ints(stat_id_str)
+		time_buffer = 2*7*24*3600
+
+		hist_stats = [ 'all.' + x for x in histogram_fields.keys() ]
+		hist_stats.append('tank_id')
+		hist_stats.append('account_id')
+		hist_stats.append('last_battle_time')
+		project = dict()
+		for stat in hist_stats:			
+			project[stat] = True
+		project['_id'] = False
+		
+		cursor = dbc.find({ '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$gte': battletime - time_buffer }}, { 'tank_id' : tank_id } ] }, projection=project).sort('last_battle_time',-1).limit(1)
+
+		# pipeline = 	[ { '$match': { '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$lte': battletime + time_buffer }}, { 'tank_id' : tank_id } ]}}, 
+		# 		{ '$sort': { 'last_battle_time': -1 }}, 
+		# 		{ '$group': { '_id': '$tank_id', 'doc': { '$first': '$$ROOT' }}}, 
+		# 		{ '$replaceRoot': { 'newRoot': '$doc' }}, 
+		# 		{ '$project': { '_id': 0 }} ]
+
+		# cursor = dbc.aggregate(pipeline, allowDiskUse=True)
+		#cursor = dbc.aggregate(pipeline)
+
+		return await tank_stats_helper(await cursor.to_list(1)) 
+				
+	except Exception as err:
+		bu.error('account_id: ' + str(account_id) + ' Error', err)
+	return None
+
+
 ## player stat functions: tank_tier
 async def get_wg_tank_tier_stats(stat_id_str: str, cache_only = False) -> dict:
 	"""Get player stats from WG. Returns WR per tier of tank_id"""
@@ -1480,15 +1794,7 @@ async def get_db_tank_tier_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, 
 		( account_id, tier, battletime ) = str2ints(stat_id_str)
 		tier_tanks = wg.get_tanks_by_tier(tier)
 		time_buffer = 2*7*24*3600
-		#bu.debug('Tank_ids: ' + ','.join(map(str, tier_tanks)))
-		
-		# if battletime == None:
-		# 	pipeline = 	[ { '$match': { '$and': [ { 'account_id': account_id }, { 'tank_id' : {'$in': tier_tanks} } ]}}, 
-		# 			{ '$sort': { 'last_battle_time': -1 }}, 
-		# 			{ '$group': { '_id': '$tank_id', 'doc': { '$first': '$$ROOT' }}}, 
-		# 			{ '$replaceRoot': { 'newRoot': '$doc' }}, 
-		# 			{ '$project': { '_id': 0 }} ]
-		# else:
+
 		pipeline = 	[ { '$match': { '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$lte': battletime + time_buffer }}, { 'tank_id' : {'$in': tier_tanks} } ]}}, 
 				{ '$sort': { 'last_battle_time': -1 }}, 
 				{ '$group': { '_id': '$tank_id', 'doc': { '$first': '$$ROOT' }}}, 
@@ -1627,9 +1933,9 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 		try:
 			dbc = db[DB_C_REPLAYS]
 			cursor = None
-			if args.filters  != None:
-				bu.debug(str(args.filters))
-				filters = json.loads(args.filters)
+			if args.filters_db  != None:
+				bu.debug(str(args.filters_db))
+				filters = json.loads(args.filters_db)
 				bu.debug(json.dumps(filters, indent=2))
 				cursor = dbc.find(filters)
 			else:
@@ -1638,7 +1944,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 			bu.debug('Reading replays...')	
 			async for replay_json in cursor:
 				_id = replay_json['_id']
-				del(replay_json['_id'])
+				#del(replay_json['_id'])
 				await queue.put(await mk_readerQ_item(replay_json, 'DB: _id = ' + _id))
 				Nreplays += 1
 			bu.debug('All the matching replays have been read from the DB')
@@ -1753,6 +2059,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 			bu.debug('Invalid replay')
 			return None
 		
+		result['_id'] = replay_json['_id']
 		result['battle_start_timestamp'] = int(replay_json['data']['summary']['battle_start_timestamp'])
 		# TBD... 
 		protagonist = int(replay_json['data']['summary']['protagonist'])
@@ -1858,6 +2165,8 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 					# platoon buddy removed from stats 
 					result['allies'].remove(get_stat_id(tmp_account_id, tmp_tank_id, tmp_battletime))
 					break
+		for ratio in BattleCategory.get_result_fields_ratio(all=True):
+			result[ratio] = BattleCategory.calc_ratio(ratio, result)
 
 		result['time_alive%'] = result['time_alive'] / btl_duration  
 		result['battle_tier'] = btl_tier
@@ -1868,7 +2177,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		bu.debug(str(result))
 		return result
 	except KeyError as err:
-		bu.error('Key not found', err)
+		bu.warning('Invalid replay. Key not found', err)
 	except Exception as err:
 		bu.error(exception=err)
 	return None
@@ -1890,16 +2199,29 @@ def get_stat_id(account_id: int, tank_id: int, battletime: int) -> str:
 
 
 def get_stat_id_tank_tier(stat_id_str: str) -> str:
-	"""Return stat_id = account_id:tank_tier"""
+	"""Return stat_id = account_id:tank_tier:battletime"""
 	try:
 		stat_id 	= str2ints(stat_id_str)
-		tank_tier = wg.get_tank_tier(stat_id[1])
+		account_id	= stat_id[0]
+		tank_tier 	= wg.get_tank_tier(stat_id[1])
 		battle_time = (stat_id[2] // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
-		return ':'.join(map(str, [stat_id[0],tank_tier, battle_time ]))
+		return ':'.join(map(str, [account_id, tank_tier, battle_time ]))
 	except Exception as err:
 		bu.error('Stats_id: ' + stat_id_str, exception=err)
 	return None
 
+
+def get_stat_id_tank(stat_id_str: str) -> str:
+	"""Return stat_id = account_id:tank_id:battletime"""
+	try:
+		stat_id 	= str2ints(stat_id_str)
+		account_id	= stat_id[0]
+		tank_id 	= stat_id[1]
+		battle_time = (stat_id[2] // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
+		return ':'.join(map(str, [account_id, tank_id, battle_time ]))
+	except Exception as err:
+		bu.error('Stats_id: ' + stat_id_str, exception=err)
+	return None
 
 def get_stat_id_player(stat_id_str: str) -> str:
 	"""Return stat_id = account_id:battletime"""
