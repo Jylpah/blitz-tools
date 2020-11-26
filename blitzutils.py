@@ -1748,6 +1748,16 @@ class WoTinspector:
 
 
     @classmethod
+    def read_replay_id(cls, json_replay):
+        """Read replay_id from replay JSON file""" 
+        try:
+            url = json_replay['data']['view_url']
+            return cls.get_replay_id(url)
+        except Exception as err:
+            error(exception=err)
+        return None
+
+    @classmethod
     def chk_JSON_replay(cls, json_resp):
         """"Check String for being a valid JSON file"""
         try:
