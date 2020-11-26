@@ -1960,7 +1960,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 				if not line: break
 				
 				if (p_replayfile.match(line) != None):
-					replay_json = await bu.open_JSON(line, wi.chk_JSON_replay)			
+					replay_json = await bu.open_JSON(line, wi.chk_JSON_replay)						
 					await queue.put(await mk_readerQ_item(replay_json, line))
 			except Exception as err:
 				bu.error(exception=err)
@@ -1993,7 +1993,13 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 async def mk_readerQ_item(replay_json, filename : str = None) -> list:
 	"""Make an item to replay queue"""
 	global REPLAY_N
-	REPLAY_N +=1	
+	REPLAY_N +=1
+	try:
+		if not '_id' in replay_json:
+			id = wi.read_replay_id(replay_json)
+			replay_json['_id'] = id	
+	except Exception as err:
+		bu.error(exception=err)
 	if filename == None:
 		return [replay_json, REPLAY_N, '' ]
 	elif RE_SRC_IS_DB.match(filename) != None:
