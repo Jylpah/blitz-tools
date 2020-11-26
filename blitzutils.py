@@ -771,7 +771,7 @@ class WG:
     }
 
     TANK_TYPE       = [ 'lightTank', 'mediumTank', 'heavyTank', 'AT-SPG' ]
-    TANK_TYPE_STR   = [ 'Light Tank', 'Medium Tank', 'Heavy Tank', 'TD' ]
+    TANK_TYPE_STR   = [ 'Light Tank', 'Medium Tank', 'Heavy Tank', 'Tank Destroyer' ]
     
     TANK_TYPE_ID = {
         'lightTank'     : 0,
