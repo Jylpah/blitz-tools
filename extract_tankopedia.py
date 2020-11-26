@@ -49,7 +49,7 @@ async def main(argv):
     wg = WG()
     
     tasks = []
-    for nation in wg.NATIONS:
+    for nation in wg.NATION:
         tasks.append(asyncio.create_task(extract_tanks(args.blitz_app_base, nation)))
 
     tanklist = []
