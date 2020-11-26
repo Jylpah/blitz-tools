@@ -756,7 +756,8 @@ class WG:
     tanks = None
     tanks_by_tier = None
 
-    NATIONS = [ 'ussr', 'germany', 'usa', 'china', 'france', 'uk', 'japan', 'other', 'european']    
+    NATION = [ 'ussr', 'germany', 'usa', 'china', 'france', 'uk', 'japan', 'other', 'european']
+    NATION_STR = [ 'Soviet', 'Germany', 'USA', 'China', 'France', 'UK', 'Japan', 'Other', 'European']    
     NATION_ID = {
         'ussr'      : 0,
         'germany'   : 1, 
@@ -769,7 +770,9 @@ class WG:
         'european'  : 8
     }
 
-    TANK_TYPE = [ 'lightTank', 'mediumTank', 'heavyTank', 'AT-SPG' ]
+    TANK_TYPE       = [ 'lightTank', 'mediumTank', 'heavyTank', 'AT-SPG' ]
+    TANK_TYPE_STR   = [ 'Light Tank', 'Medium Tank', 'Heavy Tank', 'TD' ]
+    
     TANK_TYPE_ID = {
         'lightTank'     : 0,
         'mediumTank'    : 1,
@@ -906,7 +909,7 @@ class WG:
 
 
     @classmethod
-    def get_tank_name(cls, tank_str: str) -> str:
+    def tank_str2name(cls, tank_str: str) -> str:
         """Return tank name from short tank string in replays"""
         try:
             return cls.tanks["userStr"][tank_str]
@@ -1348,8 +1351,79 @@ class WG:
         return None
 
  
-    def get_tank_tier(self, tank_id: int):
-        return self.get_tank_data(tank_id, 'tier')
+    def get_tank_tier(self, tank_id: int) -> str:
+        try:
+            return self.get_tank_data(tank_id, 'tier')
+        except Exception as err:
+            error(exception=err)
+        return None   
+
+    
+    def get_tank_name(self, tank_id: int) -> str:
+        try:
+            return self.get_tank_data(tank_id, 'name')
+        except Exception as err:
+            error(exception=err)
+        return None   
+
+
+    def get_tank_type(self, tank_id: int) -> str:
+        try:
+            return self.get_tank_data(tank_id, 'type')
+        except Exception as err:
+            error(exception=err)
+        return None   
+
+
+    def get_tank_nation(self, tank_id: int) -> str:
+        try:
+            return self.get_tank_data(tank_id, 'nation')
+        except Exception as err:
+            error(exception=err)
+        return None   
+
+
+    def get_tank_type_str(self, tank_id: int) -> str:
+        try:
+            tank_type = self.get_tank_data(tank_id, 'type')
+            return self.TANK_TYPE_STR[self.TANK_TYPE_ID[tank_type]]
+        except Exception as err:
+            error(exception=err)
+        return None   
+
+
+    def get_tank_nation_str(self, tank_id: int) -> str:
+        try:
+            nation = self.get_tank_data(tank_id, 'nation')
+            return self.NATION_STR[self.NATION_ID[nation]]
+        except Exception as err:
+            error(exception=err)
+        return None   
+
+
+    def get_tank_type_id(self, tank_id: int) -> str:
+        try:
+            tank_type = self.get_tank_data(tank_id, 'type')
+            return self.TANK_TYPE_ID[tank_type]
+        except Exception as err:
+            error(exception=err)
+        return None   
+
+
+    def get_tank_nation_id(self, tank_id: int) -> str:
+        try:
+            nation = self.get_tank_data(tank_id, 'nation')
+            return self.NATION_ID[nation]
+        except Exception as err:
+            error(exception=err)
+        return None 
+
+    def is_premium(self, tank_id: int) -> bool:
+        try:
+            return self.get_tank_data(tank_id, 'is_premium')
+        except Exception as err:
+            error(exception=err)
+        return None
 
 
     async def put_2_statsQ(self, statsType: str, key: list, stats: list):
