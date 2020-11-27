@@ -127,9 +127,12 @@ class BattleCategorizationList():
 		'total'				: [ 'TOTAL', 			'total' ],
 		'battle_result'		: [ 'Result', 			'category', 	[ 'Loss', 'Win', 'Draw']],
 		'battle_type'		: [ 'Battle Type', 		'category', 	[ 'Encounter', 'Supremacy']],
-		'tank_tier'			: [ 'Tank Tier', 		'number' ],
-		'top_tier'			: [ 'Tier', 			'category', 	[ 'Bottom tier', 'Top tier']],
 		'room_type'			: [ 'Battle Mode', 		'category', 	_BATTLE_MODES ],
+		'top_tier'			: [ 'Tier', 			'category', 	[ 'Bottom tier', 'Top tier']],
+		'tank_tier'			: [ 'Tank Tier', 		'number' ],
+		'is_premium'		: [ 'Tank Type', 		'category', 	[ 'Tech tree', 'Premium']],
+		'tank_type'			: [ 'Tank Class', 		'category', 	WG.TANK_TYPE_STR],
+		'tank_nation'		: [ 'Nation', 			'category', 	WG.NATION_STR],		
 		'mastery_badge'		: [ 'Battle Medal', 	'category', 	['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
 		'team_result'		: [ 'Team Result', 		'string' ],	
 		'player_wins'			: [ 'Player WR', 			'bucket', [ 0, .35, .45, .50, .55, .65], '%' ],
@@ -140,11 +143,11 @@ class BattleCategorizationList():
 		'enemies_spotted'		: [ 'Player Spots',  		'number'],
 		'hit_rate'				: [ 'Player Hit Rate', 		'bucket', [ 0, .25, .5, .6, .7, .8, .9, .95 ], '%' ],
 		'pen_rate'				: [ 'Player Pen Rate', 		'bucket', [ 0, .25, .5, .6, .7, .8, .9, .95 ], '%' ],
-		'map_name'			: [ 'Map', 			'string' ],
-		'tank_name'			: [ 'Tank', 		'string' ],
-		'player_name'		: [ 'Player', 		'string' ],
-		'protagonist'		: [ 'account_id', 	'number' ],
-		'battle_i'			: [ 'Battle #', 	'number' ]		
+		'player_name'		: [ 'Player', 			'string' ],
+		'protagonist'		: [ 'account_id', 		'number' ],
+		'tank_name'			: [ 'Tank', 			'string' ],
+		'map_name'			: [ 'Map', 				'string' ],		
+		'battle_i'			: [ 'Battle #', 		'number' ]		
 		}
 
 	_categorizations_default = [
@@ -1960,7 +1963,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 				if not line: break
 				
 				if (p_replayfile.match(line) != None):
-					replay_json = await bu.open_JSON(line, wi.chk_JSON_replay)			
+					replay_json = await bu.open_JSON(line, wi.chk_JSON_replay)						
 					await queue.put(await mk_readerQ_item(replay_json, line))
 			except Exception as err:
 				bu.error(exception=err)
@@ -1993,7 +1996,13 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 async def mk_readerQ_item(replay_json, filename : str = None) -> list:
 	"""Make an item to replay queue"""
 	global REPLAY_N
-	REPLAY_N +=1	
+	REPLAY_N +=1
+	try:
+		if not '_id' in replay_json:
+			id = wi.read_replay_id(replay_json)
+			replay_json['_id'] = id	
+	except Exception as err:
+		bu.error(exception=err)
 	if filename == None:
 		return [replay_json, REPLAY_N, '' ]
 	elif RE_SRC_IS_DB.match(filename) != None:
@@ -2117,7 +2126,10 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 				tmp['account_id'] 	= account_id
 				tmp['tank_id'] 		= player['vehicle_descr']
 				tmp['tank_tier'] 	= player_tank_tier
-				tmp['tank_name']	= wg.get_tank_data(tmp['tank_id'], 'name')
+				tmp['tank_name']	= wg.get_tank_name(tmp['tank_id'])
+				tmp['tank_type']	= wg.get_tank_type_id(tmp['tank_id'])
+				tmp['tank_nation']	= wg.get_tank_nation_id(tmp['tank_id'])
+				tmp['is_premium']	= int(wg.is_premium(tmp['tank_id']))
 				tmp['squad_index'] 	= player['squad_index']
 				for key in replay_details_flds:
 					tmp[key] = player[key]
