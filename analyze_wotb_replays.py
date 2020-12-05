@@ -116,6 +116,7 @@ class BattleCategorizationList():
 		'Rating'				: 7,
 		'Mad Games'				: 8,
 		'Realistic Battles'		: 22,
+		'Uprising'				: 23, 
 		'Gravity Mode'			: 24,
 		'Skirmish'				: 25,
 		'Burning Games'			: 26
@@ -1324,8 +1325,8 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 	print('')
 	print('You are unlikely to have DB setup required for these filters. This is "Jylpah\'s special"')
 	print('')
-	print("Syntax: --filters '{ \"replay.param\": VALUE, \"replay.param2\": { \"$MONGO_OPERATOR\" : VALUE }, ... }'")
-	print("\tExample: --filters '{ \"data.summary.protagonist\": ACCOUNT_ID, \"data.summary.battle_start_timestamp\": { \"$gt\" : 1602853200 } }'")
+	print("Syntax: --filters_db '{ \"replay.param\": VALUE, \"replay.param2\": { \"$MONGO_OPERATOR\" : VALUE }, ... }'")
+	print("\tExample: --filters_db '{ \"data.summary.protagonist\": ACCOUNT_ID, \"data.summary.battle_start_timestamp\": { \"$gt\" : 1602853200 } }'")
 	if db != None:
 		dbc = db[DB_C_REPLAYS]
 		try:
@@ -1341,10 +1342,12 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 			bu.error(exception=err)
 
 	print('\n-------------------------------------------------------------------')
-	print('| Filters example: --filter \'{ "room_type" :1 }\'                  |')
+	print('| Filters                                                         |')
 	print('-------------------------------------------------------------------')
 	print('')
+	print("\t--filters '{ \"categorization\" : category }'")
 	print('\tThese filters let you filter only battles matching the filter. The filter has been proper JSON dict.')
+	print("\tExample: --filter '{ \"room_type\" :1 }'")
 	print('')
 	BattleCategorizationList.help()
 
