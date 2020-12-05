@@ -1848,6 +1848,190 @@ class WoTinspector:
         return False      
 
 
+## -----------------------------------------------------------
+#### Class WoTinspector 
+## -----------------------------------------------------------
+
+class WIReplay:
+
+    replayID = 1
+    STATUS_UNINIT       = 'uninitialized'
+    STATUS_ERROR        = 'error'
+    STATUS_INCOMPLETE   = 'teams only'
+    STATUS_OK           = 'OK'
+    STATUS_PROCESSED    = 'processed'
+
+    @classmethod
+    def warning(cls, msg: str = ''):
+        bu.warning('Replay[' + str(self.ID) + ']: ' + msg +  ': ' + (self.filename if self.filename != None else '') )
+
+
+    @classmethod
+    def check(cls, replay_json) -> str:
+        try:
+            if replay_json == None:
+                return self.STATUS_ERROR
+            
+
+
+        except KeyError as err:
+            debug('Replay JSON check failed', exception=err)
+        except:
+            debug("Replay JSON check failed: " + str(json_resp))
+        return self.STATUS_ERROR    
+
+        
+
+
+    def __init__(self, replay_json, player_id : int = None, filename : str = None):
+        self.player_id = player_id
+        self.filename = filename
+        self.ID = self.replayID
+        self.replayID += 1
+        self.status = WIReplay.STATUS_UNINIT
+        self.result = dict()
+        try:
+            self.status = self.check(replay_json)
+
+            if self.status == self.STATUS_ERROR:
+                self.warning('Invalid replay. Skipping')                
+                return
+		self.result['_id'] = replay_json['_id']
+		self.result['battle_start_timestamp'] = int(replay_json['data']['summary']['battle_start_timestamp'])
+		
+        protagonist = int(replay_json['data']['summary']['protagonist'])
+		
+		# For filtering replays per submitter
+		result['protagonist'] = protagonist
+
+		if account_id == None:
+			account_id = protagonist
+		elif protagonist != account_id:
+			if account_id in replay_json['data']['summary']['enemies']:
+				# switch the teams...
+				if replay_json['data']['summary']['battle_result'] != 2:
+					if replay_json['data']['summary']['battle_result'] == 0:
+						replay_json['data']['summary']['battle_result'] = 1
+					else: 
+						replay_json['data']['summary']['battle_result'] = 0
+				tmp = replay_json['data']['summary']['enemies']
+				replay_json['data']['summary']['enemies'] = replay_json['data']['summary']['allies']
+				replay_json['data']['summary']['allies'] = tmp
+			elif account_id in replay_json['data']['summary']['allies']:
+				pass 			
+			else:		
+				# looking for an account_id, but account_id not found in the teams => skipping the replay
+				return None
+		if url: 
+			result['url'] = replay_json['data']['view_url']
+				
+		for key in replay_summary_flds:
+			result[key] = replay_json['data']['summary'][key]
+	
+	except Exception as err:
+		bu.error(exception=err)
+		return None
+	try:	
+		#bu.debug('Part 2')
+		result['allies'] = set()
+		result['enemies'] = set()
+		result['allies_survived']  = 0 	# for steamroller stats
+		result['enemies_survived']  = 0	# for steamroller stats
+		btl_duration = 0
+		btl_tier = 0
+		protagonist_tank  = None
+		for player in replay_json['data']['summary']['details']:
+			btl_duration = max(btl_duration, player['time_alive'])
+			player_tank_tier = wg.get_tank_data(player['vehicle_descr'], 'tier')
+			btl_tier = max(btl_tier, player_tank_tier)
+
+			if (protagonist != None) and (player['dbid'] == protagonist):
+				protagonist_tank = player['vehicle_descr']
+
+			if player['dbid'] == account_id:
+				# player itself is not put in results['allies']
+				tmp = {}
+				tmp['account_id'] 	= account_id
+				tmp['tank_id'] 		= player['vehicle_descr']
+				tmp['tank_tier'] 	= player_tank_tier
+				tmp['tank_name']	= wg.get_tank_name(tmp['tank_id'])
+				tmp['tank_type']	= wg.get_tank_type_id(tmp['tank_id'])
+				tmp['tank_nation']	= wg.get_tank_nation_id(tmp['tank_id'])
+				tmp['is_premium']	= int(wg.is_premium(tmp['tank_id']))
+				tmp['squad_index'] 	= player['squad_index']
+				for key in replay_details_flds:
+					tmp[key] = player[key]
+				if player['hitpoints_left'] == 0:
+					tmp['survived'] = 0
+					tmp['destroyed'] = 1
+				else:
+					tmp['survived'] 	= 1
+					tmp['destroyed'] 	= 0
+					result['allies_survived'] += 1
+				for key in tmp.keys():
+					result[key] = tmp[key]				
+
+			else:
+				tmp_account_id 	= player['dbid']
+				tmp_tank_id 	= player['vehicle_descr']
+				tmp_battletime	= result['battle_start_timestamp']
+				if player['death_reason'] == -1:
+					survived = True
+				else:
+					survived = False
+				
+				if player['dbid'] in replay_json['data']['summary']['allies']: 
+					result['allies'].add(get_stat_id(tmp_account_id, tmp_tank_id, tmp_battletime))
+					if survived:
+						result['allies_survived'] += 1
+				else:
+					result['enemies'].add(get_stat_id(tmp_account_id, tmp_tank_id, tmp_battletime))
+					if survived:
+						result['enemies_survived'] += 1
+
+		## Rather use 'player' than incomprehensible 'protagonist'...		
+		result['player'] = get_stat_id(protagonist, protagonist_tank, result['battle_start_timestamp'])
+		bu.debug('Player stats_id: ' + result['player'])
+		# remove platoon buddy from stats 			
+		if result['squad_index'] != None:
+			for player in replay_json['data']['summary']['details']:
+				bu.debug(str(player))
+				if (player['squad_index'] == result['squad_index']) and (player['dbid'] in replay_json['data']['summary']['allies']) and (player['dbid'] != account_id):
+					# platoon buddy found 
+					tmp_account_id 	= player['dbid']
+					tmp_tank_id 	= player['vehicle_descr']
+					#tmp_tank_tier 	= str(wg.get_tank_tier(tmp_tank_id))
+					tmp_battletime	= result['battle_start_timestamp']
+					# platoon buddy removed from stats 
+					result['allies'].remove(get_stat_id(tmp_account_id, tmp_tank_id, tmp_battletime))
+					break
+		for ratio in BattleCategory.get_result_fields_ratio(all=True):
+			result[ratio] = BattleCategory.calc_ratio(ratio, result)
+
+		result['time_alive%'] = result['time_alive'] / btl_duration  
+		result['battle_tier'] = btl_tier
+		result['top_tier'] = 1 if (result['tank_tier'] == btl_tier) else 0
+		result['win'] = 1 if result['battle_result'] == 1 else 0
+		REPLAY_I += 1
+		result['battle_i'] = REPLAY_I
+
+            bu.print_progress()
+            if result == None:
+                bu.warning(msg_str + 'Invalid replay ' + (replay_file if replay_file != None else '') )
+                queue.task_done()
+                continue
+            
+            playerstanks.update(set(result['allies']))
+            playerstanks.update(set(result['enemies']))	
+            playerstanks.update(set([result['player']]))
+            
+            results.append(result)
+            bu.debug('Marking task ' + str(replayID) + ' done')
+
+
+
+
+
 class BlitzStars:
 
     URL_BLITZSTARS          = 'https://www.blitzstars.com'
