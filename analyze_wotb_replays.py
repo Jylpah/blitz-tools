@@ -1499,8 +1499,6 @@ def filter_replays(results: list, filter_json : str) -> bool:
 	return None
 
 
-
-
 async def process_player_stats(players, N_workers: int, args : argparse.Namespace, db : motor.motor_asyncio.AsyncIOMotorDatabase) -> dict:
 	"""Start stat_workers to retrieve and store players' stats"""
 	## Create queue of player-tank pairs to find stats for
