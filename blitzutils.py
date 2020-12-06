@@ -1854,7 +1854,7 @@ class WoTinspector:
 
 class WIReplay:
 
-    replayID = 1
+    replayI = 1
     STATUS_UNINIT       = 'uninitialized'
     STATUS_ERROR        = 'error'
     STATUS_INCOMPLETE   = 'teams only'
@@ -1868,9 +1868,11 @@ class WIReplay:
 
     @classmethod
     def check(cls, replay_json) -> str:
+        status = self.STATUS_ERROR
         try:
-            if replay_json == None:
-                return self.STATUS_ERROR
+            if ('status' in json_resp) and (json_resp['status'] == 'ok'): 
+                if get_JSON_value(json_resp, key='data.summary.allies') != None :
+                debug("JSON check OK")
             
 
 
@@ -1878,7 +1880,7 @@ class WIReplay:
             debug('Replay JSON check failed', exception=err)
         except:
             debug("Replay JSON check failed: " + str(json_resp))
-        return self.STATUS_ERROR    
+        return status    
 
         
 
@@ -1886,8 +1888,8 @@ class WIReplay:
     def __init__(self, replay_json, player_id : int = None, filename : str = None):
         self.player_id = player_id
         self.filename = filename
-        self.ID = self.replayID
-        self.replayID += 1
+        self.I = self.replayI
+        self.replayI += 1
         self.status = WIReplay.STATUS_UNINIT
         self.result = dict()
         try:
