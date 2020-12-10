@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 459
+        "count": 462
     },
     "data": {
         "1": {
@@ -3675,6 +3675,30 @@
             "is_premium": true,
             "type": "mediumTank",
             "name": "Rudolph"
+        },
+        "8753": {
+            "tank_id": 8753,
+            "nation": "china",
+            "tier": 7,
+            "is_premium": true,
+            "type": "lightTank",
+            "name": "M41D"
+        },
+        "21793": {
+            "tank_id": 21793,
+            "nation": "usa",
+            "tier": 10,
+            "is_premium": true,
+            "type": "lightTank",
+            "name": "XM551 Sheridan Missile"
+        },
+        "22801": {
+            "tank_id": 22801,
+            "nation": "germany",
+            "tier": 6,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Icebreaker"
         }
     },
     "userStr": {
@@ -4122,6 +4146,9 @@
         "S18_EMIL_1951E1": "Emil I",
         "VK2801_BP": "Agent",
         "Cz04_T50_51": "TVP T 50/51",
-        "M4A3E8_BP": "Rudolph"
+        "M4A3E8_BP": "Rudolph",
+        "A116_XM551_Exp": "XM551 Sheridan Missile",
+        "Ch42_M41D": "M41D",
+        "PzVI_AusfBP": "Icebreaker"
     }
 }
