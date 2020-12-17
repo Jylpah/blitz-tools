@@ -110,7 +110,7 @@ class BattleCategorizationList():
 
 	_battle_modes = {
 		'Any' 					: 0, 
-		'Random'				: 1,
+		'Regular'				: 1,
 		'Training Room'			: 2,
 		'Tournament'			: 4,
 		'Rating'				: 7,
