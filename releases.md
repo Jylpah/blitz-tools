@@ -2,6 +2,7 @@
 
 | Release | Date     | Notes       | Inaccurate? |
 |:-------:|:--------:|-------------|-----|
+| 7.5 | 2020-12-09 | ATGM removal, Batchat, Kpz70, T-2020 buff |  |
 | 7.4 | 2020-11-12 | TD buffs, Clan missions |  |
 | 7.3 | 2020-10-08 | Swedish HT line |  |
 | 7.2 | 2020-08-19 | Balance changes, added tier X ammo capa, new aiming reticles |  |
