@@ -379,6 +379,7 @@ class BattleCategorizationList():
 			bu.error(exception=err)
 		return None
 
+
 class BattleCategorization():
 
 	RESULT_CAT_FRMT = '{:>20s}'
@@ -1407,7 +1408,7 @@ def process_player_dist(results: list, player_stats: dict, stat_id_map: dict, re
 			hist_stats[field] = PlayerHistogram(field, histogram_fields[field][0], histogram_fields[field][1], histogram_fields[field][2], histogram_fields[field][3] )
 
 		for result in results:
-			for player in result['allies'] | result['enemies']:   # uniton of Sets
+			for player in result['allies'] | result['enemies']:   # union of Sets
 				player_remapped = stat_id_map[player]
 				if player_remapped in player_stats:
 					if player in result['allies']:
@@ -1417,8 +1418,8 @@ def process_player_dist(results: list, player_stats: dict, stat_id_map: dict, re
 						for stat_field in hist_stats:
 							hist_stats[stat_field].record_enemy(player_stats[player_remapped][stat_field])
 		
+		# Print results
 		print('\nPlayer Histograms______', end='', flush=True)
-
 		res = dict()
 		for stat_field in hist_stats:
 			res[stat_field] = hist_stats[stat_field].print(res_json)
