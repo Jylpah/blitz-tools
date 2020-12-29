@@ -144,10 +144,11 @@ class BattleCategorizationList():
 		'enemies_spotted'		: [ 'Player Spots',  		'number'],
 		'hit_rate'				: [ 'Player Hit Rate', 		'bucket', [ 0, .25, .5, .6, .7, .8, .9, .95 ], '%' ],
 		'pen_rate'				: [ 'Player Pen Rate', 		'bucket', [ 0, .25, .5, .6, .7, .8, .9, .95 ], '%' ],
-		'player_name'		: [ 'Player', 			'string' ],
+		'player_name'		: [ 'Player', 			'string', 25 ],
 		'protagonist'		: [ 'account_id', 		'number' ],
-		'tank_name'			: [ 'Tank', 			'string' ],
-		'map_name'			: [ 'Map', 				'string' ],		
+		'tank_name'			: [ 'Tank', 			'string', 25],
+		'map_name'			: [ 'Map', 				'string', 20],	
+		'battle'			: [ 'Battle', 			'string', 40],
 		'battle_i'			: [ 'Battle #', 		'number' ]		
 		}
 
@@ -229,7 +230,7 @@ class BattleCategorizationList():
 				if ctype == 'number':
 					cat_tmp = BattleNumberCategorization(cat, ctitle)
 				elif ctype == 'string':
-					cat_tmp = BattleStringCategorization(cat, ctitle)
+					cat_tmp = BattleStringCategorization(cat, ctitle, cparams)
 				elif ctype == 'category':					
 					cat_tmp = BattleClassCategorization(cat, ctitle, cparams[0])
 				elif ctype == 'bucket':
@@ -281,7 +282,7 @@ class BattleCategorizationList():
 				elif ctype == 'number':
 					self.categorizations[cat] = BattleNumberCategorization(cat, ctitle)
 				elif ctype == 'string':
-					self.categorizations[cat] = BattleStringCategorization(cat, ctitle)
+					self.categorizations[cat] = BattleStringCategorization(cat, ctitle, cparams)
 				elif ctype == 'category':					
 					self.categorizations[cat] = BattleClassCategorization(cat, ctitle, cparams[0])
 				elif ctype == 'bucket':
@@ -382,7 +383,9 @@ class BattleCategorizationList():
 
 class BattleCategorization():
 
-	RESULT_CAT_FRMT = '{:>20s}'
+	RESULT_CAT_HEADER_LEN = 15
+	RESULT_CAT_HEADER_FRMT = '{:_<' + str(RESULT_CAT_HEADER_LEN) + 's}'
+	RESULT_CAT_FRMT = '{:>' + str(RESULT_CAT_HEADER_LEN) + 's}'
 	
 	def __init__(self, cat_key : str, title: str):
 		self.total_battles 	= 0
@@ -390,6 +393,15 @@ class BattleCategorization():
 		self.title 			= title
 		self.categories 	= collections.defaultdict(def_value_BattleCategory)
 
+
+	def set_cat_header_format(self, header_len: int, left_aligned: bool = False):
+		self.RESULT_CAT_HEADER_LEN = header_len
+		self.RESULT_CAT_HEADER_FRMT = '{:_<' + str(header_len) + 's}'
+		if left_aligned:
+			self.RESULT_CAT_FRMT = '{:<' + str(header_len) + 's}'
+		else:
+			self.RESULT_CAT_FRMT = '{:>' + str(header_len) + 's}'
+		
 
 	def get_categories(self):
 		"""Get category keys sorted"""
@@ -435,12 +447,26 @@ class BattleCategorization():
 			bu.error(exception = err)
 
 
+	def print_headers(self):
+		if len(self.title) > self.RESULT_CAT_HEADER_LEN:
+			cat_name = self.title[:self.RESULT_CAT_HEADER_LEN]
+		else:
+			cat_name = self.title
+			header = self.RESULT_CAT_HEADER_FRMT.format(cat_name) 
+		BattleCategory.print_headers(header)
+		return None
+
+
 	def print_results(self):
 		try:			
 			bu.print_new_line()
-			BattleCategory.print_headers(self.title)
+			self.print_headers()
 			for cat in self.get_categories():
-				print(self.RESULT_CAT_FRMT.format(cat), end='   ')
+				if len(cat) > self.RESULT_CAT_HEADER_LEN:
+					cat_name = cat[:self.RESULT_CAT_HEADER_LEN]
+				else:
+					cat_name = cat
+				print(self.RESULT_CAT_FRMT.format(cat_name), end='   ')
 				self.categories[cat].print_results()
 		except KeyError as err:
 			bu.error('Key not found', err)  
@@ -547,6 +573,17 @@ class BattleClassCategorization(BattleCategorization):
 class BattleStringCategorization(BattleCategorization):
 	"""Class for categorization by string"""
 
+	def __init__(self,  cat_key : str, title: str, params: list):
+		super().__init__(cat_key, title)
+		if len(params) > 0:
+			width = params[0]
+			left_align = True  # align long category names left by default
+			if len(params) > 1:
+				left_align = params[1]
+			
+			self.set_cat_header_format(width, left_align)
+
+
 	def get_category(self, result: dict) -> str: 
 		"""Get category"""
 		try:
@@ -556,7 +593,22 @@ class BattleStringCategorization(BattleCategorization):
 		except Exception as err:
 			bu.error('Category: ' +  self.category_key, exception=err)
 		return None
+	
 
+	def get_categories(self):
+		"""Get category keys sorted"""
+		try:
+			p_number_sort = re.compile(r'^(\d+): .+')
+			cats = list(self.categories.keys())
+			if (p_number_sort.match(cats[0]) != None):
+				ndxs = sorted(range(len(cats)), key=lambda k: int(cats[k][:cats[k].find(':')])  )
+				return [ cats[i] for i in ndxs ] 
+			else:
+				return sorted(cats , key=str.casefold)
+
+		except Exception as err:
+			bu.error('Category: ' +  self.category_key, exception=err)
+		return None
 
 	def get_filter_categories(self, filters: list) -> list:
 		try:
@@ -793,7 +845,6 @@ class BattleCategory():
 	avg_fields 		= set()
 	ratio_fields 	= set()
 		
-	RESULT_CAT_HEADER_FRMT = '{:_<20s}'
 
 	@classmethod
 	def get_modes(cls) -> list:
@@ -890,9 +941,9 @@ class BattleCategory():
 
 
 	@classmethod
-	def print_headers(cls, cat_name: str):
+	def print_headers(cls, header: str):
 		try:
-			headers = [ cls.RESULT_CAT_HEADER_FRMT.format(cat_name) ]
+			headers = [ header ]
 			for field in cls.result_fields:
 				print_format = '{:^' + str(cls.get_field_width(field)) + 's}'
 				headers.append(print_format.format(cls.get_field_name(field)))
@@ -2071,9 +2122,10 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 			return None
 		
 		result['_id'] = replay_json['_id']
-		result['battle_start_timestamp'] = int(replay_json['data']['summary']['battle_start_timestamp'])
+		replay_summary = replay_json['data']['summary']
+		result['battle_start_timestamp'] = int(replay_summary['battle_start_timestamp'])
 		# TBD... 
-		protagonist = int(replay_json['data']['summary']['protagonist'])
+		protagonist = int(replay_summary['protagonist'])
 		
 		# For filtering replays per submitter
 		result['protagonist'] = protagonist
@@ -2081,17 +2133,17 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		if account_id == None:
 			account_id = protagonist
 		elif protagonist != account_id:
-			if account_id in replay_json['data']['summary']['enemies']:
+			if account_id in replay_summary['enemies']:
 				# switch the teams...
-				if replay_json['data']['summary']['battle_result'] != 2:
-					if replay_json['data']['summary']['battle_result'] == 0:
-						replay_json['data']['summary']['battle_result'] = 1
+				if replay_summary['battle_result'] != 2:
+					if replay_summary['battle_result'] == 0:
+						replay_summary['battle_result'] = 1
 					else: 
-						replay_json['data']['summary']['battle_result'] = 0
-				tmp = replay_json['data']['summary']['enemies']
-				replay_json['data']['summary']['enemies'] = replay_json['data']['summary']['allies']
-				replay_json['data']['summary']['allies'] = tmp
-			elif account_id in replay_json['data']['summary']['allies']:
+						replay_summary['battle_result'] = 0
+				tmp = replay_summary['enemies']
+				replay_summary['enemies'] = replay_summary['allies']
+				replay_summary['allies'] = tmp
+			elif account_id in replay_summary['allies']:
 				pass 			
 			else:		
 				# looking for an account_id, but account_id not found in the teams => skipping the replay
@@ -2100,7 +2152,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 			result['url'] = replay_json['data']['view_url']
 				
 		for key in replay_summary_flds:
-			result[key] = replay_json['data']['summary'][key]
+			result[key] = replay_summary[key]
 	
 	except Exception as err:
 		bu.error(exception=err)
@@ -2114,7 +2166,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		btl_duration = 0
 		btl_tier = 0
 		protagonist_tank  = None
-		for player in replay_json['data']['summary']['details']:
+		for player in replay_summary['details']:
 			btl_duration = max(btl_duration, player['time_alive'])
 			player_tank_tier = wg.get_tank_data(player['vehicle_descr'], 'tier')
 			btl_tier = max(btl_tier, player_tank_tier)
@@ -2154,7 +2206,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 				else:
 					survived = False
 				
-				if player['dbid'] in replay_json['data']['summary']['allies']: 
+				if player['dbid'] in replay_summary['allies']: 
 					result['allies'].add(get_stat_id(tmp_account_id, tmp_tank_id, tmp_battletime))
 					if survived:
 						result['allies_survived'] += 1
@@ -2168,9 +2220,9 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		bu.debug('Player stats_id: ' + result['player'])
 		# remove platoon buddy from stats 			
 		if result['squad_index'] != None:
-			for player in replay_json['data']['summary']['details']:
+			for player in replay_summary['details']:
 				bu.debug(str(player))
-				if (player['squad_index'] == result['squad_index']) and (player['dbid'] in replay_json['data']['summary']['allies']) and (player['dbid'] != account_id):
+				if (player['squad_index'] == result['squad_index']) and (player['dbid'] in replay_summary['allies']) and (player['dbid'] != account_id):
 					# platoon buddy found 
 					tmp_account_id 	= player['dbid']
 					tmp_tank_id 	= player['vehicle_descr']
@@ -2187,7 +2239,8 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		result['top_tier'] = 1 if (result['tank_tier'] == btl_tier) else 0
 		result['win'] = 1 if result['battle_result'] == 1 else 0
 		REPLAY_I += 1
-		result['battle_i'] = REPLAY_I
+		result['battle_i'] 	= REPLAY_I
+		result['battle'] 	= str(REPLAY_I) + ': ' + replay_summary['vehicle'] + ' @' + replay_summary['map_name']
 		bu.debug(str(result))
 		return result
 	except KeyError as err:
