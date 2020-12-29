@@ -575,7 +575,7 @@ class BattleStringCategorization(BattleCategorization):
 
 	def __init__(self,  cat_key : str, title: str, params: list):
 		super().__init__(cat_key, title)
-		if len(params) > 0:
+		if params != None and len(params) > 0:
 			width = params[0]
 			left_align = True  # align long category names left by default
 			if len(params) > 1:
