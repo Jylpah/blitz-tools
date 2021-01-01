@@ -29,13 +29,64 @@ BATTLE_TIME_BUCKET = 3600*24*14
 
 RE_SRC_IS_DB = re.compile(r'^DB:')
 
+class StatFunc:
 ## For different player stat functions (global stats, tank tier stats, etc)
 # 1st function = for forming stat_id, 2nd for DB stats query, 3rd for WG API stats query
-STAT_FUNC	= {
-	'tank_tier': 	[ 'get_stat_id_tank_tier', 'get_db_tank_tier_stats', 'get_wg_tank_tier_stats' ],
-	'tank': 		[ 'get_stat_id_tank', 'get_db_tank_stats', 'get_wg_tank_stats' ],
-	'player': 		[ 'get_stat_id_player', 'get_db_player_stats', 'get_wg_player_stats' ]
-}
+	STAT_FUNC	= {
+		'tank_tier': 	[ 'get_stat_id_tank_tier', 'get_db_tank_tier_stats', 'get_wg_tank_tier_stats', 'WR at tier' ],
+		'tank': 		[ 'get_stat_id_tank', 'get_db_tank_stats', 'get_wg_tank_stats', 'WR in Tank' ],
+		'player': 		[ 'get_stat_id_player', 'get_db_player_stats', 'get_wg_player_stats', 'Career WR' ]
+	}
+	
+	_DEFAULT = 'player'
+
+	_stat_func = _DEFAULT
+
+	@classmethod
+	def get_default(cls):
+		return cls._DEFAULT
+
+
+	@classmethod
+	def get_stat_funcs(cls):
+		return cls.STAT_FUNC.keys()
+
+
+	@classmethod
+	def set_stat_func(cls, stat_func: str = _DEFAULT):
+		if stat_func in cls.STAT_FUNC.keys():
+			cls._stat_func = stat_func
+		else:
+			## ERROR
+			pass
+		return cls._stat_func
+
+
+	@classmethod
+	def get_stat_func(cls):
+		return cls._stat_func
+
+
+	@classmethod
+	def get_stat_id_func(cls):
+		return cls.STAT_FUNC[cls._stat_func][0]
+
+
+	@classmethod
+	def get_db_func(cls):
+		return cls.STAT_FUNC[cls._stat_func][1]
+
+	
+	@classmethod
+	def get_wg_func(cls):
+		return cls.STAT_FUNC[cls._stat_func][2]
+
+		
+	@classmethod
+	def get_title(cls):
+		return cls.STAT_FUNC[cls._stat_func][3]
+
+
 
 replay_summary_flds = [
 	'battle_result',
@@ -1057,7 +1108,10 @@ class BattleCategory():
 class PlayerHistogram():
 	def __init__(self, field: str, name: str, fields : list, factor: float, format: str ):
 		self.field 		= field
-		self.name 		= name
+		if self.field == 'wins':
+			self.name 		= StatFunc.get_title()
+		else:
+			self.name = name
 		self.fields 	= fields
 		self.cat_factor = factor
 		self.cat_format = format
@@ -1144,7 +1198,7 @@ async def main(argv):
 	## Default options:
 	OPT_DB				= False
 	OPT_HIST			= False
-	OPT_STAT_FUNC		= 'player'
+	OPT_STAT_FUNC		= StatFunc.get_default()
 	OPT_WORKERS_N 		= 10
 
 
@@ -1229,7 +1283,7 @@ async def main(argv):
 		parser.add_argument('-a', '--account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 		parser.add_argument('--only_extra', action='store_true', default=False, help='Print only the extra categories')
 		parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms: ' + ', '.join( histogram_fields[k][0] for k in histogram_fields))
-		parser.add_argument('--stat_func', default=OPT_STAT_FUNC, choices=STAT_FUNC.keys(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
+		parser.add_argument('--stat_func', default=OPT_STAT_FUNC, choices=StatFunc.get_stat_funcs(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
 		parser.add_argument('-u', '--url', action='store_true', default=False, help='Print replay URLs')
 		parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
 		parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default is "maps.json"')
@@ -1285,6 +1339,8 @@ async def main(argv):
 
 		if args.log:
 			await bu.set_file_logging('analyze_wotb_replays', add_timestamp=True)
+
+		StatFunc.set_stat_func(args.stat_func)
 		# rebase file arguments due to moving the working directory to the script location
 		args.files = bu.rebase_file_args(current_dir, args.files)
 
@@ -1335,6 +1391,7 @@ async def main(argv):
 			teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
 
 			blt_cat_list = process_battle_results(teamresults, args)
+			bu.verbose_std('WR = ' + StatFunc.get_title())
 			blt_cat_list.print_results()
 			hist = None
 			if args.hist: 				
@@ -1560,7 +1617,7 @@ async def process_player_stats(players, N_workers: int, args : argparse.Namespac
 		stat_id_map = {}
 		stat_ids = set()
 
-		stat_id_map_func = globals()[STAT_FUNC[args.stat_func][0]]
+		stat_id_map_func = globals()[StatFunc.get_stat_id_func()]
 
 		for player in players:
 			stat_id_map[player] = stat_id_map_func(player)
@@ -1694,8 +1751,8 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 	stats 			= {}
 	stat_id_remap 	= {}
 
-	stat_db_func = globals()[STAT_FUNC[args.stat_func][1]]
-	stat_wg_func = globals()[STAT_FUNC[args.stat_func][2]]
+	stat_db_func = globals()[StatFunc.get_db_func()]
+	stat_wg_func = globals()[StatFunc.get_wg_func()]
 
 	bu.debug("workedID: " + str(workerID) + ' started', id=workerID)
 	try:
@@ -1956,10 +2013,6 @@ async def player_stats_helper(player_stats: dict):
 		if 'battles' not in hist_fields:
 			bu.error('\'battles\' must be defined in \'histogram_fields\'')
 			return None
-
-		# NEEDED 2020-10-25? 
-		#for field in hist_fields:
-		#	stats[field] = 0
 		
 		for field in hist_fields:
 			stats[field] = max(0, player_stats['statistics']['all'][field])
