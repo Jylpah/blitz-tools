@@ -29,13 +29,51 @@ BATTLE_TIME_BUCKET = 3600*24*14
 
 RE_SRC_IS_DB = re.compile(r'^DB:')
 
+class StatFunc:
 ## For different player stat functions (global stats, tank tier stats, etc)
 # 1st function = for forming stat_id, 2nd for DB stats query, 3rd for WG API stats query
-STAT_FUNC	= {
-	'tank_tier': 	[ 'get_stat_id_tank_tier', 'get_db_tank_tier_stats', 'get_wg_tank_tier_stats' ],
-	'tank': 		[ 'get_stat_id_tank', 'get_db_tank_stats', 'get_wg_tank_stats' ],
-	'player': 		[ 'get_stat_id_player', 'get_db_player_stats', 'get_wg_player_stats' ]
-}
+	STAT_FUNC	= {
+		'tank_tier': 	[ 'get_stat_id_tank_tier', 'get_db_tank_tier_stats', 'get_wg_tank_tier_stats', 'WR at tier' ],
+		'tank': 		[ 'get_stat_id_tank', 'get_db_tank_stats', 'get_wg_tank_stats', 'WR in Tank' ],
+		'player': 		[ 'get_stat_id_player', 'get_db_player_stats', 'get_wg_player_stats', 'Career WR' ]
+	}
+	_stat_func = 'player'
+
+	@classmethod
+	def set_stat_func(cls, stat_func: str = 'player'):
+		if stat_func in cls.STAT_FUNC.keys():
+			cls._stat_func = stat_func
+		else:
+			## ERROR
+			pass
+		return cls._stat_func
+
+
+	@classmethod
+	def get_stat_func(cls):
+		return cls._stat_func
+
+
+	@classmethod
+	def get_stat_id_func(cls):
+		return cls.STAT_FUNC[cls._stat_func][0]
+
+
+	@classmethod
+	def get_db_func(cls):
+		return cls.STAT_FUNC[cls._stat_func][1]
+
+	
+	@classmethod
+	def get_wg_func(cls):
+		return cls.STAT_FUNC[cls._stat_func][2]
+
+		
+	@classmethod
+	def get_title(cls):
+		return cls.STAT_FUNC[cls._stat_func][3]
+
+
 
 replay_summary_flds = [
 	'battle_result',
@@ -1956,10 +1994,6 @@ async def player_stats_helper(player_stats: dict):
 		if 'battles' not in hist_fields:
 			bu.error('\'battles\' must be defined in \'histogram_fields\'')
 			return None
-
-		# NEEDED 2020-10-25? 
-		#for field in hist_fields:
-		#	stats[field] = 0
 		
 		for field in hist_fields:
 			stats[field] = max(0, player_stats['statistics']['all'][field])
