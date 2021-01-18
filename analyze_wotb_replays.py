@@ -1408,7 +1408,7 @@ async def main(argv):
 			bu.error(exception=err)
 	except UserWarning as err:
 		bu.warning(str(err))
-	except asyncio.exceptions.CancelledError:
+	except asyncio.CancelledError:
 		pass
 	except Exception as err:
 		bu.error(exception=err)
@@ -1798,7 +1798,7 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 				bu.error('Unexpected error', err, id=workerID)
 			queue.task_done()
 
-	except (asyncio.CancelledError, concurrent.futures._base.CancelledError):
+	except (asyncio.CancelledError, concurrent.futures.CancelledError):
 		bu.debug('Stats queue is empty', id=workerID)		
 	except Exception as err:
 		bu.error(exception=err, id=workerID)

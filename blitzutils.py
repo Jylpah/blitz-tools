@@ -103,7 +103,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
             if self._fillerTask != None:
                 self._fillerTask.cancel()
             await asyncio.wait_for(self._fillerTask, timeout= 0.5)
-        except (asyncio.exceptions.CancelledError, asyncio.TimeoutError):
+        except (asyncio.CancelledError, asyncio.TimeoutError):
             pass
         await super().close()
 
@@ -147,7 +147,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
                         self._queue.put_nowait(i)
                     updated_at = now
                 await asyncio.sleep(sleep)
-        except (asyncio.exceptions.CancelledError, asyncio.CancelledError):
+        except asyncio.CancelledError:
             debug('Cancelled')
         except Exception as err:
             error(exception=err)
@@ -1474,7 +1474,7 @@ class WG:
                 else: 
                     error('Function to saves stats type \'' + stats_type + '\' is not implemented yet')
             
-            except (asyncio.CancelledError):
+            except asyncio.CancelledError:
                 # this is an eternal loop that will wait until cancelled	
                 return None
 
