@@ -1,4 +1,5 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python3
+## PYTHON VERSION MUST BE 3.7 OR HIGHER
 
 import sys, os, json, time,  base64, urllib, inspect, hashlib, re, string, random
 import asyncio, aiofiles, aiohttp, aiosqlite, lxml

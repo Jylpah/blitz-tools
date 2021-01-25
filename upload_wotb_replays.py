@@ -1,4 +1,5 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python3
+## PYTHON VERSION MUST BE 3.7 OR HIGHER
 
 import json, argparse, inspect, sys, os, io, base64, aiohttp, urllib, asyncio, aiofiles, aioconsole
 import logging, re, concurrent.futures, configparser, motor.motor_asyncio, ssl, zipfile
