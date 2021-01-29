@@ -1298,6 +1298,11 @@ async def main(argv):
 		parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Verbose mode')
 		parser.add_argument('-s', '--silent', action='store_true', default=False, help='Silent mode')
 		parser.add_argument('-l', '--log', action='store_true', default=False, help='Enable file logging')
+
+		## DF
+		parser.add_argument('-p', '--players', action='store_true', default=False, help='Dumps the player ids & stats for enemies & allies')
+		## DF
+		
 		parser.add_argument('files', metavar='FILE1 [FILE2 ...]', type=str, nargs='*', help='Files/dirs to read. Use \'-\' for STDIN, "db:" for database')
 		## parser.add_argument('--help_filters', action='store_true', default=False, help='Extended help for --filters')		
 
@@ -1394,6 +1399,13 @@ async def main(argv):
 			blt_cat_list = process_battle_results(teamresults, args)
 			bu.verbose_std('WR = ' + StatFunc.get_title())
 			blt_cat_list.print_results()
+
+			## DF
+			if args.players:
+                                print_players(results, player_stats, stat_id_map)
+                        ## DF
+
+                                        
 			hist = None
 			if args.hist: 				
 				 hist = process_player_dist(results, player_stats, stat_id_map, args.json)
@@ -1420,6 +1432,36 @@ async def main(argv):
 		if wi != None: 
 			await wi.close()		
 	return None
+
+
+## DF
+def print_players(results: list, player_stats: dict, stat_id_map: dict):
+        json = '{"Players": [\n'
+        jsonAllies = '{"Allies": [\n'
+        jsonEnemies = '{"Enemies": [\n'
+        for result in results:
+                for player in result['allies'] | result['enemies']:   # union of Sets
+                        player_remapped = stat_id_map[player]
+                        if player_remapped in player_stats:
+                                if player in result['allies']:
+                                        jsonAllies += '{"Player": ' + player_remapped + ', "Stats": {'
+                                        for stat_field in histogram_fields:
+                                                jsonAllies += '"' + stat_field + '":' + str(player_stats[player_remapped][stat_field]) + ','
+                                        jsonAllies = jsonAllies[:-1] + "} },\n"
+                                else:
+                                        jsonEnemies += '{"Player": ' + player_remapped + ', "Stats": {'
+                                        for stat_field in histogram_fields:
+                                                jsonEnemies += '"' + stat_field + '":' + str(player_stats[player_remapped][stat_field]) + ','
+                                        jsonEnemies = jsonEnemies[:-1] + "} },\n"
+        jsonAllies = jsonAllies[:-2] + "\n]},\n"
+        jsonEnemies = jsonEnemies[:-2] + "\n]}\n"
+        json += jsonAllies + jsonEnemies + "]}"
+        with open('players.json', 'w') as fp:
+                fp.write(json)
+                fp.close()
+        bu.verbose_std('Player Data exported to players.json')
+        ## print("\nPlayers stats:\n" + json)
+## DF
 
 
 async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, parser: argparse.ArgumentParser = None):
