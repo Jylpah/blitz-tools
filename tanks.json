@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 462
+        "count": 466
     },
     "data": {
         "1": {
@@ -3699,6 +3699,38 @@
             "is_premium": true,
             "type": "heavyTank",
             "name": "Icebreaker"
+        },
+        "9009": {
+            "tank_id": 9009,
+            "nation": "china",
+            "tier": 6,
+            "is_premium": true,
+            "type": "mediumTank",
+            "name": "Ox"
+        },
+        "17473": {
+            "tank_id": 17473,
+            "nation": "france",
+            "tier": 8,
+            "is_premium": true,
+            "type": "lightTank",
+            "name": "AMX 13 90 Defender"
+        },
+        "22273": {
+            "tank_id": 22273,
+            "nation": "ussr",
+            "tier": 10,
+            "is_premium": true,
+            "type": "heavyTank",
+            "name": "Object 260"
+        },
+        "22545": {
+            "tank_id": 22545,
+            "nation": "germany",
+            "tier": 8,
+            "is_premium": true,
+            "type": "AT-SPG",
+            "name": "Kanonenjagdpanzer 105"
         }
     },
     "userStr": {
@@ -3718,7 +3750,7 @@
         "AMX_50Fosh_155": "AMX 50 Foch (155)",
         "AMX_50_100": "AMX 50 100",
         "AMX_50_120": "AMX 50 120",
-		"AMX_50B": "AMX 50 B",
+        "AMX_50B": "AMX 50 B",
         "AMX_50_68t": "AMX 50 B",
         "AMX_AC_Mle1946": "AMX AC mle. 46",
         "AMX_AC_Mle1948": "AMX AC mle. 48",
@@ -4150,6 +4182,10 @@
         "M4A3E8_BP": "Rudolph",
         "A116_XM551_Exp": "XM551 Sheridan Missile",
         "Ch42_M41D": "M41D",
-        "PzVI_AusfBP": "Icebreaker"
+        "PzVI_AusfBP": "Icebreaker",
+        "F69_AMX_13D": "AMX 13 90 Defender",
+        "G112_JagdPanzer_105": "Kanonenjagdpanzer 105",
+        "R110_Object_260": "Object 260",
+        "Type_58BP": "Ox"
     }
 }
