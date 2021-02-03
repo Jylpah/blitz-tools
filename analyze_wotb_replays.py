@@ -1277,13 +1277,13 @@ async def main(argv):
 
 		parser = ErrorCatchingArgumentParser(description='Analyze Blitz replay JSON files from WoTinspector.com. Use \'upload_wotb_replays.py\' to upload the replay files first.')
 
-		parser.add_argument('--mode', default=OPT_MODE_DEFAULT, choices=OPT_MODES, help='Select stats mode. Options: ' + ', '.join(OPT_MODES))
+		parser.add_argument('--mode', default=OPT_MODE_DEFAULT, choices=OPT_MODES, help='Select stats to print out (columns). Options: ' + ', '.join(OPT_MODES))
 		parser.add_argument('--extra', choices=BattleCategorizationList.get_categorizations_all(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleCategorizationList.get_categorization_title(cat)  for cat in BattleCategorizationList.get_categorizations_all()))
-		parser.add_argument('--output', default='plain', choices=['plain', 'db'], help='Select output mode: plain text or database')
-		parser.add_argument('-id', dest='account_id', type=int, default=None, help='WG account_id to analyze. Replays without the account_id will be ignored.')
-		parser.add_argument('-a', '--account', type=str, default=None, help='WG account nameto analyze. Format: ACCOUNT_NAME@SERVER')
 		parser.add_argument('--only_extra', action='store_true', default=False, help='Print only the extra categories')
 		parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms: ' + ', '.join( histogram_fields[k][0] for k in histogram_fields))
+		# parser.add_argument('--output', default='plain', choices=['plain', 'db'], help='Select output mode: plain text or database')
+		parser.add_argument('-id', dest='account_id', type=int, default=None, help='WG account_id to analyze. Replays without the account_id will be ignored.')
+		parser.add_argument('-a', '--account', type=str, default=None, help='WG account name to analyze. Format: ACCOUNT_NAME@SERVER')
 		parser.add_argument('--stat_func', default=OPT_STAT_FUNC, choices=StatFunc.get_stat_funcs(), help='Select how to calculate for ally/enemy performance: tank-tier stats, global player stats')
 		parser.add_argument('-u', '--url', action='store_true', default=False, help='Print replay URLs')
 		parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
