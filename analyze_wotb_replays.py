@@ -36,7 +36,8 @@ class StatFunc:
 	STAT_FUNC	= {
 		'tank_tier': 	[ 'get_stat_id_tank_tier', 'get_db_tank_tier_stats', 'get_wg_tank_tier_stats', 'WR at tier' ],
 		'tank': 		[ 'get_stat_id_tank', 'get_db_tank_stats', 'get_wg_tank_stats', 'WR in Tank' ],
-		'player': 		[ 'get_stat_id_player', 'get_db_player_stats', 'get_wg_player_stats', 'Career WR' ]
+		'player': 		[ 'get_stat_id_player', 'get_db_player_stats', 'get_wg_player_stats', 'Career WR' ], 
+		'tier_x':		[ 'get_stat_id_player', 'get_db_tier_x_stats', 'get_wg_tier_x_stats', 'WR at tier X' ],
 	}
 	
 	_DEFAULT = 'player'
@@ -1897,6 +1898,29 @@ async def get_wg_tank_tier_stats(stat_id_str: str, cache_only = False) -> dict:
 	except Exception as err:
 		bu.error(exception=err)
 	return None
+
+
+## player stat functions: tier_x
+async def get_wg_tier_x_stats(stat_id_str: str, cache_only = False) -> dict:
+	"""Get player stats from WG. Returns WR per tier of tank_id"""
+	try:
+		account_id = int(stat_id_str)
+		tier_tanks = wg.get_tanks_by_tier(10)
+
+		# 'battles' must always be there
+		hist_stats = [ 'all.' + x for x in histogram_fields.keys() ]
+		hist_stats.append('tank_id')
+
+		player_stats = await wg.get_player_tank_stats(account_id, tier_tanks, hist_stats, cache_only = cache_only)
+		#bu.debug('account_id: ' + str(account_id) + ' ' + str(player_stats))
+
+		return await tank_stats_helper(player_stats)
+
+	except KeyError as err:
+		bu.error('account_id: ' + str(account_id) + ' Key not found', err)
+	except Exception as err:
+		bu.error(exception=err)
+	return None
 	
 
 async def get_db_tank_tier_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, stat_id_str: str) -> dict:
@@ -1924,6 +1948,32 @@ async def get_db_tank_tier_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, 
 		bu.error('account_id: ' + str(account_id) + ' Error', err)
 	return None
 
+
+async def get_db_tier_x_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, stat_id_str: str) -> dict:
+	"""Get player stats from MongoDB (you are very unlikely to have it, unless you have set it up)"""
+	if db == None:
+		return None
+	try:
+		dbc = db[DB_C_TANK_STATS]
+		( account_id, battletime ) = str2ints(stat_id_str)
+		tier_tanks = wg.get_tanks_by_tier(10)
+		time_buffer = 2*7*24*3600
+
+		pipeline = 	[ { '$match': { '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$lte': battletime + time_buffer }}, { 'tank_id' : {'$in': tier_tanks} } ]}}, 
+				{ '$sort': { 'last_battle_time': -1 }}, 
+				{ '$group': { '_id': '$tank_id', 'doc': { '$first': '$$ROOT' }}}, 
+				{ '$replaceRoot': { 'newRoot': '$doc' }}, 
+				{ '$project': { '_id': 0 }} ]
+
+		# cursor = dbc.aggregate(pipeline, allowDiskUse=True)
+		cursor = dbc.aggregate(pipeline)
+
+		return await tank_stats_helper(await cursor.to_list(1000)) 
+				
+	except Exception as err:
+		bu.error('account_id: ' + str(account_id) + ' Error', err)
+	return None
+	
 
 ## player stat functions: player
 async def get_db_player_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, stat_id_str: str) -> dict:
