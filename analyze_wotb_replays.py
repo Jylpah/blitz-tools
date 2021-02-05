@@ -89,7 +89,6 @@ class StatFunc:
 		return cls.STAT_FUNC[cls._stat_func][3]
 
 
-
 replay_summary_flds = [
 	'battle_result',
 	'battle_type',
@@ -428,6 +427,23 @@ class BattleCategorizationList():
 			for cat in self.categorizations_list:
 				res[cat] = self.categorizations[cat].get_results_json()
 			res['replay_urls'] = self.urls
+			return res
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
+
+	def get_results_csv(self, urls: bool = False):
+		try:
+			res = list()
+			
+			for cat in self.categorizations_list:
+				res.append('')
+				res.append(self.categorizations[cat].get_results_csv())			
+			if urls:
+				res.append('')
+				for url in self.urls:
+					res.append(url)
 			return res
 		except Exception as err:
 			bu.error(exception=err)
@@ -1121,6 +1137,7 @@ class PlayerHistogram():
 		self.allies 	= [0] * self.ncat
 		self.enemies 	= [0] * self.ncat
 		self.total 		= [0] * self.ncat
+		self.results 	= None
 	
 	def record_ally(self, stat: float):
 		for cat in range(0, self.ncat):
@@ -1150,7 +1167,7 @@ class PlayerHistogram():
 		return self.cat_format.format(float(val * self.cat_factor))
 
 
-	def print(self, ret_json: bool = False):
+	def calc_results(self):
 		N_enemies = 0
 		N_allies = 0
 		res = dict()
@@ -1159,22 +1176,52 @@ class PlayerHistogram():
 			N_enemies += self.enemies[cat]
 			N_allies += self.allies[cat]
 		N_total = N_allies + N_enemies
-
-		print("\n{:12s} | {:13s} | {:13s} | {:13s}".format(self.name, "Allies", "Enemies", "TOTAL"))
-		for cat in range(0, self.ncat):
-			print("{:12s} | {:5d} ({:4.1f}%) | {:5d} ({:4.1f}%) | {:5d} ({:4.1f}%)".format(self.get_category_name(cat), self.allies[cat], self.allies[cat]/N_allies*100, self.enemies[cat], self.enemies[cat]/N_enemies*100, self.allies[cat] + self.enemies[cat], (self.allies[cat] + self.enemies[cat])/N_total*100 ))
-			if ret_json:
-				stat = dict()
-				stat['allies'] 		= self.allies[cat]
-				stat['allies%'] 	= stat['allies'] / N_allies
-				stat['enemies'] 	= self.enemies[cat]
-				stat['enemies%'] 	= stat['enemies'] / N_enemies
-				stat['total'] 		= self.allies[cat] + self.enemies[cat]
-				stat['total%'] 		= stat['total'] / N_total
-				res[self.get_category_name(cat)] = stat
+	
+		for cat in range(0, self.ncat):			
+			stat = dict()
+			stat['allies'] 		= self.allies[cat]
+			stat['allies%'] 	= stat['allies'] / N_allies
+			stat['enemies'] 	= self.enemies[cat]
+			stat['enemies%'] 	= stat['enemies'] / N_enemies
+			stat['total'] 		= self.allies[cat] + self.enemies[cat]
+			stat['total%'] 		= stat['total'] / N_total
 			
+			res[self.get_category_name(cat)] = stat
+
+		self.results = res
+
 		return res
 
+
+	def get_json(self):
+		return self.results
+
+	
+	def get_csv(self):
+		if (self.results != None):
+			res = list()
+			res.append(['{:12s}'.format(self.name), '{:13s}'.format("Allies"), '{:13s}'.format("Enemies"), '{:13s}'.format( "TOTAL")])
+			for cat in self.results:
+				stat = self.results[cat]
+				res.append([ '{:12s}'.format(cat), 
+					'{:5d}'.format(stat['allies']), '({:4.1f}%)'.format(stat['allies%']*100), 
+					'{:5d}'.format(stat['enemies']), '({:4.1f}%)'.format(stat['enemies%']*100), 
+						'{:5d}'.format(stat['total']), '({:4.1f}%)'.format(stat['total%']*100) ])
+
+			return res
+		else:
+			bu.error('Results have not been calculated yet.')
+			return None
+
+
+	def print(self):
+		if (self.results != None):
+			print("\n{:12s} | {:13s} | {:13s} | {:13s}".format(self.name, "Allies", "Enemies", "TOTAL"))
+			for cat in self.results:
+				stat = self.results[cat]
+				print("{:12s} | {:5d} ({:4.1f}%) | {:5d} ({:4.1f}%) | {:5d} ({:4.1f}%)".format(cat, stat['allies'], stat['allies%']*100, stat['enemies'], stat['enemies%']*100, stat['total'], stat['total%']*100 ))
+		else:
+			bu.error('Results have not been calculated yet.')
 
 class ErrorCatchingArgumentParser(argparse.ArgumentParser):
 	def exit(self, status=0, message=None):
@@ -1289,7 +1336,8 @@ async def main(argv):
 		parser.add_argument('-u', '--url', action='store_true', default=False, help='Print replay URLs')
 		parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
 		parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default is "maps.json"')
-		parser.add_argument('-j', '--json', action='store_true', default=False, help='Export data in JSON')
+		parser.add_argument('--json', action='store_true', default=False, help='Export data in JSON')
+		parser.add_argument('--csv', action='store_true', default=False, help='Export data in CSV')
 		parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
 		parser.add_argument('--db', action='store_true', default=OPT_DB, help='Use DB - You are unlikely to have it')
 		parser.add_argument('--filters', type=str, default=None, help='Filter replays based on categories. Filters given in JSON format.\nUse array "[]" for multiple filters/values. see --mode help.\nExample: : [ {"tier" : [8,9,20] }, { "player_wins" : 5 }]')
@@ -1395,16 +1443,29 @@ async def main(argv):
 			blt_cat_list = process_battle_results(teamresults, args)
 			bu.verbose_std('WR = ' + StatFunc.get_title())
 			blt_cat_list.print_results()
-			hist = None
-			if args.hist: 				
-				 hist = process_player_dist(results, player_stats, stat_id_map, args.json)
+			histograms = None
+			if args.hist:
+				histograms = process_player_dist(results, player_stats, stat_id_map)			
 			if args.json:
 				res = blt_cat_list.get_results_json()
-				res['histograms'] = hist
+				if args.hist:
+					res_hist = dict()
+					for histogram in histograms.keys():
+						res_hist[histogram] = histograms[histogram].get_json()
+					res['histograms'] = res_hist
 				if args.outfile == '-':
 					args.outfile = 'export.json'					
 				await bu.save_JSON(args.outfile, res, pretty=False) ## Excel does not understand pretty JSON
 				bu.verbose_std('Data exported to ' + args.outfile)
+			if args.csv:
+				res = blt_cat_list.get_results_csv()
+				if args.hist:
+					res.append('')
+					res.append('Player Histograms')
+					for histogram in histograms.values():
+						res.append('')
+						res.extend(histogram.get_csv())				
+			
 			bu.debug('Finished. Cleaning up..................')
 		except Exception as err:
 			bu.error(exception=err)
@@ -1510,7 +1571,7 @@ def filter_min_replays_by_player(results: list, min_replays: int) -> list:
 	return None	
 
 
-def process_player_dist(results: list, player_stats: dict, stat_id_map: dict, res_json: bool = False) -> dict:
+def process_player_dist(results: list, player_stats: dict, stat_id_map: dict) -> dict:
 	"""Process player distribution"""
 	hist_stats = dict()
 	try:
@@ -1527,19 +1588,23 @@ def process_player_dist(results: list, player_stats: dict, stat_id_map: dict, re
 					else:
 						for stat_field in hist_stats:
 							hist_stats[stat_field].record_enemy(player_stats[player_remapped][stat_field])
-		
-		# Print results
-		print('\nPlayer Histograms______', end='', flush=True)
-		res = dict()
+
 		for stat_field in hist_stats:
-			res[stat_field] = hist_stats[stat_field].print(res_json)
+			hist_stats[stat_field].calc_results()
 		
-		return res	
+		return hist_stats	
 	except Exception as err:
 		bu.error(exception=err)
 
 	return None
 
+
+def print_player_dist(histograms: dict):
+	# Print results
+	print('\nPlayer Histograms______', end='', flush=True)
+	for hist in histograms.values():
+		print('')
+		hist.print()
 
 def process_battle_results(results: dict, args : argparse.Namespace):
 	"""Process replay battle results""" 
