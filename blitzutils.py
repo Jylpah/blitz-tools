@@ -10,37 +10,38 @@ from progress.counter import Counter
 from decimal import Decimal
 from datetime import datetime
 
-MAX_RETRIES= 3
+MAX_RETRIES = 3
 SLEEP = 1.5
 
-LOG_LEVELS = { 'silent': 0, 'normal': 1, 'verbose': 2, 'debug': 3 }
-SILENT  = 0
-NORMAL  = 1 
+LOG_LEVELS = {'silent': 0, 'normal': 1, 'verbose': 2, 'debug': 3}
+SILENT = 0
+NORMAL = 1
 VERBOSE = 2
-DEBUG   = 3
-_log_level  = NORMAL
-LOG         = False
-LOGGER      = None
+DEBUG = 3
+_log_level = NORMAL
+LOG = False
+LOGGER = None
 
-## Progress display
+# Progress display
 _progress_N = 100
 _progress_i = 0
 _progress_id = None
 _progress_obj = None
 
-UMASK= os.umask(0)
+UMASK = os.umask(0)
 os.umask(UMASK)
 
-## -----------------------------------------------------------
-#### Class ThrottledClientSession(aiohttp.ClientSession)
-## -----------------------------------------------------------
+# -----------------------------------------------------------
+# Class ThrottledClientSession(aiohttp.ClientSession)
+# -----------------------------------------------------------
+
 
 class ThrottledClientSession(aiohttp.ClientSession):
-    """Rate-throttled client session class inherited from aiohttp.ClientSession)""" 
-    #MIN_SLEEP = 0.1
+    """Rate-throttled client session class inherited from aiohttp.ClientSession)"""
+    # MIN_SLEEP = 0.1
 
-    def __init__(self, rate_limit: float = None, *args,**kwargs) -> None: 
-        super().__init__(*args,**kwargs)
+    def __init__(self, rate_limit: float = None, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.rate_limit = None
         self._fillerTask = None
         self._queue = None
@@ -54,8 +55,6 @@ class ThrottledClientSession(aiohttp.ClientSession):
             self.rate_limit = rate_limit
             self._queue = asyncio.Queue(min(2, int(rate_limit)+1))
             self._fillerTask = asyncio.create_task(self._filler())
-        
-     
 
     def _get_sleep(self) -> list:
         if self.rate_limit == None:
@@ -63,23 +62,22 @@ class ThrottledClientSession(aiohttp.ClientSession):
         else:
             return 1/self.rate_limit
 
-
     def get_rate(self) -> float:
         """Return rate of requests"""
         return self._count / (time.time() - self._start_time)
 
-
     def get_stats(self):
         """Get session statistics"""
-        res = {'rate' : self.get_rate(), 'rate_limit': self.rate_limit, 'count' : self._count }
+        res = {'rate': self.get_rate(), 'rate_limit': self.rate_limit,
+                                     'count': self._count}
         return res
-        
 
     def get_stats_str(self):
         """Print session statistics"""
         return 'rate limit: ' + str(self.rate_limit if self.rate_limit != None else '-') + \
-                ' rate: ' +  "{0:.1f}".format(self.get_rate()) + ' requests: ' + str(self._count)
-
+                ' rate: ' + \
+                    "{0:.1f}".format(self.get_rate()) + \
+                                     ' requests: ' + str(self._count)
 
     def reset_counters(self):
         """Reset rate counters and return current results"""
@@ -88,32 +86,29 @@ class ThrottledClientSession(aiohttp.ClientSession):
         self._count = 0
         return res
 
-
     def set_rate_limit(self, rate_limit: float = 1):
         if rate_limit >= 0:
             self.rate_limit = rate_limit
             return self.rate_limit
         return None
 
-
     async def close(self) -> None:
         """Close rate-limiter's "bucket filler" task"""
-        # DEBUG 
+        # DEBUG
         debug(self.get_stats_str())
         try:
             if self._fillerTask != None:
                 self._fillerTask.cancel()
-            await asyncio.wait_for(self._fillerTask, timeout= 0.5)
+            await asyncio.wait_for(self._fillerTask, timeout=0.5)
         except (asyncio.CancelledError, asyncio.TimeoutError):
             pass
         await super().close()
-
 
     async def _filler_simple(self):
         """Filler task to fill the leaky bucket algo"""
         try:
             if self._queue == None:
-                return 
+                return
             sleep = self._get_sleep()
             while True:
                 self._queue.put(None)
@@ -123,18 +118,17 @@ class ThrottledClientSession(aiohttp.ClientSession):
         except Exception as err:
             error(exception=err)
 
-
     async def _filler(self):
         """Filler task to fill the leaky bucket algo"""
         try:
             if self._queue == None:
-                return 
+                return
             sleep = self._get_sleep()
             # debug('SLEEP: ' + str(sleep))
             updated_at = time.monotonic()
             fraction = 0
             extra_increment = 0
-            for i in range(0,self._queue.maxsize):
+            for i in range(0, self._queue.maxsize):
                 self._queue.put_nowait(i)
             while True:
                 if not self._queue.full():
@@ -142,9 +136,10 @@ class ThrottledClientSession(aiohttp.ClientSession):
                     increment = self.rate_limit * (now - updated_at)
                     fraction += increment % 1
                     extra_increment = fraction // 1
-                    items_2_add = int(min(self._queue.maxsize - self._queue.qsize(), int(increment) + extra_increment))
+                    items_2_add = int(
+                        min(self._queue.maxsize - self._queue.qsize(), int(increment) + extra_increment))
                     fraction = fraction % 1
-                    for i in range(0,items_2_add):
+                    for i in range(0, items_2_add):
                         self._queue.put_nowait(i)
                     updated_at = now
                 await asyncio.sleep(sleep)
@@ -153,23 +148,22 @@ class ThrottledClientSession(aiohttp.ClientSession):
         except Exception as err:
             error(exception=err)
 
-
-    async def _request(self, *args,**kwargs):
+    async def _request(self, *args, **kwargs):
         """Throttled _request()"""
         if self._queue != None:
             await self._queue.get()
             self._queue.task_done()
         self._count += 1
-        return await super()._request(*args,**kwargs)
+        return await super()._request(*args, **kwargs)
 
 
 class AsyncLogger():
     """Async file logger"""
-    def __init__(self) -> None: 
+
+    def __init__(self) -> None:
         self._queue = asyncio.Queue()
         self._task = None
         self._file = None
-
 
     async def open(self, logfn: str = None):
         """Set logging to file"""
@@ -184,12 +178,11 @@ class AsyncLogger():
             self._file = None
         return False
 
-
     async def logger(self):
         """Async file logger"""
         if self._file == None:
             error('No log file defined')
-            return False 
+            return False
         while True:
             try:
                 msg = await self._queue.get()
@@ -199,25 +192,24 @@ class AsyncLogger():
                 return None
             except Exception as err:
                 error(exception=err)
-            
 
-    def log(self, msg: str  = ''):
+    def log(self, msg: str = ''):
         self._queue.put_nowait(msg)
-        
 
     async def close(self):
         try:
-            ## empty queue & close
+            # empty queue & close
             await self._queue.join()
             self._task.cancel()
             self._file.close()
         except Exception as err:
             error('Error closing log file', err)
-        return None 
-        
-## -----------------------------------------------------------
-#### Utils
-## -----------------------------------------------------------
+        return None
+
+# -----------------------------------------------------------
+# Utils
+# -----------------------------------------------------------
+
 
 def set_debug(debug: bool):
     global _log_level
@@ -255,7 +247,7 @@ def is_silent() -> bool:
     return _log_level == SILENT
 
 
-def set_log_level(silent: bool,verbose: bool, debug: bool):
+def set_log_level(silent: bool, verbose: bool, debug: bool):
     global _log_level
     _log_level = NORMAL
     if silent:  _log_level = SILENT
@@ -274,7 +266,7 @@ def get_log_level_str() -> str:
     error('Unknown log level: ' + str(_log_level))
 
 
-async def set_file_logging(logfn = None, add_timestamp = False):
+async def set_file_logging(logfn=None, add_timestamp=False):
     """Set logging to file"""
     global LOG, LOGGER
     LOG = True
@@ -297,45 +289,61 @@ async def set_file_logging(logfn = None, add_timestamp = False):
 
 async def close_file_logging():
     global LOG, LOGGER
-    LOG=False
+    LOG = False
     await LOGGER.close()
     LOGGER = None
+
 
 def _randomword(length):
    letters = string.ascii_lowercase
    return ''.join(random.choice(letters) for i in range(length))
 
 
-def verbose(msg = "", id = None) -> bool:
+def verbose(msg="", id=None) -> bool:
     """Print a message"""
-    return _print_log_msg('', msg, exception=None, id=id, print_msg= (_log_level >= VERBOSE) )  
+    return _print_log_msg('', msg, exception=None, id=id, print_msg=(_log_level >= VERBOSE))
 
 
-def verbose_std(msg = "", id = None) -> bool:
+def verbose_std(msg="", id=None) -> bool:
     """Print a message"""
-    return _print_log_msg('', msg, exception=None, id=id, print_msg= (_log_level >= NORMAL) )  
+    return _print_log_msg('', msg, exception=None, id=id, print_msg=(_log_level >= NORMAL))
 
 
-def warning(msg = "", id = None, force: bool = False) -> bool:
+def warning(msg="", id=None, force: bool = False) -> bool:
     """Print a warning message"""
-    return _print_log_msg('Warning', msg, None, id, print_msg= (force or (_log_level >= NORMAL)) )        
+    return _print_log_msg('Warning', msg, None, id, print_msg=(force or (_log_level >= NORMAL)))
 
 
-def debug(msg = "", id = None, exception = None, force: bool = False) -> bool:
+def debug(msg="", id=None, exception=None, force: bool = False) -> bool:
     """print a conditional debug message"""
     if (_log_level >= DEBUG) or force:
         return _print_log_msg('DEBUG', msg, exception, id)
     return False
 
 
-def error(msg = "", exception = None, id = None) -> bool:
+def error(msg="", exception=None, id=None) -> bool:
     """Print an error message"""
     return _print_log_msg('ERROR', msg, exception, id)
 
 
-def log(msg = "", id = None, exception = None) -> bool:
+def log(msg="", id=None, exception=None) -> bool:
     """print a conditional debug message"""
     return _print_log_msg('LOG', msg=msg, exception=exception, id=id, print_msg=(_log_level >= DEBUG))
+
+
+## Copy with pride: https://stackoverflow.com/questions/2203424/python-how-to-retrieve-class-information-from-a-frame-object
+def get_class_from_frame(fr):
+    args, _, _, value_dict = inspect.getargvalues(fr)
+    # we check the first parameter for the frame function is
+    # named 'self'
+    if len(args) and args[0] == 'self':
+        # in that case, 'self' will be referenced in value_dict
+        instance = value_dict.get('self', None)
+        if instance:
+            # return its class
+            return getattr(instance, '__class__', None)
+    # return None otherwise
+    return None
 
 
 def _print_log_msg(prefix = 'LOG', msg = '', exception = None, id = None, print_msg : bool = True):
@@ -346,8 +354,13 @@ def _print_log_msg(prefix = 'LOG', msg = '', exception = None, id = None, print_
     if prefix != '':
         curframe = inspect.currentframe()
         calframe = inspect.getouterframes(curframe)
+        class_name = get_class_from_frame(curframe)
         caller = calframe[2].function
-        prefix = prefix + ': ' + caller + '(): '
+        if class_name != None:
+            prefix = prefix + ': ' + class_name + '.' + caller
+        else:
+            prefix = prefix + ': ' + caller
+        prefix = prefix + '(): '
     
     if id != None:
         prefix = prefix + '[' + str(id) + ']: '
@@ -535,7 +548,7 @@ async def get_url_JSON(session: aiohttp.ClientSession, url: str, chk_JSON_func =
         if url == None:
             return None
         
-        ## To avoid excessive use of servers            
+        # To avoid excessive use of servers            
         for retry in range(1,max_tries+1):
             try:
                 async with session.get(url) as resp:
@@ -613,9 +626,9 @@ def get_JSON_value(json, key : str = None, keys : list = None, keypath = None):
     raise KeyError('Key not found: ' + get_JSON_keypath(keypath, keys[0]))
 
 
-## -----------------------------------------------------------
-#### Class SlowBar 
-## -----------------------------------------------------------
+# -----------------------------------------------------------
+# Class SlowBar 
+# -----------------------------------------------------------
 
 class SlowBar(IncrementalBar):
     suffix = '%(index)d/%(max)d %(percent)d%% ETA %(remaining_hours).0f h %(remaining_mins).0f mins'
@@ -628,9 +641,9 @@ class SlowBar(IncrementalBar):
         return (self.eta - (self.eta // 3600)*3600) // 60
  
 
-## -----------------------------------------------------------
-#### Class StatsNotFound 
-## -----------------------------------------------------------
+# -----------------------------------------------------------
+# Class StatsNotFound 
+# -----------------------------------------------------------
 
 class StatsNotFound(Exception):
     pass
@@ -638,15 +651,15 @@ class StatsNotFound(Exception):
 
 
 
-## -----------------------------------------------------------
-#### Class WG 
-## -----------------------------------------------------------
+# -----------------------------------------------------------
+# Class WG 
+# -----------------------------------------------------------
 
 class WG:
 
     URL_WG_CLAN_INFO         = 'clans/info/?application_id='
-    #URL_WG_PLAYER_TANK_LIST   = 'tanks/stats/?fields=tank_id%2Clast_battle_time&application_id='
-    #URL_WG_PLAYER_TANK_LIST   = 'tanks/stats/?fields=account_id%2Ctank_id%2Clast_battle_time%2Cbattle_life_time%2Call&application_id='
+    # URL_WG_PLAYER_TANK_LIST   = 'tanks/stats/?fields=tank_id%2Clast_battle_time&application_id='
+    # URL_WG_PLAYER_TANK_LIST   = 'tanks/stats/?fields=account_id%2Ctank_id%2Clast_battle_time%2Cbattle_life_time%2Call&application_id='
     URL_WG_PLAYER_TANK_STATS  = 'tanks/stats/?application_id='
     URL_WG_ACCOUNT_ID        = 'account/list/?fields=account_id%2Cnickname&application_id='
     URL_WG_PLAYER_STATS      = 'account/info/?application_id='
@@ -719,7 +732,7 @@ class WG:
 
     SQL_PRUNE_CACHE             = """DELETE from {} WHERE update_time < {}""" 
 
-## Default data. Please use the latest maps.json
+# Default data. Please use the latest maps.json
 
     maps = {
         "Random": "Random map",
@@ -868,7 +881,7 @@ class WG:
             error(exception=err)
 
         
-    ## Class methods  ----------------------------------------------------------
+    # Class methods  ----------------------------------------------------------
 
     @classmethod
     def get_server(cls, account_id: int) -> str:
@@ -1053,7 +1066,7 @@ class WG:
         return False
 
 
-    ## Methods --------------------------------------------------
+    # Methods --------------------------------------------------
     def load_tanks(self, tankopedia_fn: str):
         """Load tanks from tankopedia JSON"""
         if tankopedia_fn == None:
@@ -1245,7 +1258,7 @@ class WG:
             url = self.get_url_player_tanks_stats(account_id, tank_ids, fields)
             json_data = await self.get_url_JSON(url, self.chk_JSON_status)
             if json_data != None:
-                #debug('JSON Response received: ' + str(json_data))
+                # debug('JSON Response received: ' + str(json_data))
                 stats = json_data['data'][str(account_id)]
                 if cache:
                     await self.put_2_statsQ('tank_stats', [account_id, tank_ids], stats)
@@ -1258,7 +1271,7 @@ class WG:
     async def get_player_stats(self, account_id: int, fields = [], cache=True, cache_only = False) -> dict:
         """Get player's global stats """
         try:
-            #debug('account_id: ' + str(account_id) )
+            # debug('account_id: ' + str(account_id) )
             stats = None
 
             # try cached stats first:
@@ -1278,7 +1291,7 @@ class WG:
             url = self.get_url_player_stats(account_id, fields)
             json_data = await self.get_url_JSON(url, self.chk_JSON_status)
             if json_data != None:
-                #debug('JSON Response received: ' + str(json_data))
+                # debug('JSON Response received: ' + str(json_data))
                 stats = json_data['data'][str(account_id)]
                 if cache:
                     await self.put_2_statsQ('player_stats', [account_id], stats)
@@ -1316,7 +1329,7 @@ class WG:
             url = self.get_url_player_achievements(list(account_ids), fields)
             json_data = await self.get_url_JSON(url, self.chk_JSON_status)
             if (json_data != None) and ('data' in json_data):
-                #debug('JSON Response received: ' + str(json_data))
+                # debug('JSON Response received: ' + str(json_data))
                 for account_id in json_data['data'].keys():
                     stats[account_id] = json_data['data'][account_id]
                     if cache:
@@ -1444,7 +1457,7 @@ class WG:
             return None
         try:
             self.cache = await aiosqlite.connect(WG.CACHE_DB_FILE)
-            ## Create cache tables table
+            # Create cache tables table
             await self.cache.execute(WG.SQL_TANK_STATS_CREATE_TBL)
             await self.cache.execute(WG.SQL_PLAYER_STATS_CREATE_TBL)
             await self.cache.execute(WG.SQL_PLAYER_ACHIEVEMENTS_CREATE_TBL)
@@ -1569,13 +1582,13 @@ class WG:
             async with self.cache.execute(sql_query, [account_id, NOW() - WG.CACHE_GRACE_TIME] ) as cursor:
                 tank_ids = set(tank_ids)
                 async for row in cursor:
-                    #debug('account_id: ' + str(account_id) + ': 1')
+                    # debug('account_id: ' + str(account_id) + ': 1')
                     if row[3] == None:
                         # None/null stats found in cache 
                         # i.e. stats have been requested, but not returned from WG API
                         tank_ids.remove(row[1])
                         continue
-                    #debug('account_id: ' + str(account_id) + ': 2')
+                    # debug('account_id: ' + str(account_id) + ': 2')
                     stats.append(json.loads(row[3]))
                     # debug('account_id: ' + str(account_id) + ': 3')
                     tank_ids.remove(row[1])
@@ -1596,15 +1609,15 @@ class WG:
             # test for cacheDB existence
             debug('Trying cached stats first')
             if self.cache == None:
-                #debug('No cache DB')
+                # debug('No cache DB')
                 raise StatsNotFound('No cache DB in use')
                       
             async with self.cache.execute(WG.SQL_PLAYER_STATS_CACHED, [account_id, NOW() - WG.CACHE_GRACE_TIME] ) as cursor:
                 row = await cursor.fetchone()
-                #debug('account_id: ' + str(account_id) + ': 1')
+                # debug('account_id: ' + str(account_id) + ': 1')
                 if row == None:
                     # no cached stats found, marked with an empty array
-                    #debug('No cached stats found')
+                    # debug('No cached stats found')
                     raise StatsNotFound('No cached stats found')
                 
                 debug('Cached stats found')    
@@ -1628,15 +1641,15 @@ class WG:
             # test for cacheDB existence
             debug('Trying cached stats first')
             if self.cache == None:
-                #debug('No cache DB')
+                # debug('No cache DB')
                 raise StatsNotFound('No cache DB in use')
                       
             async with self.cache.execute(WG.SQL_PLAYER_ACHIEVEMENTS_CACHED, [account_id, NOW() - WG.CACHE_GRACE_TIME] ) as cursor:
                 row = await cursor.fetchone()
-                #debug('account_id: ' + str(account_id) + ': 1')
+                # debug('account_id: ' + str(account_id) + ': 1')
                 if row == None:
                     # no cached stats found, marked with an empty array
-                    #debug('No cached stats found')
+                    # debug('No cached stats found')
                     raise StatsNotFound('No cached stats found')
                 
                 debug('Cached stats found')    
@@ -1655,9 +1668,9 @@ class WG:
         return None
 
 
-## -----------------------------------------------------------
-#### Class WoTinspector 
-## -----------------------------------------------------------
+# -----------------------------------------------------------
+# Class WoTinspector 
+# -----------------------------------------------------------
 
 class WoTinspector:
     URL_WI          = 'https://replays.wotinspector.com'
@@ -1740,7 +1753,7 @@ class WoTinspector:
             hash.update(data)
             replay_id = hash.hexdigest()
 
-            ##  Testing if the replay has already been posted
+            # Testing if the replay has already been posted
             json_resp = await self.get_replay_JSON(replay_id)
             if json_resp != None:
                 debug('Already uploaded: ' + title, id=N)
@@ -1755,7 +1768,7 @@ class WoTinspector:
             } 
 
             url = self.URL_REPLAY_UL + urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
-            #debug('URL: ' + url)
+            # debug('URL: ' + url)
             headers ={'Content-type':  'application/x-www-form-urlencoded'}
             payload = { 'file' : (filename, base64.b64encode(data)) }
         except Exception as err:
@@ -1944,13 +1957,13 @@ class BlitzStars:
     async def get_player_stats(self, account_id: int, cache=True):
         """Get player stats from BlitzStars"""
         try:
-            #debug('account_id: ' + str(account_id) )
+            # debug('account_id: ' + str(account_id) )
             stats = None
 
             if cache:
                 error('CACHE NOT IMPLEMENTED YET FOR BlitzStars()')
                 sys.exit(1)
-                #stats = await self.get_cached_player_stats(account_id,fields)
+                # stats = await self.get_cached_player_stats(account_id,fields)
                 # stats found unless StatsNotFound exception is raised 
                 return stats
 
@@ -1964,7 +1977,7 @@ class BlitzStars:
             url = self.get_url_player_stats(account_id)
             stats = await get_url_JSON(self.session, url, self.chk_JSON_player_stats)
             if stats != None:
-                #debug('JSON Response received: ' + str(json_data))
+                # debug('JSON Response received: ' + str(json_data))
                 if cache:
                     error('CACHE NOT IMPLEMENTED YET FOR BlitzStars()')
                     sys.exit(1)
@@ -1977,13 +1990,13 @@ class BlitzStars:
     async def get_player_tank_stats(self, account_id: int, tank_id = None, cache=True):
         """Get player stats for all his tanks from BlitzStars"""
         try:
-            #debug('account_id: ' + str(account_id) )
+            # debug('account_id: ' + str(account_id) )
             stats = None
 
             if cache:
                 error('CACHE NOT IMPLEMENTED YET FOR BlitzStars()')
                 sys.exit(1)
-                #stats = await self.get_cached_player_stats(account_id,fields)
+                # stats = await self.get_cached_player_stats(account_id,fields)
                 # stats found unless StatsNotFound exception is raised 
                 return stats
 
@@ -2001,7 +2014,7 @@ class BlitzStars:
                 url = self.get_url_player_tank_stats(account_id, tank_id)
             stats = await get_url_JSON(self.session, url, self.chk_JSON_tank_stats)
             if stats != None:
-                #debug('JSON Response received: ' + str(json_data))
+                # debug('JSON Response received: ' + str(json_data))
                 if cache:
                     error('CACHE NOT IMPLEMENTED YET FOR BlitzStars()')
                     sys.exit(1)

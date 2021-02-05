@@ -4,7 +4,7 @@
 # Script Analyze WoT Blitz replays
 
 import sys, argparse, json, os, concurrent, inspect, aiohttp, asyncio, aiofiles, aioconsole
-import motor.motor_asyncio, configparser, ssl, re, logging, time, xmltodict, collections
+import motor.motor_asyncio, configparser, ssl, re, logging, time, xmltodict, collections, csv
 from datetime import datetime, timedelta, date
 import blitzutils as bu
 from blitzutils import WG
@@ -433,13 +433,12 @@ class BattleCategorizationList():
 		return None
 
 
-	def get_results_csv(self, urls: bool = False):
+	def get_results_list(self, urls: bool = False):
 		try:
-			res = list()
-			
+			res = list()			
 			for cat in self.categorizations_list:
 				res.append('')
-				res.append(self.categorizations[cat].get_results_csv())			
+				res.extend(self.categorizations[cat].get_results_list())			
 			if urls:
 				res.append('')
 				for url in self.urls:
@@ -495,7 +494,7 @@ class BattleCategorization():
 		print(FORMAT.format(self.category_key, self.title), end=' ')		
 
 
-	def record_result(self, result: dict):
+	def record_result(self, result: dict) -> bool:
 		try:
 			cat = self.get_category(result)
 			self.categories[cat].record_result(result)
@@ -517,12 +516,24 @@ class BattleCategorization():
 
 
 	def print_headers(self):
-		if len(self.title) > self.RESULT_CAT_HEADER_LEN:
-			cat_name = self.title[:self.RESULT_CAT_HEADER_LEN]
-		else:
-			cat_name = self.title
-			header = self.RESULT_CAT_HEADER_FRMT.format(cat_name) 
-		BattleCategory.print_headers(header)
+		try:
+			if len(self.title) > self.RESULT_CAT_HEADER_LEN:
+				cat_name = self.title[:self.RESULT_CAT_HEADER_LEN]
+			else:
+				cat_name = self.title
+				header = self.RESULT_CAT_HEADER_FRMT.format(cat_name) 
+			BattleCategory.print_headers(header)
+			return None
+		except Exception as err:
+			bu.error(exception = err)
+
+
+	def get_headers(self) -> list:
+		"""Get BattleCategory headers as list"""
+		try:
+			return BattleCategory.get_headers(self.title)		
+		except Exception as err:
+			bu.error(exception = err)
 		return None
 
 
@@ -544,7 +555,7 @@ class BattleCategorization():
 		return None
 
 
-	def get_results_json(self):
+	def get_results_json(self) -> dict:
 		"""Get results in JSON format"""
 		try:
 			results = dict()
@@ -553,6 +564,19 @@ class BattleCategorization():
 			for cat in self.get_categories():
 				results[cat] = self.categories[cat].get_results()			
 
+			return results
+		except KeyError as err:
+			bu.error('Key not found', err)  
+		return None
+
+	
+	def get_results_list(self) -> list:
+		"""Get results in  list format (for CSV printing)"""
+		try:
+			results = list()
+			results.append(self.get_headers())
+			for cat in self.get_categories():
+				results.append( [cat] + self.categories[cat].get_results_list() )
 			return results
 		except KeyError as err:
 			bu.error('Key not found', err)  
@@ -1024,6 +1048,20 @@ class BattleCategory():
 		return None
 
 
+	@classmethod
+	def get_headers(cls, header: str = None) -> list:
+		try:
+			headers = [ header ]
+			for field in cls.result_fields:
+				headers.append(cls.get_field_name(field))
+			return headers
+		except KeyError as err:
+			bu.error('Key not found', exception=err)  
+		except Exception as err:
+			bu.error(exception=err) 
+		return None
+
+
 	def __init__(self):
 		try:
 			
@@ -1099,6 +1137,22 @@ class BattleCategory():
 			results = dict()
 			for field in self.result_fields:
 				results[field] = self.results[field]				
+			return results
+		except KeyError as err:
+			bu.error('Key not found', err)  
+		except Exception as err:
+			bu.error(exception=err) 
+		return None
+
+	
+	def get_results_list(self) -> list:
+		"""Return results as a list"""
+		if not self.results_ready:
+			bu.error('Stats have not been calculated yet. call calc_results() before get_results()')
+		try:
+			results = list()
+			for field in self.result_fields:
+				results.append(self._result_fields[field][3].format(self.results[field]))
 			return results
 		except KeyError as err:
 			bu.error('Key not found', err)  
@@ -1189,39 +1243,46 @@ class PlayerHistogram():
 			res[self.get_category_name(cat)] = stat
 
 		self.results = res
-
 		return res
 
 
-	def get_json(self):
+	def get_results(self) -> dict:
 		return self.results
 
 	
-	def get_csv(self):
-		if (self.results != None):
-			res = list()
-			res.append(['{:12s}'.format(self.name), '{:13s}'.format("Allies"), '{:13s}'.format("Enemies"), '{:13s}'.format( "TOTAL")])
-			for cat in self.results:
-				stat = self.results[cat]
-				res.append([ '{:12s}'.format(cat), 
-					'{:5d}'.format(stat['allies']), '({:4.1f}%)'.format(stat['allies%']*100), 
-					'{:5d}'.format(stat['enemies']), '({:4.1f}%)'.format(stat['enemies%']*100), 
-						'{:5d}'.format(stat['total']), '({:4.1f}%)'.format(stat['total%']*100) ])
-
-			return res
-		else:
-			bu.error('Results have not been calculated yet.')
-			return None
+	def get_results_list(self) -> list:
+		try:
+			if (self.results != None):
+				res = list()
+				res.append([self.name, "Allies", "Allies %",  "Enemies", "Enemies %" ,"TOTAL", "TOTAL %"])
+				for cat in self.results:
+					stat = self.results[cat]
+					res.append([ cat, stat['allies'], stat['allies%']*100,  
+							stat['enemies'], stat['enemies%']*100, 
+							stat['total'], stat['total%']*100 ])
+				return res
+			else:
+				bu.error('Results have not been calculated yet.')
+				return None
+		except Exception as err:
+			bu.error(exception=err)
+		return None
 
 
 	def print(self):
-		if (self.results != None):
-			print("\n{:12s} | {:13s} | {:13s} | {:13s}".format(self.name, "Allies", "Enemies", "TOTAL"))
-			for cat in self.results:
-				stat = self.results[cat]
-				print("{:12s} | {:5d} ({:4.1f}%) | {:5d} ({:4.1f}%) | {:5d} ({:4.1f}%)".format(cat, stat['allies'], stat['allies%']*100, stat['enemies'], stat['enemies%']*100, stat['total'], stat['total%']*100 ))
-		else:
-			bu.error('Results have not been calculated yet.')
+		try:
+			if (self.results != None):
+				print("\n{:12s} | {:13s} | {:13s} | {:13s}".format(self.name, "Allies", "Enemies", "TOTAL"))
+				for cat in self.results:
+					stat = self.results[cat]
+					print("{:12s} | {:5d} ({:4.1f}%) | {:5d} ({:4.1f}%) | {:5d} ({:4.1f}%)".format(cat, stat['allies'], stat['allies%']*100, stat['enemies'], stat['enemies%']*100, stat['total'], stat['total%']*100 ))
+			else:
+				bu.error('Results have not been calculated yet.')
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
+
 
 class ErrorCatchingArgumentParser(argparse.ArgumentParser):
 	def exit(self, status=0, message=None):
@@ -1239,7 +1300,7 @@ OPT_MODE_HELP		= 'help'
 OPT_MODES = BattleCategory.get_modes() + [OPT_MODE_HELP]
 
 async def main(argv):
-	global wg, wi, WG_APP_ID, OPT_MODE_DEFAULT
+	global wg, wi, WG_APP_ID, OPT_MODE_DEFAULT 
 	# set the directory for the script
 	current_dir = os.getcwd()
 	os.chdir(os.path.dirname(sys.argv[0]))
@@ -1249,7 +1310,8 @@ async def main(argv):
 	OPT_HIST			= False
 	OPT_STAT_FUNC		= StatFunc.get_default()
 	OPT_WORKERS_N 		= 10
-
+	OPT_EXPORT_CSV_FILE	 = 'export.csv'
+	OPT_EXPORT_JSON_FILE = 'export.json'
 
 	#WG_ACCOUNT 		= None 	# format: nick@server, where server is either 'eu', 'ru', 'na', 'asia' or 'china'. 
 	  					 	# China is not supported since WG API stats are not available there
@@ -1283,6 +1345,8 @@ async def main(argv):
 					OPT_HIST		= configAnalyzer.getboolean('histograms', OPT_HIST)
 					OPT_STAT_FUNC	= configAnalyzer.get('stat_func', fallback=OPT_STAT_FUNC)
 					OPT_WORKERS_N 	= configAnalyzer.getint('workers', OPT_WORKERS_N)
+					OPT_EXPORT_CSV_FILE  = configAnalyzer.get('csv_file', OPT_EXPORT_CSV_FILE)
+					OPT_EXPORT_JSON_FILE = configAnalyzer.get('json_file', OPT_EXPORT_JSON_FILE)
 					res_categorizations  = configAnalyzer.get('categorizations', None)
 					if res_categorizations != None:
 						res_categorizations.replace(' ','')
@@ -1336,8 +1400,8 @@ async def main(argv):
 		parser.add_argument('-u', '--url', action='store_true', default=False, help='Print replay URLs')
 		parser.add_argument('--tankfile', type=str, default='tanks.json', help='JSON file to read Tankopedia from. Default is "tanks.json"')
 		parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default is "maps.json"')
-		parser.add_argument('--json', action='store_true', default=False, help='Export data in JSON')
-		parser.add_argument('--csv', action='store_true', default=False, help='Export data in CSV')
+		parser.add_argument('--json', action='store_true', default=False, help='Export data in JSON format')
+		parser.add_argument('--csv', action='store_true', default=False, help='Export data in CSV format')
 		parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
 		parser.add_argument('--db', action='store_true', default=OPT_DB, help='Use DB - You are unlikely to have it')
 		parser.add_argument('--filters', type=str, default=None, help='Filter replays based on categories. Filters given in JSON format.\nUse array "[]" for multiple filters/values. see --mode help.\nExample: : [ {"tier" : [8,9,20] }, { "player_wins" : 5 }]')
@@ -1443,28 +1507,43 @@ async def main(argv):
 			blt_cat_list = process_battle_results(teamresults, args)
 			bu.verbose_std('WR = ' + StatFunc.get_title())
 			blt_cat_list.print_results()
+
 			histograms = None
 			if args.hist:
-				histograms = process_player_dist(results, player_stats, stat_id_map)			
+				histograms = process_player_dist(results, player_stats, stat_id_map)
+				print_player_dist(histograms)			
+			
 			if args.json:
 				res = blt_cat_list.get_results_json()
-				if args.hist:
+				if histograms != None:
 					res_hist = dict()
 					for histogram in histograms.keys():
-						res_hist[histogram] = histograms[histogram].get_json()
+						res_hist[histogram] = histograms[histogram].get_results()
 					res['histograms'] = res_hist
 				if args.outfile == '-':
-					args.outfile = 'export.json'					
-				await bu.save_JSON(args.outfile, res, pretty=False) ## Excel does not understand pretty JSON
-				bu.verbose_std('Data exported to ' + args.outfile)
+					export_file = OPT_EXPORT_JSON_FILE
+				else:
+					export_file = args.outfile
+				await bu.save_JSON(export_file, res, pretty=False) ## Excel does not understand pretty JSON
+				bu.verbose_std('Results exported to: ' + export_file)
+			
 			if args.csv:
-				res = blt_cat_list.get_results_csv()
+				rows = blt_cat_list.get_results_list()
 				if args.hist:
-					res.append('')
-					res.append('Player Histograms')
+					rows.append('')
+					rows.append(['Player Histograms'])
 					for histogram in histograms.values():
-						res.append('')
-						res.extend(histogram.get_csv())				
+						rows.append('')
+						rows.extend(histogram.get_results_list())
+				if args.outfile == '-':
+					export_file = OPT_EXPORT_CSV_FILE
+				else:
+					export_file = args.outfile
+				with open(export_file, 'w') as csvfile:  
+					# creating a csv writer object  
+					csvwriter = csv.writer(csvfile)        					
+					csvwriter.writerows(rows)
+					bu.verbose_std('Results exported to: ' + export_file)			
 			
 			bu.debug('Finished. Cleaning up..................')
 		except Exception as err:
