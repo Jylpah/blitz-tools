@@ -1257,9 +1257,9 @@ class PlayerHistogram():
 				res.append([self.name, "Allies", "Allies %",  "Enemies", "Enemies %" ,"TOTAL", "TOTAL %"])
 				for cat in self.results:
 					stat = self.results[cat]
-					res.append([ cat, stat['allies'], stat['allies%']*100,  
-							stat['enemies'], stat['enemies%']*100, 
-							stat['total'], stat['total%']*100 ])
+					res.append([ cat, stat['allies'], stat['allies%'],  
+							stat['enemies'], stat['enemies%'], 
+							stat['total'], stat['total%'] ])
 				return res
 			else:
 				bu.error('Results have not been calculated yet.')
