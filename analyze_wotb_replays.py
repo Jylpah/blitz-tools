@@ -199,6 +199,7 @@ class BattleCategorizationList():
 		'alive'					: [ 'Time alive (pcs)', 'bucket', [ x/100 for x in range(0,100,10) ], '%' ],
 		'time_alive'			: [ 'Time alive (s)',	'bucket', [ x*60 for x in range(0,8) ], 'int' ],
 		'battle_duration'		: [ 'Battle Duration', 	'bucket', [ x*60 for x in range(0,8) ], 'int' ],
+		'distance_travelled'	: [ 'Distance Driven','bucket', [ x*250 for x in range(0,20) ], 'int' ],
 		'player_name'			: [ 'Player', 			'string', 25 ],
 		'protagonist'			: [ 'account_id', 		'number' ],
 		'tank_name'				: [ 'Tank', 			'string', 25],
@@ -524,7 +525,7 @@ class BattleCategorization():
 				cat_name = self.title[:self.RESULT_CAT_HEADER_LEN]
 			else:
 				cat_name = self.title
-				header = self.RESULT_CAT_HEADER_FRMT.format(cat_name) 
+			header = self.RESULT_CAT_HEADER_FRMT.format(cat_name) 
 			BattleCategory.print_headers(header)
 			return None
 		except Exception as err:
@@ -899,6 +900,7 @@ class BattleCategory():
 		'time_alive'		: [ 'T alive', 'Time being alive in a battle in secs', 				7, '{:7.0f}' ],
 		'alive'				: [ 'Share live', 'Percentage of time being alive in a battle', 		8, '{:8.0%}' ],
 		'battle_duration'	: [ 'Duration', 'Battle duration', 									8, '{:8.0f}' ], 
+		'distance_travelled': [ 'Distance', 'Distance travelled',								8, '{:8.0f}' ], 
 		'top_tier'			: [ 'Top tier', 'Share of games as top tier', 						8, '{:8.0%}' ],
 		'player_wins'		: [ 'Player WR', 'Average WR of the player', 						9, '{:9.2%}' ],
 		'allies_wins'		: [ 'Allies WR', 'Average WR of allies at the tier of their tank', 	9, '{:9.2%}' ],
