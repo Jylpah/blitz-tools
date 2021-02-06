@@ -923,7 +923,7 @@ class BattleCategory():
 							'player_battles','allies_battles','enemies_battles' ],
 		'extended'		: [ 'battles',	'battles%',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 
 							'top_tier', 'DR', 'KDR', 'hit_rate', 'pen_rate', 'survived', 'battle_duration', 
-							'alive', 'player_wins', 'allies_wins', 'enemies_wins', MISSING_STATS ], 
+							'player_wins', 'allies_wins', 'enemies_wins', MISSING_STATS ], 
 		'all'			: [ cat for cat in _result_fields.keys() ]
 	}
 
