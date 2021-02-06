@@ -196,6 +196,9 @@ class BattleCategorizationList():
 		'enemies_spotted'		: [ 'Player Spots',  		'number'],
 		'hit_rate'				: [ 'Player Hit Rate', 		'bucket', [ 0, .25, .5, .6, .7, .8, .9, .95 ], '%' ],
 		'pen_rate'				: [ 'Player Pen Rate', 		'bucket', [ 0, .25, .5, .6, .7, .8, .9, .95 ], '%' ],
+		'time_alive%'			: [ 'Time alive %', 		'bucket', [ x/100 for x in range(0,100,10) ], '%' ],
+		'time_alive'			: [ 'Time alive (s)',		'bucket', [ x*60 for x in range(0,8) ], 'int' ],
+		'battle_duration'		: [ 'Battle Duration', 		'bucket', [ x*60 for x in range(0,8) ], 'int' ],
 		'player_name'		: [ 'Player', 			'string', 25 ],
 		'protagonist'		: [ 'account_id', 		'number' ],
 		'tank_name'			: [ 'Tank', 			'string', 25],
@@ -893,7 +896,9 @@ class BattleCategory():
 		'hit_rate'			: [ 'Hit rate', 'Shots hit / all shots made', 						8, '{:8.1%}' ],
 		'pen_rate'			: [ 'Pen rate', 'Shots pen / shots hit', 							8, '{:8.1%}' ],
 		'survived'			: [ 'Surv%', 'Survival rate', 										6, '{:6.1%}' ],
-		'time_alive%'		: [ 'T alive%', 'Percentage of time being alive in a battle', 		8, '{:8.0%}' ], 
+		'time_alive'		: [ 'T alive', 'Time being alive in a battle in secs', 				7, '{:7.0f}' ],
+		'time_alive%'		: [ 'T alive%', 'Percentage of time being alive in a battle', 		8, '{:8.0%}' ],
+		'battle_duration'	: [ 'Duration', 'Battle duration', 									8, '{:8.0f}'], 
 		'top_tier'			: [ 'Top tier', 'Share of games as top tier', 						8, '{:8.0%}' ],
 		'player_wins'		: [ 'Player WR', 'Average WR of the player', 						9, '{:9.2%}' ],
 		'allies_wins'		: [ 'Allies WR', 'Average WR of allies at the tier of their tank', 	9, '{:9.2%}' ],
@@ -913,7 +918,7 @@ class BattleCategory():
 		'default'		: [ 'battles',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 'top_tier', 'DR', 'survived', 'allies_wins', 'enemies_wins'],
 		'team'			: [ 'battles',	'win','player_wins','allies_wins','enemies_wins'],
 		'team_extended'	: [ 'battles',	'battles%',	'win','player_wins','allies_wins','enemies_wins', 'player_damage_dealt', 'allies_damage_dealt', 'enemies_damage_dealt', 'player_battles','allies_battles','enemies_battles' ],
-		'extended'		: [ 'battles',	'battles%',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 'top_tier', 'DR', 'KDR', 'hit_rate', 'pen_rate',	'survived',	'time_alive%', 'player_wins', 'allies_wins', 'enemies_wins', MISSING_STATS ]
+		'extended'		: [ 'battles',	'battles%',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 'top_tier', 'DR', 'KDR', 'hit_rate', 'pen_rate',	'survived',	'battle_duration', 'time_alive%', 'player_wins', 'allies_wins', 'enemies_wins', MISSING_STATS ]
 	}
 
 	_team_fields = [ 'wins', 'battles', 'damage_dealt' ]
