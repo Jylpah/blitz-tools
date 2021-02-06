@@ -131,7 +131,7 @@ replay_details_flds = [
 ## Syntax: key == stat field in https://api.wotblitz.eu/wotb/tanks/stats/  (all.KEY)
 ## Value array [ 'Stat Title', [ 0, data buckets ....], scaling_factor_for_bucket_values, 'print_format' ]
 histogram_fields = {
-	'wins'				: [ 'Win rate', 	[0, .35, .40, .45, .48, .5, .52, .55, .60, .65, .70, 1], 100, '{:2.0f}%' ],
+	'wins'				: [ 'Win rate', 	[0, .35, .40, .45, .48, .5, .52, .55, .60, .65, .70, 1], 100, '{:2.0%}' ],
 	'damage_dealt'		: [ 'Avg. Dmg.', 	[0, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 100e3], 1, '{:3.0f}' ],
 	'battles'			: [ 'Battles', 		[0, 1000, 2500, 5000, 7000, 10e3, 15e3, 25e3, 50e3, 5e7], .001, '{:.0f}k']	# battles is a mandatory stat to include
 	}
@@ -177,34 +177,34 @@ class BattleCategorizationList():
 	_BATTLE_MODES = mk_battle_modes.__func__(_battle_modes)
 
 	_categorizations = {
-		'total'				: [ 'TOTAL', 			'total' ],
-		'battle_result'		: [ 'Result', 			'category', 	[ 'Loss', 'Win', 'Draw']],
-		'battle_type'		: [ 'Battle Type', 		'category', 	[ 'Encounter', 'Supremacy']],
-		'room_type'			: [ 'Battle Mode', 		'category', 	_BATTLE_MODES ],
-		'top_tier'			: [ 'Tier', 			'category', 	[ 'Bottom tier', 'Top tier']],
-		'tank_tier'			: [ 'Tank Tier', 		'number' ],
-		'is_premium'		: [ 'Tank Type', 		'category', 	[ 'Tech tree', 'Premium']],
-		'tank_type'			: [ 'Tank Class', 		'category', 	WG.TANK_TYPE_STR],
-		'tank_nation'		: [ 'Nation', 			'category', 	WG.NATION_STR],		
-		'mastery_badge'		: [ 'Battle Medal', 	'category', 	['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
-		'team_result'		: [ 'Team Result', 		'string' ],	
-		'player_wins'			: [ 'Player WR', 			'bucket', [ 0, .35, .45, .50, .55, .65], '%' ],
-		'player_battles'		: [ 'Player Battles',		'bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3], 'int' ],
-		'player_damage_dealt'	: [ 'Player Avg Dmg',		'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ],
-		'damage_made'			: [ 'Player Dmg made',		'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ],
-		'enemies_destroyed'		: [ 'Player Kills', 		'number'],
-		'enemies_spotted'		: [ 'Player Spots',  		'number'],
-		'hit_rate'				: [ 'Player Hit Rate', 		'bucket', [ 0, .25, .5, .6, .7, .8, .9, .95 ], '%' ],
-		'pen_rate'				: [ 'Player Pen Rate', 		'bucket', [ 0, .25, .5, .6, .7, .8, .9, .95 ], '%' ],
-		'time_alive%'			: [ 'Time alive %', 		'bucket', [ x/100 for x in range(0,100,10) ], '%' ],
-		'time_alive'			: [ 'Time alive (s)',		'bucket', [ x*60 for x in range(0,8) ], 'int' ],
-		'battle_duration'		: [ 'Battle Duration', 		'bucket', [ x*60 for x in range(0,8) ], 'int' ],
-		'player_name'		: [ 'Player', 			'string', 25 ],
-		'protagonist'		: [ 'account_id', 		'number' ],
-		'tank_name'			: [ 'Tank', 			'string', 25],
-		'map_name'			: [ 'Map', 				'string', 20],	
-		'battle'			: [ 'Battle', 			'string', 40],
-		'battle_i'			: [ 'Battle #', 		'number' ]		
+		'total'					: [ 'TOTAL', 			'total' ],
+		'battle_result'			: [ 'Result', 			'category', 	[ 'Loss', 'Win', 'Draw']],
+		'battle_type'			: [ 'Battle Type', 		'category', 	[ 'Encounter', 'Supremacy']],
+		'room_type'				: [ 'Battle Mode', 		'category', 	_BATTLE_MODES ],
+		'top_tier'				: [ 'Tier', 			'category', 	[ 'Bottom tier', 'Top tier']],
+		'tank_tier'				: [ 'Tank Tier', 		'number' ],
+		'is_premium'			: [ 'Tank Type', 		'category', 	[ 'Tech tree', 'Premium']],
+		'tank_type'				: [ 'Tank Class', 		'category', 	WG.TANK_TYPE_STR],
+		'tank_nation'			: [ 'Nation', 			'category', 	WG.NATION_STR],		
+		'mastery_badge'			: [ 'Battle Medal', 	'category', 	['-', '3rd Class', '2nd Class', '1st Class', 'Mastery' ]],
+		'team_result'			: [ 'Team Result', 		'string' ],	
+		'player_wins'			: [ 'Player WR', 		'bucket', [ 0, .35, .45, .50, .55, .65], '%' ],
+		'player_battles'		: [ 'Player Battles',	'bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3], 'int' ],
+		'player_damage_dealt'	: [ 'Player Avg Dmg',	'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ],
+		'damage_made'			: [ 'Player Dmg made',	'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ],
+		'enemies_destroyed'		: [ 'Player Kills', 	'number'],
+		'enemies_spotted'		: [ 'Player Spots',  	'number'],
+		'hit_rate'				: [ 'Player Hit Rate', 	'bucket', [ 0, .25, .5, .6, .7, .8, .9, .95 ], '%' ],
+		'pen_rate'				: [ 'Player Pen Rate', 	'bucket', [ 0, .25, .5, .6, .7, .8, .9, .95 ], '%' ],
+		'alive'					: [ 'Time alive (pcs)', 'bucket', [ x/100 for x in range(0,100,10) ], '%' ],
+		'time_alive'			: [ 'Time alive (s)',	'bucket', [ x*60 for x in range(0,8) ], 'int' ],
+		'battle_duration'		: [ 'Battle Duration', 	'bucket', [ x*60 for x in range(0,8) ], 'int' ],
+		'player_name'			: [ 'Player', 			'string', 25 ],
+		'protagonist'			: [ 'account_id', 		'number' ],
+		'tank_name'				: [ 'Tank', 			'string', 25],
+		'map_name'				: [ 'Map', 				'string', 20],	
+		'battle'				: [ 'Battle', 			'string', 40],
+		'battle_i'				: [ 'Battle #', 		'number' ]		
 		}
 
 	_categorizations_default = [
@@ -897,8 +897,8 @@ class BattleCategory():
 		'pen_rate'			: [ 'Pen rate', 'Shots pen / shots hit', 							8, '{:8.1%}' ],
 		'survived'			: [ 'Surv%', 'Survival rate', 										6, '{:6.1%}' ],
 		'time_alive'		: [ 'T alive', 'Time being alive in a battle in secs', 				7, '{:7.0f}' ],
-		'time_alive%'		: [ 'T alive%', 'Percentage of time being alive in a battle', 		8, '{:8.0%}' ],
-		'battle_duration'	: [ 'Duration', 'Battle duration', 									8, '{:8.0f}'], 
+		'alive'				: [ 'Share live', 'Percentage of time being alive in a battle', 		8, '{:8.0%}' ],
+		'battle_duration'	: [ 'Duration', 'Battle duration', 									8, '{:8.0f}' ], 
 		'top_tier'			: [ 'Top tier', 'Share of games as top tier', 						8, '{:8.0%}' ],
 		'player_wins'		: [ 'Player WR', 'Average WR of the player', 						9, '{:9.2%}' ],
 		'allies_wins'		: [ 'Allies WR', 'Average WR of allies at the tier of their tank', 	9, '{:9.2%}' ],
@@ -915,10 +915,16 @@ class BattleCategory():
 
 	# fields to display in results
 	_result_fields_modes = {
-		'default'		: [ 'battles',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 'top_tier', 'DR', 'survived', 'allies_wins', 'enemies_wins'],
+		'default'		: [ 'battles',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 
+							'top_tier', 'DR', 'survived', 'allies_wins', 'enemies_wins'],
 		'team'			: [ 'battles',	'win','player_wins','allies_wins','enemies_wins'],
-		'team_extended'	: [ 'battles',	'battles%',	'win','player_wins','allies_wins','enemies_wins', 'player_damage_dealt', 'allies_damage_dealt', 'enemies_damage_dealt', 'player_battles','allies_battles','enemies_battles' ],
-		'extended'		: [ 'battles',	'battles%',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 'top_tier', 'DR', 'KDR', 'hit_rate', 'pen_rate',	'survived',	'battle_duration', 'time_alive%', 'player_wins', 'allies_wins', 'enemies_wins', MISSING_STATS ]
+		'team_extended'	: [ 'battles',	'battles%',	'win','player_wins','allies_wins','enemies_wins', 
+							'player_damage_dealt', 'allies_damage_dealt', 'enemies_damage_dealt', 
+							'player_battles','allies_battles','enemies_battles' ],
+		'extended'		: [ 'battles',	'battles%',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 
+							'top_tier', 'DR', 'KDR', 'hit_rate', 'pen_rate', 'survived', 'battle_duration', 
+							'alive', 'player_wins', 'allies_wins', 'enemies_wins', MISSING_STATS ], 
+		'all'			: [ cat for cat in _result_fields.keys() ]
 	}
 
 	_team_fields = [ 'wins', 'battles', 'damage_dealt' ]
@@ -980,6 +986,10 @@ class BattleCategory():
 	def get_result_fields(cls) -> list:
 		return cls.result_fields
 
+
+	@classmethod
+	def get_result_fields_all(cls) -> list:
+		return cls._result_fields.keys()
 
 	@classmethod
 	def get_result_fields_ratio(cls, all: bool = False) -> list:
@@ -1280,7 +1290,7 @@ class PlayerHistogram():
 				print("\n{:12s} | {:13s} | {:13s} | {:13s}".format(self.name, "Allies", "Enemies", "TOTAL"))
 				for cat in self.results:
 					stat = self.results[cat]
-					print("{:12s} | {:5d} ({:4.1f}%) | {:5d} ({:4.1f}%) | {:5d} ({:4.1f}%)".format(cat, stat['allies'], stat['allies%']*100, stat['enemies'], stat['enemies%']*100, stat['total'], stat['total%']*100 ))
+					print("{:12s} | {:5d} ({:4.1%}) | {:5d} ({:4.1%}) | {:5d} ({:4.1%})".format(cat, stat['allies'], stat['allies%']*100, stat['enemies'], stat['enemies%']*100, stat['total'], stat['total%']*100 ))
 			else:
 				bu.error('Results have not been calculated yet.')
 		except Exception as err:
@@ -1300,10 +1310,6 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
 
 ## main() -------------------------------------------------------------
 
-OPT_MODE_DEFAULT 	= 'default'
-OPT_MODE_HELP		= 'help'
-OPT_MODES = BattleCategory.get_modes() + [OPT_MODE_HELP]
-
 async def main(argv):
 	global wg, wi, WG_APP_ID, OPT_MODE_DEFAULT 
 	# set the directory for the script
@@ -1311,6 +1317,9 @@ async def main(argv):
 	os.chdir(os.path.dirname(sys.argv[0]))
 
 	## Default options:
+	OPT_MODE_DEFAULT 	= 'default'
+	OPT_MODE_HELP		= 'help'
+	OPT_MODES 			= BattleCategory.get_modes() + [OPT_MODE_HELP]
 	OPT_DB				= False
 	OPT_HIST			= False
 	OPT_STAT_FUNC		= StatFunc.get_default()
@@ -1395,7 +1404,7 @@ async def main(argv):
 		parser = ErrorCatchingArgumentParser(description='Analyze Blitz replay JSON files from WoTinspector.com. Use \'upload_wotb_replays.py\' to upload the replay files first.')
 
 		parser.add_argument('--mode', default=OPT_MODE_DEFAULT, choices=OPT_MODES, help='Select stats to print out (columns). Options: ' + ', '.join(OPT_MODES))
-		parser.add_argument('--extra', choices=BattleCategorizationList.get_categorizations_all(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleCategorizationList.get_categorization_title(cat)  for cat in BattleCategorizationList.get_categorizations_all()))
+		parser.add_argument('--extra', choices=BattleCategorizationList.get_categorizations_all(), default=None, nargs='*', help='Print extra categories: ' + ', '.join( cat + '=' + BattleCategorizationList.get_categorization_title(cat) for cat in BattleCategorizationList.get_categorizations_all()))
 		parser.add_argument('--only_extra', action='store_true', default=False, help='Print only the extra categories')
 		parser.add_argument('--hist', action='store_true', default=OPT_HIST, help='Print player histograms: ' + ', '.join( histogram_fields[k][0] for k in histogram_fields))
 		# parser.add_argument('--output', default='plain', choices=['plain', 'db'], help='Select output mode: plain text or database')
@@ -1421,7 +1430,8 @@ async def main(argv):
 
 		try:
 			args = parser.parse_args()			
-		except Exception as err:			
+		except Exception as err:
+			bu.error('Invalid arguments', exception=err)			
 			sys.exit(0)
 
 		# res_categories = BattleCategorization.get_categorizations(OPT_CATEGORIZATIONS, args)
@@ -1606,6 +1616,14 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 	print("\tExample: --filter '{ \"room_type\" :1 }'")
 	print('')
 	BattleCategorizationList.help()
+	print('\n-------------------------------------------------------------------')
+	print('| Rounding errors                                                 |')
+	print('-------------------------------------------------------------------')
+	print('')
+	print('Yes, the numbers are rounded UP because reasons.')
+	print('If interested why please read this: ')
+	print('\thttps://realpython.com/python-rounding/#pythons-built-in-round-function')
+	print('No, I am not planning to fix these for now.')	
 
 
 ## move the class PlayerHistogram?
@@ -2416,11 +2434,11 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		result['enemies'] = set()
 		result['allies_survived']  = 0 	# for steamroller stats
 		result['enemies_survived']  = 0	# for steamroller stats
-		btl_duration = 0
+		#btl_duration = result['battle_duration']
 		btl_tier = 0
 		protagonist_tank  = None
 		for player in replay_summary['details']:
-			btl_duration = max(btl_duration, player['time_alive'])
+			#btl_duration = max(btl_duration, player['time_alive'])
 			player_tank_tier = wg.get_tank_data(player['vehicle_descr'], 'tier')
 			btl_tier = max(btl_tier, player_tank_tier)
 
@@ -2487,7 +2505,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		for ratio in BattleCategory.get_result_fields_ratio(all=True):
 			result[ratio] = BattleCategory.calc_ratio(ratio, result)
 
-		result['time_alive%'] = result['time_alive'] / btl_duration  
+		result['alive'] = min(result['time_alive'] / result['battle_duration'], 1)  
 		result['battle_tier'] = btl_tier
 		result['top_tier'] = 1 if (result['tank_tier'] == btl_tier) else 0
 		result['win'] = 1 if result['battle_result'] == 1 else 0
