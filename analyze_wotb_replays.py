@@ -922,7 +922,7 @@ class BattleCategory():
 							'player_damage_dealt', 'allies_damage_dealt', 'enemies_damage_dealt', 
 							'player_battles','allies_battles','enemies_battles' ],
 		'extended'		: [ 'battles',	'battles%',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 
-							'top_tier', 'DR', 'KDR', 'hit_rate', 'pen_rate', 'survived', 'battle_duration', 
+							'top_tier', 'DR', 'KDR', 'hit_rate', 'pen_rate', 'survived', 'alive', 
 							'player_wins', 'allies_wins', 'enemies_wins', MISSING_STATS ], 
 		'all'			: [ cat for cat in _result_fields.keys() ]
 	}
@@ -2434,11 +2434,11 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		result['enemies'] = set()
 		result['allies_survived']  = 0 	# for steamroller stats
 		result['enemies_survived']  = 0	# for steamroller stats
-		#btl_duration = result['battle_duration']
+		btl_duration = 0
 		btl_tier = 0
 		protagonist_tank  = None
 		for player in replay_summary['details']:
-			#btl_duration = max(btl_duration, player['time_alive'])
+			btl_duration = max(btl_duration, player['time_alive'])
 			player_tank_tier = wg.get_tank_data(player['vehicle_descr'], 'tier')
 			btl_tier = max(btl_tier, player_tank_tier)
 
@@ -2486,6 +2486,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 					if survived:
 						result['enemies_survived'] += 1
 
+		result['battle_duration'] = btl_duration
 		## Rather use 'player' than incomprehensible 'protagonist'...		
 		result['player'] = get_stat_id(protagonist, protagonist_tank, result['battle_start_timestamp'])
 		bu.debug('Player stats_id: ' + result['player'])
