@@ -997,11 +997,11 @@ class ResultFields():
 	
 	_team = [ 'wins', 'battles', 'damage_dealt' ]
 	
-	_count = [
+	_count = {
 		'battles', 
 		MISSING_STATS, 
 		'mastery_badge'
-	]
+	}
 
 	_ratios = {
 		'KDR'				: [ 'enemies_destroyed', 'destroyed' ],
@@ -1013,10 +1013,12 @@ class ResultFields():
 
 	# _extended_stats = False
 
-	result_fields 	= list()
-	avg_fields 		= set()
-	ratio_fields 	= set()
-	single_fields	= set()
+	results 		= set()
+	results_avg 	= set()
+	results_single	= set()
+	results_ratio 	= set()
+	ratio_fields	= set()
+	results_team	= list()
 		
 
 	@classmethod
@@ -1025,9 +1027,12 @@ class ResultFields():
 
 
 	@classmethod
-	def get_mode_fields(cls, mode: str):
+	def get_mode_fields(cls, mode: str) -> list:
 		try:
-			return cls._modes[mode]
+			if mode != None:
+				return cls._modes[mode]
+			else:
+				return list()
 		except Exception as err:
 			bu.error(exception=err)
 		return None
@@ -1039,23 +1044,45 @@ class ResultFields():
 
 
 	@classmethod
-	def set_fields(cls, mode: str = None, extra : list = None):
+	def set_fields(cls, mode: str = None, extra : list = list(), team : list = list(), platoon : list = list() ):
 		try:
-			if mode not in cls.get_modes():
+			if mode !=not in cls.get_modes():
 				bu.error('Mode ' + mode + ' not in defined modes: ' + ', '.join(cls.get_modes()))
 				sys.exit(2)
 
 			cls.mode = mode
-			cls.default = set(cls.get_mode_fields(cls.mode))
-			if extra != None:
-				cls.default = cls.default | set(extra) 
-			cls.single_fields = cls.default & cls.get_single_fields_all() 
-			cls.default = set(cls.default) - cls.get_single_fields_all()
-			cls.default = [ field for field in cls.get_result_fields_all() if field in cls.default ]
-			cls.default_ratio = set(cls._ratios.keys()) & set(cls.default)
-			cls.avg_fields = set(cls.default) - set(cls._ratios.keys()) - set(cls._count)
-						
-			for ratio in cls.default_ratio:
+			cls.results = set(cls.get_mode_fields(cls.mode))
+			cls.results = cls.results | set(extra) 
+			
+			# team fields
+			cls.team = set(team)
+			p_team = re.compile(r'^allies_(.+)')
+			for field in cls.results:
+				m = p_team.match(field)
+				if len(m.groups()) == 1:
+					cls.team.add(m.groups(1))
+			for field in cls.team:
+				cls.results.add('allies_' + field)
+				cls.results.add('enemies_' + field)
+
+			# platoon fields
+			cls.platoon = set(platoon)
+			p_plat = re.compile(r'^allies_plat_(.+)')
+			for field in cls.results:
+				m = p_plat.match(field)
+				if len(m.groups()) == 1:
+					cls.platoon.add(m.groups(1))
+			for field in cls.platoon:
+				cls.results.add('allies_plat_' + field)
+				cls.results.add('enemies_plat_' + field)
+
+			cls.results_single 	= cls.results & cls.get_single_fields_all() 
+			cls.results = cls.results - cls.get_single_fields_all()
+			cls.results_ratio 	= set(cls._ratios.keys()) & cls.results
+			cls.results_avg 	= cls.results - set(cls._ratios.keys()) - cls._count
+			cls.results = [ field for field in cls.get_result_fields_all() if field in cls.results ]
+
+			for ratio in cls.results_ratio:
 				cls.ratio_fields.add(cls._ratios[ratio][0])
 				cls.ratio_fields.add(cls._ratios[ratio][1])
 		except Exception as err:
@@ -1064,7 +1091,7 @@ class ResultFields():
 
 	@classmethod
 	def get_result_fields(cls) -> list:
-		return cls.default
+		return cls.results
 
 
 	@classmethod
@@ -1073,21 +1100,23 @@ class ResultFields():
 
 
 	@classmethod
-	def get_result_fields_ratio(cls, all: bool = False) -> list:
-		if all:
-			return cls._ratios.keys()
-		else:
-			return cls.ratio_fields
+	def get_result_fields_ratio(cls) -> list:
+		return cls.results_ratio
 
+
+	@classmethod
+	def get_result_fields_ratio_all(cls) -> list:
+		return list(cls._ratios.keys())
+		
 
 	@classmethod
 	def get_result_fields_single(cls) -> set:
-		return cls.single_fields
+		return cls.results_single
 
 
 	@classmethod
-	def get_avg_fields(cls) -> set:
-		return cls.avg_fields
+	def get_avg_fields_avg(cls) -> set:
+		return cls.results_avg
 
 
 	@classmethod
@@ -1111,10 +1140,15 @@ class ResultFields():
 
 
 	@classmethod
-	def get_fields_team(cls) -> list:
+	def get_fields_team_all(cls) -> list:
 		return cls._team
 
 	
+	@classmethod
+	def get_fields_team(cls) -> list:
+		return cls.results_team
+
+
 	@classmethod
 	def calc_ratio(cls, ratio: str, result: dict): 
 		try:
