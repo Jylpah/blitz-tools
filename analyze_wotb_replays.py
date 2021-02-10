@@ -209,10 +209,12 @@ class BattleCategorizationList():
 		'player_name'			: [ 'Player', 			'string', 	{ "length": 25} ],
 		'hour'					: [ 'Hour of day', 		'bucket', 	{ "buckets": [ x for x in range(0,24) ], "type": 'int' }],
 		'protagonist'			: [ 'account_id', 		'number' ],
-		'tank_name'				: [ 'Tank', 			'string', 	{ "length": 25}],
-		'map_name'				: [ 'Map', 				'string', 	{ "length": 20}],	
+		'date'					: [ 'Date', 			'string', 	{ "length": 10} ],
+		'date_time'				: [ 'Date & time',		'string', 	{ "single": True, "length": 17 } ],
+		'tank_name'				: [ 'Tank', 			'string', 	{ "length": 25 } ],
+		'map_name'				: [ 'Map', 				'string', 	{ "length": 20 } ],	
 		'battle'				: [ 'Battle', 			'string', 	{ "single": True, "length": 40}],
-		'battle_i'				: [ 'Battle #', 		'number', 	{ "single": True}]		
+		'battle_i'				: [ 'Battle #', 		'number', 	{ "single": True } ]		
 		}
 
 
@@ -562,7 +564,8 @@ class BattleCategorization():
 				cat_name = self.title[:self.RESULT_CAT_HEADER_LEN]
 			else:
 				cat_name = self.title
-			header = self.RESULT_CAT_HEADER_FRMT.format(cat_name) 
+			header = self.RESULT_CAT_HEADER_FRMT.format(cat_name)
+			next(iter(self.categories.values())).update_fields(remove=[self.category_key]) 
 			next(iter(self.categories.values())).print_headers(header)
 			return None
 		except Exception as err:
@@ -588,6 +591,7 @@ class BattleCategorization():
 				else:
 					cat_name = cat
 				print(self.RESULT_CAT_FRMT.format(cat_name), end='   ')
+				self.categories[cat].update_fields(remove=[self.category_key])
 				self.categories[cat].print_results()
 		except KeyError as err:
 			bu.error('Key not found', err)  
@@ -932,10 +936,10 @@ class BattleBucketCategorization(BattleCategorization):
 		return None
 
 
-class BattleCategory():
-	
+class ResultFields():
+	"""Class for battle record fields"""
 	## Syntax: Check how the replay JSON files look. The algorithm is counting/recording fields
-	_result_fields = {
+	_all = {
 		'date_time'			: [ 'Date time', 'Date time',										15, '{:15s}'],
 		'tank_name'			: [	'Tank', 'Tank name',											25, '{:25s}'],
 		'map_name'			: [ 'Map', 'Map name', 												20, '{:20s}'],
@@ -973,10 +977,10 @@ class BattleCategory():
 	}
 
 
-	_result_fields_single = { 'date', 'time', 'hour', 'date_time', 'battle_type', 'battle_result', 'map_name', 'tank_name' }
+	_single = { 'date', 'time', 'hour', 'date_time', 'battle_type', 'battle_result', 'map_name', 'tank_name' }
 
 	# fields to display in results
-	_result_fields_modes = {
+	_modes = {
 		'default'		: [ 'battles',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 
 							'top_tier', 'DR', 'survived', 'allies_wins', 'enemies_wins'],
 		'team'			: [ 'battles',	'win','player_wins','allies_wins','enemies_wins'],
@@ -988,18 +992,18 @@ class BattleCategory():
 							'player_wins', 'allies_wins', 'enemies_wins', MISSING_STATS ], 
 		'list'			: [ 'tank_name', 'map_name', 'date_time', 'battle_result', 'damage_made', 'enemies_destroyed', 'enemies_spotted', 
 							'top_tier', 'DR', 'allies_wins', 'enemies_wins' ],
-		'all'			: [ cat for cat in _result_fields.keys() ]
+		'all'			: [ cat for cat in _all.keys() ]
 	}
 	
-	_team_fields = [ 'wins', 'battles', 'damage_dealt' ]
+	_team = [ 'wins', 'battles', 'damage_dealt' ]
 	
-	count_fields = [
+	_count = [
 		'battles', 
 		MISSING_STATS, 
 		'mastery_badge'
 	]
 
-	_result_ratios = {
+	_ratios = {
 		'KDR'				: [ 'enemies_destroyed', 'destroyed' ],
 		'DR'				: [ 'damage_made', 'damage_received' ],
 		'hit_rate'			: [ 'shots_hit', 'shots_made' ],
@@ -1017,13 +1021,13 @@ class BattleCategory():
 
 	@classmethod
 	def get_modes(cls) -> list:
-		return list(cls._result_fields_modes.keys())
+		return list(cls._modes.keys())
 
 
 	@classmethod
 	def get_mode_fields(cls, mode: str):
 		try:
-			return cls._result_fields_modes[mode]
+			return cls._modes[mode]
 		except Exception as err:
 			bu.error(exception=err)
 		return None
@@ -1031,7 +1035,7 @@ class BattleCategory():
 
 	@classmethod
 	def get_single_fields_all(cls) -> set:
-		return cls._result_fields_single
+		return cls._single
 
 
 	@classmethod
@@ -1042,38 +1046,38 @@ class BattleCategory():
 				sys.exit(2)
 
 			cls.mode = mode
-			cls.result_fields = set(cls.get_mode_fields(cls.mode))
+			cls.default = set(cls.get_mode_fields(cls.mode))
 			if extra != None:
-				cls.result_fields = cls.result_fields | set(extra) 
-			cls.single_fields = cls.result_fields & cls.get_single_fields_all() 
-			cls.result_fields = set(cls.result_fields) - cls.get_single_fields_all()
-			cls.result_fields = [ field for field in cls.get_result_fields_all() if field in cls.result_fields ]
-			cls.result_fields_ratio = set(cls._result_ratios.keys()) & set(cls.result_fields)
-			cls.avg_fields = set(cls.result_fields) - set(cls._result_ratios.keys()) - set(cls.count_fields)
+				cls.default = cls.default | set(extra) 
+			cls.single_fields = cls.default & cls.get_single_fields_all() 
+			cls.default = set(cls.default) - cls.get_single_fields_all()
+			cls.default = [ field for field in cls.get_result_fields_all() if field in cls.default ]
+			cls.default_ratio = set(cls._ratios.keys()) & set(cls.default)
+			cls.avg_fields = set(cls.default) - set(cls._ratios.keys()) - set(cls._count)
 						
-			for ratio in cls.result_fields_ratio:
-				cls.ratio_fields.add(cls._result_ratios[ratio][0])
-				cls.ratio_fields.add(cls._result_ratios[ratio][1])
+			for ratio in cls.default_ratio:
+				cls.ratio_fields.add(cls._ratios[ratio][0])
+				cls.ratio_fields.add(cls._ratios[ratio][1])
 		except Exception as err:
 			bu.error('BattleCategory:' ,exception=err)
 		
 
 	@classmethod
 	def get_result_fields(cls) -> list:
-		return cls.result_fields
+		return cls.default
 
 
 	@classmethod
 	def get_result_fields_all(cls) -> list:
-		return cls._result_fields.keys()
+		return cls._all.keys()
 
 
 	@classmethod
 	def get_result_fields_ratio(cls, all: bool = False) -> list:
 		if all:
-			return cls._result_ratios.keys()
+			return cls._ratios.keys()
 		else:
-			return cls.result_fields_ratio
+			return cls.ratio_fields
 
 
 	@classmethod
@@ -1094,28 +1098,28 @@ class BattleCategory():
 	@classmethod
 	def get_field_name(cls, field: str):
 		try:
-			return cls._result_fields[field][0]
+			return cls._all[field][0]
 		except Exception as err:
 			bu.error(exception=err)
 
 	@classmethod
 	def get_field_width(cls, field: str):
 		try:
-			return cls._result_fields[field][2]
+			return cls._all[field][2]
 		except Exception as err:
 			bu.error(exception=err)
 
 
 	@classmethod
 	def get_fields_team(cls) -> list:
-		return cls._team_fields
+		return cls._team
 
 	
 	@classmethod
 	def calc_ratio(cls, ratio: str, result: dict): 
 		try:
-			value 	= result[cls._result_ratios[ratio][0]]
-			divider = result[cls._result_ratios[ratio][1]]
+			value 	= result[cls._ratios[ratio][0]]
+			divider = result[cls._ratios[ratio][1]]
 			if divider != 0:
 				if value == None:
 					value = 0
@@ -1129,6 +1133,23 @@ class BattleCategory():
 			bu.error('Replay _id=' + result['_id'] , exception=err)
 		return None
 
+	
+	def __init__(self, is_single: bool = False, remove: list = list()):
+		self.result_fields = self.get_result_fields()
+		self.single_fields = list()
+		if is_single:
+			self.single_fields.extend(self.get_result_fields_single())
+			self.result_fields.extend(self.single_fields)
+		
+		for field in remove:
+			if field in self.result_fields:
+				self.result_fields.remove(field)
+		self.result_fields = [ field for field in self.get_result_fields_all() if field in self.result_fields ]
+		
+
+
+class BattleCategory():
+	
 
 	def __init__(self):
 		try:			
@@ -1142,10 +1163,30 @@ class BattleCategory():
 		except KeyError as err:
 			bu.error('BattleCategory(): Key not found', err) 
 
+########################
+#	MOVE field definitions to BattleCategorization() 
+########################
 
-	def record_result(self, result : dict) -> bool:
+	def update_fields(self, add: list = None, remove: list = None):
+		"""Update self.result_fields"""
 		try:
-			for field in self.avg_fields | self.ratio_fields:
+			self.result_fields = self.get_result_fields()
+			if add != None:
+				for field in add:
+					self.result_fields.append(field)
+				self.result_fields = [ field for field in self.get_result_fields_all() if field in self.result_fields ]
+			if remove != None:
+				for field in remove:
+					if field in self.result_fields:
+						self.result_fields.remove(field)
+		except Exception as err:
+			bu.error(exception=err)
+		
+
+	def record_result(self, result : dict, fields: list = list()) -> bool:
+		try:
+			# for field in self.avg_fields | self.ratio_fields:
+			for field in fields:
 				if (field in result) and (result[field] != None):
 					self.results[field] += result[field]
 			self.battles 		+= 1
