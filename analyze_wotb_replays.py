@@ -497,6 +497,7 @@ class BattleCategorization():
 		self.total_battles 	= 0
 		self.category_key 	= cat_key
 		self.title 			= title
+		self.result_fields  = ResultFields(is_single=is_single, remove = [cat_key])
 		# bu.debug('is_single: ' + str(is_single), force= True)
 		if is_single:			
 			self.categories 	= collections.defaultdict(def_value_BattleCategorySingle)
@@ -1011,14 +1012,14 @@ class ResultFields():
 		'dmg_block_rate' 	: [ 'damage_blocked', 'damage_received' ]
 	}
 
-	# _extended_stats = False
-
+	
 	results 		= set()
 	results_avg 	= set()
 	results_single	= set()
 	results_ratio 	= set()
 	ratio_fields	= set()
-	results_team	= list()
+	team_fields		= set()
+	plat_fields		= set()
 		
 
 	@classmethod
@@ -1029,7 +1030,7 @@ class ResultFields():
 	@classmethod
 	def get_mode_fields(cls, mode: str) -> list:
 		try:
-			if mode != None:
+			if (mode != None) and (mode in cls._modes):
 				return cls._modes[mode]
 			else:
 				return list()
@@ -1039,48 +1040,60 @@ class ResultFields():
 
 
 	@classmethod
-	def get_single_fields_all(cls) -> set:
-		return cls._single
-
-
-	@classmethod
-	def set_fields(cls, mode: str = None, extra : list = list(), team : list = list(), platoon : list = list() ):
+	def set_fields(cls, mode: str = None, extra : list = list(), team : list = list(), plat : list = list() ):
 		try:
-			if mode !=not in cls.get_modes():
+			if (mode != None) and (mode not in cls.get_modes()):
 				bu.error('Mode ' + mode + ' not in defined modes: ' + ', '.join(cls.get_modes()))
 				sys.exit(2)
 
 			cls.mode = mode
-			cls.results = set(cls.get_mode_fields(cls.mode))
-			cls.results = cls.results | set(extra) 
-			
-			# team fields
-			cls.team = set(team)
-			p_team = re.compile(r'^allies_(.+)')
-			for field in cls.results:
-				m = p_team.match(field)
-				if len(m.groups()) == 1:
-					cls.team.add(m.groups(1))
-			for field in cls.team:
-				cls.results.add('allies_' + field)
-				cls.results.add('enemies_' + field)
+			cls.results = set(cls.get_mode_fields(cls.mode))   # cls.mode == None ==> empty results set
+			cls.results = cls.results | set(extra)			
 
 			# platoon fields
-			cls.platoon = set(platoon)
-			p_plat = re.compile(r'^allies_plat_(.+)')
+			cls.plat_fields = set(plat)
+			tmp_plat_fields = set()
+			for field in cls.plat_fields:
+				tmp_plat_fields.add('allies_plat_' + field)
+				tmp_plat_fields.add('enemies_plat_' + field)
+	
+			p_plat_allies  = re.compile(r'^allies_plat_(.+)')			
+			p_plat_enemies = re.compile(r'^enemies_plat_(.+)')			
+			
 			for field in cls.results:
-				m = p_plat.match(field)
+				m = p_plat_allies.match(field)
 				if len(m.groups()) == 1:
-					cls.platoon.add(m.groups(1))
-			for field in cls.platoon:
-				cls.results.add('allies_plat_' + field)
-				cls.results.add('enemies_plat_' + field)
+					cls.plat_fields.add(m.groups(1))
+				m =  p_plat_enemies.match(field)
+				if len(m.groups()) == 1:
+					cls.plat_fields.add(m.groups(1))			
+				
+			# team fields
+			cls.team_fields = set(team)
+			tmp_team_fields = set()
+			for field in cls.team_fields:
+				tmp_team_fields.add('allies_' + field)
+				tmp_team_fields.add('enemies_' + field)
 
-			cls.results_single 	= cls.results & cls.get_single_fields_all() 
-			cls.results = cls.results - cls.get_single_fields_all()
-			cls.results_ratio 	= set(cls._ratios.keys()) & cls.results
+			p_team_allies  = re.compile(r'^allies_(.+)')
+			p_team_enemies = re.compile(r'^enemies_(.+)')
+			for field in cls.results:
+				m_t = p_team_allies.match(field)
+				m_p = p_plat_allies.match(field)
+				if ( (len(m_t.groups()) == 1) and (len(m_p.groups()) == 0) ):
+					cls.team_fields.add(m_t.groups(1))
+				m_t = p_team_enemies.match(field)
+				m_p = p_plat_enemies.match(field)
+				if ( (len(m_t.groups()) == 1) and (len(m_p.groups()) == 0) ):
+					cls.team_fields.add(m_t.groups(1))			
+
+			cls.results = cls.results | tmp_plat_fields | tmp_team_fields
+
+			cls.results_single 	= cls.results & cls.get_fields_all_single() 
+			cls.results 		= cls.results - cls.get_fields_all_single()
+			cls.results_ratio 	= cls.results & set(cls._ratios.keys())
 			cls.results_avg 	= cls.results - set(cls._ratios.keys()) - cls._count
-			cls.results = [ field for field in cls.get_result_fields_all() if field in cls.results ]
+			cls.results = [ field for field in cls.get_fields_all() if field in cls.results ]
 
 			for ratio in cls.results_ratio:
 				cls.ratio_fields.add(cls._ratios[ratio][0])
@@ -1090,38 +1103,58 @@ class ResultFields():
 		
 
 	@classmethod
-	def get_result_fields(cls) -> list:
+	def get_fields_all(cls) -> list:
+		return list(cls._all.keys())
+
+
+	@classmethod
+	def get_fields_all_single(cls) -> set:
+		return cls._single
+
+
+	@classmethod
+	def get_fields_all_ratio(cls) -> set:
+		return set(cls._ratios.keys())
+		
+
+	@classmethod
+	def get_fields_all_team(cls) -> list:
+		return cls._team
+	
+
+	@classmethod
+	def get_default_fields(cls) -> list:
 		return cls.results
 
 
 	@classmethod
-	def get_result_fields_all(cls) -> list:
-		return cls._all.keys()
-
-
-	@classmethod
-	def get_result_fields_ratio(cls) -> list:
+	def get_default_fields_ratio(cls) -> set:
 		return cls.results_ratio
 
 
 	@classmethod
-	def get_result_fields_ratio_all(cls) -> list:
-		return list(cls._ratios.keys())
-		
-
-	@classmethod
-	def get_result_fields_single(cls) -> set:
+	def get_default_fields_single(cls) -> set:
 		return cls.results_single
 
 
 	@classmethod
-	def get_avg_fields_avg(cls) -> set:
+	def get_default_fields_avg(cls) -> set:
 		return cls.results_avg
 
 
 	@classmethod
-	def get_ratio_fields(cls) -> set:
+	def get_default_source_fields_ratio(cls) -> set:
 		return cls.ratio_fields
+
+	
+	@classmethod
+	def get_default_team_fields(cls) -> set:
+		return cls.team_fields
+
+	
+	@classmethod
+	def get_default_plat_fields(cls) -> set:
+		return cls.plat_fields
 
 
 	@classmethod
@@ -1130,6 +1163,8 @@ class ResultFields():
 			return cls._all[field][0]
 		except Exception as err:
 			bu.error(exception=err)
+		return None
+
 
 	@classmethod
 	def get_field_width(cls, field: str):
@@ -1137,16 +1172,7 @@ class ResultFields():
 			return cls._all[field][2]
 		except Exception as err:
 			bu.error(exception=err)
-
-
-	@classmethod
-	def get_fields_team_all(cls) -> list:
-		return cls._team
-
-	
-	@classmethod
-	def get_fields_team(cls) -> list:
-		return cls.results_team
+		return None
 
 
 	@classmethod
@@ -1169,21 +1195,54 @@ class ResultFields():
 
 	
 	def __init__(self, is_single: bool = False, remove: list = list()):
-		self.result_fields = self.get_result_fields()
-		self.single_fields = list()
+		self.results = self.get_default_fields()
+		self.results_single = set()
 		if is_single:
-			self.single_fields.extend(self.get_result_fields_single())
-			self.result_fields.extend(self.single_fields)
-		
+			self.results_single = self.get_default_fields_single()
+		self.results_avg 	= self.get_default_fields_avg()
+		self.results_ratio 	= self.get_default_fields_ratio()
+		self.ratio_fields	= self.get_default_source_fields_ratio()
+		self.team_fields 	= self.get_default_team_fields()
+		self.plat_fields	= self.get_default_plat_fields()
+
 		for field in remove:
-			if field in self.result_fields:
-				self.result_fields.remove(field)
-		self.result_fields = [ field for field in self.get_result_fields_all() if field in self.result_fields ]
-		
+			if field in self.results:
+				self.results.remove(field)
+			if field in self.results_single:
+				self.results_single.remove(field)			
+		self.result_fields = [ field for field in self.get_fields_all() if field in self.results ]	
 
 
-class BattleCategory():
+	## Object methods
+	def get_fields(self) -> list:
+		return self.results
+
+
+	def get_fields_ratio(self) -> set:
+		return self.results_ratio
+
+
+	def get_fields_single(self) -> set:
+		return self.results_single
+
+
+	def get_fields_avg(self) -> set:
+		return self.results_avg
+
+
+	def get_source_fields_ratio(self) -> set:
+		return self.ratio_fields
+
 	
+	def get_team_fields(self) -> set:
+		return self.team_fields
+
+	
+	def get_plat_fields(self) -> set:
+		return self.plat_fields
+
+
+class BattleCategory():	
 
 	def __init__(self):
 		try:			
