@@ -82,6 +82,7 @@ async def main(argv):
         tankopedia['data'] = tanks
         tankopedia['userStr'] = userStrs
         bu.verbose_std('New tankopedia \'' + args.tanks + '\' contains ' + str(len(tanks)) + ' tanks')
+        bu.verbose_std('New tankopedia \'' + args.tanks + '\' contains ' + str(len(userStrs)) + ' tank strings')        
         await outfile.write(json.dumps(tankopedia, ensure_ascii=False, indent=4, sort_keys=False))
     
     if args.maps != None:
@@ -113,14 +114,15 @@ async def extract_tanks(blitz_app_base : str, nation: str):
             tankList = xmltodict.parse(await f.read())
             for data in tankList['root'].keys():
                 tank_xml = tankList['root'][data]
-                tank = {}
+                tank = dict()
                 tank['tank_id'] = await get_tank_id(nation, int(tank_xml['id']))
                 tank['userStr'] = tank_xml['userString']
-                tank['nation'] = nation
-                tank['tier'] = int(tank_xml['level'])
+                tank['nation']  = nation
+                tank['tier']    = int(tank_xml['level'])
                 #debug(tank_xml['price'])
                 tank['is_premium'] = issubclass(type(tank_xml['price']), dict)
                 tank['type'] = await get_tank_type(tank_xml['tags'])
+                #bu.debug('Reading tank string: ' + tank['userStr'], force=True)
                 tanks.append(tank)
         except Exception as err:
             bu.error(err)
@@ -161,9 +163,24 @@ async def convert_tank_names(tanklist : list, tank_strs: dict) -> dict:
     try:
         for tank in tanklist:
             tank['name'] = tank_strs[tank['userStr']]
-            userStrs[tank['userStr'].split(':')[1]] = tank['name']
+            #userStrs[tank['userStr'].split(':')[1]] = tank['name']
             tank.pop('userStr', None)
             tankopedia[str(tank['tank_id'])] = tank
+
+        for tank_str in tank_strs:
+            skip = False
+            key = tank_str.split(':')[1]
+            bu.debug('Tank string: ' + key + ' = ' + tank_strs[tank_str])
+            re_strs = [r'^Chassis_', r'^Turret_', r'^_', r'_short$' ]
+            for re_str in re_strs:
+                p = re.compile(re_str)
+                if p.match(key):
+                    skip = True
+                    break
+            if skip:
+                continue
+            
+            userStrs[key] = tank_strs[tank_str]
 
         # sorting
         tankopedia_sorted = collections.OrderedDict()
@@ -173,6 +190,7 @@ async def convert_tank_names(tanklist : list, tank_strs: dict) -> dict:
         userStrs_sorted = collections.OrderedDict()
         for userStr in sorted(userStrs.keys()):
             userStrs_sorted[userStr] = userStrs[userStr]
+        # bu.debug('Tank strings: ' + str(len(userStrs_sorted)))
 
     except Exception as err:
         bu.error(err)
