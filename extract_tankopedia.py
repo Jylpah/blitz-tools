@@ -122,7 +122,7 @@ async def extract_tanks(blitz_app_base : str, nation: str):
                 #debug(tank_xml['price'])
                 tank['is_premium'] = issubclass(type(tank_xml['price']), dict)
                 tank['type'] = await get_tank_type(tank_xml['tags'])
-                bu.debug('Reading tank string: ' + tank['userStr'], force=True)
+                #bu.debug('Reading tank string: ' + tank['userStr'], force=True)
                 tanks.append(tank)
         except Exception as err:
             bu.error(err)
