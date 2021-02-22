@@ -30,9 +30,11 @@ BATTLE_TIME_BUCKET = 3600*24*14
 
 RE_SRC_IS_DB = re.compile(r'^DB:')
 
-class StatFunc:
+
 ## For different player stat functions (global stats, tank tier stats, etc)
 # 1st function = for forming stat_id, 2nd for DB stats query, 3rd for WG API stats query
+class StatFunc:
+
 	STAT_FUNC	= {
 		'tank_tier': 	[ 'get_stat_id_tank_tier', 'get_db_tank_tier_stats', 'get_wg_tank_tier_stats', 'WR at tier' ],
 		'tank': 		[ 'get_stat_id_tank', 'get_db_tank_stats', 'get_wg_tank_stats', 'WR in Tank' ],
@@ -128,6 +130,7 @@ replay_details_flds = [
 	]
 
 
+## MOVE TO class PlayerHistogram()
 ## Syntax: key == stat field in https://api.wotblitz.eu/wotb/tanks/stats/  (all.KEY)
 ## Value array [ 'Stat Title', [ 0, data buckets ....], scaling_factor_for_bucket_values, 'print_format' ]
 histogram_fields = {
@@ -181,6 +184,7 @@ class BattleCategorizationList():
 	}
 
 	_BATTLE_MODES = mk_battle_modes.__func__(_battle_modes)
+
 
 	_categorizations = {
 		'total'					: [ 'TOTAL', 			'total' ],
@@ -503,6 +507,7 @@ class BattleCategorization():
 			self.categories 	= collections.defaultdict(def_value_BattleCategorySingle)
 		else:
 			self.categories 	= collections.defaultdict(def_value_BattleCategory)
+		
 
 
 	def set_cat_header_format(self, header_len: int, left_aligned: bool = False):
@@ -965,15 +970,15 @@ class ResultFields():
 		'battle_duration'	: [ 'Duration', 'Battle duration', 									8, '{:8.0f}' ], 
 		'distance_travelled': [ 'Distance', 'Distance travelled',								8, '{:8.0f}' ], 
 		'top_tier'			: [ 'Top tier', 'Share of games as top tier', 						8, '{:8.0%}', '{:8s}' ],
-		'player_wins'		: [ 'Player WR', 'Average WR of the player', 						9, '{:9.2%}' ],
-		'allies_wins'		: [ 'Allies WR', 'Average WR of allies at the tier of their tank', 	9, '{:9.2%}' ],
-		'enemies_wins'		: [ 'Enemies WR', 'Average WR of enemies at the tier of their tank', 10, '{:10.2%}' ],
-		'player_battles'	: [ 'Player Btls', 'Average number battles of the player', 			11, '{:11.0f}' ],
-		'allies_battles'	: [ 'Allies Btls', 'Average number battles of the allies', 			11, '{:11.0f}' ],
-		'enemies_battles'	: [ 'Enemies Btls', 'Average number battles of the enemies', 		12, '{:12.0f}' ],
-		'player_damage_dealt'	: [ 'Player Avg Dmg', 'Player Average damage', 					11, '{:11.0f}' ],
-		'allies_damage_dealt'	: [ 'Allies Avg Dmg', 'Average damage of the allies', 			11, '{:11.0f}' ],
-		'enemies_damage_dealt'	: [ 'Enemies Avg Dmg', 'Average damage of the enemies', 		12, '{:12.0f}' ],
+		'player:wins'		: [ 'Player WR', 'Average WR of the player', 						9, '{:9.2%}' ],
+		'allies:wins'		: [ 'Allies WR', 'Average WR of allies at the tier of their tank', 	9, '{:9.2%}' ],
+		'enemies:wins'		: [ 'Enemies WR', 'Average WR of enemies at the tier of their tank', 10, '{:10.2%}' ],
+		'player:battles'	: [ 'Player Btls', 'Average number battles of the player', 			11, '{:11.0f}' ],
+		'allies:battles'	: [ 'Allies Btls', 'Average number battles of the allies', 			11, '{:11.0f}' ],
+		'enemies:battles'	: [ 'Enemies Btls', 'Average number battles of the enemies', 		12, '{:12.0f}' ],
+		'player:damage_dealt'	: [ 'Player Avg Dmg', 'Player Average damage', 					11, '{:11.0f}' ],
+		'allies:damage_dealt'	: [ 'Allies Avg Dmg', 'Average damage of the allies', 			11, '{:11.0f}' ],
+		'enemies:damage_dealt'	: [ 'Enemies Avg Dmg', 'Average damage of the enemies', 		12, '{:12.0f}' ],
 		MISSING_STATS		: [ 'No stats', 'Players without stats avail', 						8, '{:8.1%}']		
 	}
 
@@ -1026,6 +1031,27 @@ class ResultFields():
 	def get_modes(cls) -> list:
 		return list(cls._modes.keys())
 
+	
+	@classmethod
+	def get_stat_measure(cls, stat: str = None) -> str:
+		try:
+			res = stat.split(':')
+			return res[len(res) - 1]			
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
+
+	@classmethod
+	def get_stat_type(cls, stat: str = None) -> str:
+		try:
+			res = stat.split(':')
+			if len(res) == 2:
+				return res[1]			
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
 
 	@classmethod
 	def get_mode_fields(cls, mode: str) -> list:
@@ -1051,43 +1077,43 @@ class ResultFields():
 			cls.results = cls.results | set(extra)			
 
 			# platoon fields
-			cls.plat_fields = set(plat)
-			tmp_plat_fields = set()
-			for field in cls.plat_fields:
-				tmp_plat_fields.add('allies_plat_' + field)
-				tmp_plat_fields.add('enemies_plat_' + field)
-	
-			p_plat_allies  = re.compile(r'^allies_plat_(.+)')			
-			p_plat_enemies = re.compile(r'^enemies_plat_(.+)')			
+			cls.plat_fields = set()
+			p_plat_allies  = re.compile(r'^allies_plat:(.+)')			
+			p_plat_enemies = re.compile(r'^enemies_plat:(.+)')			
 			
 			for field in cls.results:
+				
 				m = p_plat_allies.match(field)
 				if len(m.groups()) == 1:
 					cls.plat_fields.add(m.groups(1))
+
 				m =  p_plat_enemies.match(field)
 				if len(m.groups()) == 1:
 					cls.plat_fields.add(m.groups(1))			
 				
-			# team fields
-			cls.team_fields = set(team)
-			tmp_team_fields = set()
-			for field in cls.team_fields:
-				tmp_team_fields.add('allies_' + field)
-				tmp_team_fields.add('enemies_' + field)
+			for field in plat:
+				cls.plat_fields.add('allies_plat:' + field)
+				cls.plat_fields.add('enemies_plat:' + field)
 
-			p_team_allies  = re.compile(r'^allies_(.+)')
-			p_team_enemies = re.compile(r'^enemies_(.+)')
+			# team fields
+			cls.team_fields = set()
+			p_team_allies  = re.compile(r'^allies:(.+)')
+			p_team_enemies = re.compile(r'^enemies:(.+)')
 			for field in cls.results:
+				
 				m_t = p_team_allies.match(field)
-				m_p = p_plat_allies.match(field)
-				if ( (len(m_t.groups()) == 1) and (len(m_p.groups()) == 0) ):
+				if len(m_t.groups()) == 1:
 					cls.team_fields.add(m_t.groups(1))
+				
 				m_t = p_team_enemies.match(field)
-				m_p = p_plat_enemies.match(field)
-				if ( (len(m_t.groups()) == 1) and (len(m_p.groups()) == 0) ):
+				if len(m_t.groups()) == 1:
 					cls.team_fields.add(m_t.groups(1))			
 
-			cls.results = cls.results | tmp_plat_fields | tmp_team_fields
+			for field in team:
+				cls.team_fields.add('allies:' + field)
+				cls.team_fields.add('enemies:' + field)
+
+			cls.results = cls.results | cls.team_fields | cls.plat_fields
 
 			cls.results_single 	= cls.results & cls.get_fields_all_single() 
 			cls.results 		= cls.results - cls.get_fields_all_single()
@@ -1101,6 +1127,25 @@ class ResultFields():
 		except Exception as err:
 			bu.error('BattleCategory:' ,exception=err)
 		
+
+	@classmethod
+	def get_player_stat_fields(cls) -> set:
+		try:
+			stat_fields = set()
+			for field in cls.get_default_fields():
+				if cls.get_stat_type(field) != None:
+					stat = cls.get_stat_measure(field)
+					if stat in cls.get_fields_all_ratio():
+						stat_fields.add(cls._ratios[0])
+						stat_fields.add(cls._ratios[1])
+					else:
+						stat_fields.add(stat)
+			return stat_fields		
+		except Exception as err:
+			bu.error(exception=err)
+		return None
+
+
 
 	@classmethod
 	def get_fields_all(cls) -> list:
@@ -1210,7 +1255,7 @@ class ResultFields():
 				self.results.remove(field)
 			if field in self.results_single:
 				self.results_single.remove(field)			
-		self.result_fields = [ field for field in self.get_fields_all() if field in self.results ]	
+		self.results = [ field for field in self.get_fields_all() if field in self.results ]	
 
 
 	## Object methods
@@ -1467,7 +1512,6 @@ class BattleCategorySingle(BattleCategory):
 		except Exception as err:
 			bu.error(exception=err) 
 		return False
-
 
 
 class PlayerHistogram():
