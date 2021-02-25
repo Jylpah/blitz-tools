@@ -131,7 +131,7 @@ replay_details_flds = [
 ## Syntax: key == stat field in https://api.wotblitz.eu/wotb/tanks/stats/  (all.KEY)
 ## Value array [ 'Stat Title', [ 0, data buckets ....], scaling_factor_for_bucket_values, 'print_format' ]
 histogram_fields = {
-	'wins'				: [ 'Win rate', 	[0, .35, .40, .45, .48, .5, .52, .55, .60, .65, .70, 1], 100, '{:2.0%}' ],
+	'wins'				: [ 'Win rate', 	[0, .35, .40, .45, .48, .5, .52, .55, .60, .65, .70, 1], 1, '{:2.0%}' ],
 	'damage_dealt'		: [ 'Avg. Dmg.', 	[0, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 100e3], 1, '{:3.0f}' ],
 	'battles'			: [ 'Battles', 		[0, 1000, 2500, 5000, 7000, 10e3, 15e3, 25e3, 50e3, 5e7], .001, '{:.0f}k']	# battles is a mandatory stat to include
 	}
@@ -1197,7 +1197,7 @@ class BattleCategory():
 
 
 class PlayerHistogram():
-	def __init__(self, field: str, name: str, fields : list, factor: float, format: str ):
+	def __init__(self, field: str, name: str, fields : list, factor: float, cat_format: str ):
 		self.field 		= field
 		if self.field == 'wins':
 			self.name 		= StatFunc.get_title()
@@ -1205,7 +1205,7 @@ class PlayerHistogram():
 			self.name = name
 		self.fields 	= fields
 		self.cat_factor = factor
-		self.cat_format = format
+		self.cat_format = cat_format
 		self.ncat 		= len(self.fields) - 1
 		self.allies 	= [0] * self.ncat
 		self.enemies 	= [0] * self.ncat
@@ -1294,7 +1294,7 @@ class PlayerHistogram():
 				print("\n{:12s} | {:13s} | {:13s} | {:13s}".format(self.name, "Allies", "Enemies", "TOTAL"))
 				for cat in self.results:
 					stat = self.results[cat]
-					print("{:12s} | {:5d} ({:4.1%}) | {:5d} ({:4.1%}) | {:5d} ({:4.1%})".format(cat, stat['allies'], stat['allies%']*100, stat['enemies'], stat['enemies%']*100, stat['total'], stat['total%']*100 ))
+					print("{:12s} | {:5d} ({:4.1%}) | {:5d} ({:4.1%}) | {:5d} ({:4.1%})".format(cat, stat['allies'], stat['allies%'], stat['enemies'], stat['enemies%'], stat['total'], stat['total%'] ))
 			else:
 				bu.error('Results have not been calculated yet.')
 		except Exception as err:
