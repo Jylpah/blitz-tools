@@ -1294,7 +1294,7 @@ class PlayerHistogram():
 				print("\n{:12s} | {:13s} | {:13s} | {:13s}".format(self.name, "Allies", "Enemies", "TOTAL"))
 				for cat in self.results:
 					stat = self.results[cat]
-					print("{:12s} | {:5d} ({:4.1%}) | {:5d} ({:4.1%}) | {:5d} ({:4.1%})".format(cat, stat['allies'], stat['allies%'], stat['enemies'], stat['enemies%'], stat['total'], stat['total%'] ))
+					print("{:12s} | {:5d} ({:5.1%}) | {:5d} ({:5.1%}) | {:5d} ({:5.1%})".format(cat, stat['allies'], stat['allies%'], stat['enemies'], stat['enemies%'], stat['total'], stat['total%'] ))
 			else:
 				bu.error('Results have not been calculated yet.')
 		except Exception as err:
