@@ -2355,9 +2355,9 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 			replay_file 	= item[2]
 
 			try:
-				msg_str = 'Replay[' + str(replayID) + ']: ' 
+				# msg_str = 'Replay[' + str(replayID) + ']: ' 
 				if replay_json == None:
-					bu.warning(msg_str + 'Invalid replay. Skipping: '  + (replay_file if replay_file != None else '') )
+					bu.warning('Invalid replay. Skipping: '  + (replay_file if replay_file != None else '') )
 					queue.task_done()
 					continue
 						
@@ -2366,7 +2366,7 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 				result = await read_replay_JSON(replay_json, args)
 				bu.print_progress()
 				if result == None:
-					bu.warning(msg_str + 'Invalid replay ' + (replay_file if replay_file != None else '') )
+					bu.warning('Invalid replay ' + (replay_file if replay_file != None else '') )
 					queue.task_done()
 					continue
 				
@@ -2375,7 +2375,7 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 				playerstanks.update(set([result['player']]))
 				
 				results.append(result)
-				bu.debug('Marking task ' + str(replayID) + ' done')
+				bu.debug('Marking replay [' + str(replayID) + '] done', id=readerID)
 						
 			except Exception as err:
 				bu.error(exception=err)
