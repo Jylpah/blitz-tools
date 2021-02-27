@@ -2326,9 +2326,12 @@ async def mk_readerQ_item(replay_json, filename : str = None) -> list:
 	global REPLAY_N
 	REPLAY_N +=1
 	try:
-		if not '_id' in replay_json:
-			id = wi.read_replay_id(replay_json)
-			replay_json['_id'] = id	
+		if wi.chk_JSON_replay(replay_json): 
+			if not '_id' in replay_json:
+				id = wi.read_replay_id(replay_json)
+				replay_json['_id'] = id	
+		else:
+			replay_json = None # mark error
 	except Exception as err:
 		bu.error(exception=err)
 	if filename == None:

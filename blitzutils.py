@@ -311,7 +311,7 @@ def verbose_std(msg="", id=None) -> bool:
 
 def warning(msg="", id=None, force: bool = False) -> bool:
     """Print a warning message"""
-    return _print_log_msg('Warning', msg, None, id, print_msg=(force or (_log_level >= NORMAL)))
+    return _print_log_msg('', 'Warning: ' + msg, None, id, print_msg=(force or (_log_level >= NORMAL)))
 
 
 def debug(msg="", id=None, exception=None, force: bool = False) -> bool:
@@ -1852,7 +1852,7 @@ class WoTinspector:
             # FIX The replay can have allies/enemies i.e. be useful for 
             # team composition analysis, but does not have player contribution
             if ('status' in json_resp) and json_resp['status'] == 'ok' and \
-                (get_JSON_value(json_resp, key='data.summary.allies') != None) :
+                (get_JSON_value(json_resp, key='data.summary.winner_team') != None) :
                 debug("JSON check OK")
                 return True 
         except KeyError as err:
