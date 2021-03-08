@@ -1422,7 +1422,7 @@ async def main(argv):
 		parser.add_argument('--csv', action='store_true', default=False, help='Export data in CSV format')
 		parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
 		parser.add_argument('--db', action='store_true', default=OPT_DB, help='Use DB - You are unlikely to have it')
-		parser.add_argument('--filters', type=str, default=None, help='Filter replays based on categories. Filters given in JSON format.\nUse array "[]" for multiple filters/values. see --mode help.\nExample: : [ {"tier" : [8,9,20] }, { "player_wins" : 5 }]')
+		parser.add_argument('--filters', type=str, default=None, help='Filter replays based on categories. Filters given in JSON format.\nUse array "[]" for multiple filters/values. see --mode help.\nExample: : [ {"tier" : [8,9,10] }, { "player_wins" : 5 }]')
 		parser.add_argument('--filters_db', type=str, default=None, help='[only for DB setup] Filter replays in DB based on categories. Filters given in MongoDB JSON format. See --mode help')
 		parser.add_argument('--min', type=int, default=None, help='Only select replays from players with minimum number of replays in the dataset')
 		parser.add_argument('-d', '--debug', action='store_true', default=False, help='Debug mode')
