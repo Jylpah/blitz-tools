@@ -1787,7 +1787,7 @@ async def process_player_stats(players, N_workers: int, args : argparse.Namespac
 	try:
 		statsQ = asyncio.Queue()
 		bu.debug('Create player stats queue: ' + str(len(players)) + ' players')
-		stat_id_map = {}
+		stat_id_map = dict()
 		stat_ids = set()
 
 		stat_id_map_func = globals()[StatFunc.get_stat_id_func()]
@@ -1813,8 +1813,8 @@ async def process_player_stats(players, N_workers: int, args : argparse.Namespac
 		bu.debug('Cancelling stats workers')
 		for task in stats_tasks: 
 			task.cancel()	
-		player_stats = {}
-		stat_id_remap = {}
+		player_stats = dict()
+		stat_id_remap = dict()
 
 		bu.debug('Gathering stats worker outputs')
 		for (stats, id_remap) in await asyncio.gather(*stats_tasks):
@@ -1921,8 +1921,8 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Namespace, db : motor.motor_asyncio.AsyncIOMotorDatabase) -> list:
 	"""Worker thread to find stats for player / tank pairs"""
 	# global wg
-	stats 			= {}
-	stat_id_remap 	= {}
+	stats 			= dict()
+	stat_id_remap 	= dict()
 
 	stat_db_func = globals()[StatFunc.get_db_func()]
 	stat_wg_func = globals()[StatFunc.get_wg_func()]
@@ -2198,7 +2198,7 @@ async def tank_stats_helper(stat_list: list):
 	try:
 		if stat_list == None: 
 			return None
-		stats = {}
+		stats = dict()
 		hist_fields = histogram_fields.keys()
 		if 'battles' not in hist_fields:
 			bu.error('\'battles\' must be defined in \'histogram_fields\'')
@@ -2230,7 +2230,7 @@ async def player_stats_helper(player_stats: dict):
 	try:
 		if player_stats == None: 
 			return None
-		stats = {}
+		stats = dict()
 		hist_fields = histogram_fields.keys()
 		if 'battles' not in hist_fields:
 			bu.error('\'battles\' must be defined in \'histogram_fields\'')
@@ -2271,7 +2271,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 				cursor = dbc.find(filters)
 			else:
 				# select all
-				cursor = dbc.find({})
+				cursor = dbc.find(dict())
 			bu.debug('Reading replays...')	
 			async for replay_json in cursor:
 				_id = replay_json['_id']
@@ -2392,7 +2392,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 	account_id = args.account_id
 	url = args.url
 	#db = args.db
-	result = {}
+	result = dict()
 	try:
 		# bu.debug(str(replay_json))
 		if not wi.chk_JSON_replay(replay_json):
@@ -2454,7 +2454,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 
 			if player['dbid'] == account_id:
 				# player itself is not put in results['allies']
-				tmp = {}
+				tmp = dict()
 				tmp['account_id'] 	= account_id
 				tmp['tank_id'] 		= player['vehicle_descr']
 				tmp['tank_tier'] 	= player_tank_tier
