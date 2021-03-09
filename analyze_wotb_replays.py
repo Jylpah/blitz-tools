@@ -900,7 +900,7 @@ class BattleCategory():
 		'pen_rate'			: [ 'Pen rate', 'Shots pen / shots hit', 							8, '{:8.1%}' ],
 		'survived'			: [ 'Surv%', 'Survival rate', 										6, '{:6.1%}' ],
 		'time_alive'		: [ 'T alive', 'Time being alive in a battle in secs', 				7, '{:7.0f}' ],
-		'alive'				: [ 'Share live', 'Percentage of time being alive in a battle', 		8, '{:8.0%}' ],
+		'alive'				: [ 'Share live', 'Percentage of time being alive in a battle', 	8, '{:8.0%}' ],
 		'battle_duration'	: [ 'Duration', 'Battle duration', 									8, '{:8.0f}' ], 
 		'distance_travelled': [ 'Distance', 'Distance travelled',								8, '{:8.0f}' ], 
 		'top_tier'			: [ 'Top tier', 'Share of games as top tier', 						8, '{:8.0%}' ],
@@ -2442,12 +2442,14 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 		result['allies_survived']  = 0 	# for steamroller stats
 		result['enemies_survived']  = 0	# for steamroller stats
 		btl_duration = 0
-		btl_tier = 0
+		btl_tier 	 = 0
+		btl_tier_low = 10
 		protagonist_tank  = None
 		for player in replay_summary['details']:
 			btl_duration = max(btl_duration, player['time_alive'])
 			player_tank_tier = wg.get_tank_data(player['vehicle_descr'], 'tier')
-			btl_tier = max(btl_tier, player_tank_tier)
+			btl_tier 		 = max(btl_tier, player_tank_tier)
+			btl_tier_low     = min(btl_tier_low, player_tank_tier)
 
 			if (protagonist != None) and (player['dbid'] == protagonist):
 				protagonist_tank = player['vehicle_descr']
