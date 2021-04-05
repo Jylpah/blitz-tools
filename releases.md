@@ -2,6 +2,7 @@
 
 | Release | Date     | Notes       | Inaccurate? |
 |:-------:|:--------:|-------------|-----|
+| 7.8 | 2021-03-24 | Mid-tier balance changes, Grille line new consumables  |  |
 | 7.7 | 2021-02-24 | Czechoslovakian medium tanks  |  |
 | 7.6 | 2021-01-27 | AMC 13 90, TOG II buffs, free replay camera  |  |
 | 7.5 | 2020-12-09 | ATGM removal, Batchat, Kpz70, T-2020 buff |  |
