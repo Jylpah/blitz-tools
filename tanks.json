@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 476
+        "count": 481
     },
     "data": {
         "1": {
@@ -2628,6 +2628,14 @@
             "tier": 8,
             "type": "AT-SPG"
         },
+        "17729": {
+            "is_premium": true,
+            "name": "Somua SM",
+            "nation": "france",
+            "tank_id": 17729,
+            "tier": 8,
+            "type": "heavyTank"
+        },
         "17745": {
             "is_premium": true,
             "name": "FV217 Badger",
@@ -2972,6 +2980,14 @@
             "tier": 8,
             "type": "mediumTank"
         },
+        "20817": {
+            "is_premium": true,
+            "name": "Explorer",
+            "nation": "uk",
+            "tank_id": 20817,
+            "tier": 6,
+            "type": "mediumTank"
+        },
         "20993": {
             "is_premium": true,
             "name": "T-2020",
@@ -3084,6 +3100,14 @@
             "tier": 10,
             "type": "heavyTank"
         },
+        "22305": {
+            "is_premium": true,
+            "name": "AE Phase I",
+            "nation": "usa",
+            "tank_id": 22305,
+            "tier": 9,
+            "type": "heavyTank"
+        },
         "22529": {
             "is_premium": true,
             "name": "LT-432",
@@ -3107,6 +3131,22 @@
             "tank_id": 22801,
             "tier": 6,
             "type": "heavyTank"
+        },
+        "22817": {
+            "is_premium": true,
+            "name": "M-VI-Yoh",
+            "nation": "usa",
+            "tank_id": 22817,
+            "tier": 10,
+            "type": "heavyTank"
+        },
+        "23057": {
+            "is_premium": true,
+            "name": "Kunze Panzer",
+            "nation": "germany",
+            "tank_id": 23057,
+            "tier": 7,
+            "type": "lightTank"
         },
         "51201": {
             "is_premium": true,
@@ -3858,6 +3898,8 @@
         "A124_T54E2_Custom": "T54E2 Shark",
         "A124_T54E2_Custom_short": "T54E2 Shark",
         "A124_T54E2_short": "T54E2",
+        "A125_AEP_1": "AE Phase I",
+        "A125_AEP_1_short": "AE Phase I",
         "A68_T28D": "T28 Defender",
         "A68_T28D_short": "T28 Defender",
         "A77_T6M": "T6E1",
@@ -3911,6 +3953,7 @@
         "AMX_dracula_Custom_short": "Dracula Two-faced",
         "AMX_dracula_short": "Dracula",
         "AOI-1490": "Continental AOI-1490",
+        "AOSI_1490-1": "Continental AOSI-1490-1",
         "AOS_895": "AOS-895",
         "APCNR": "Pzgr. 41 HK",
         "APCNR.erz": "Pzgr. 41 StK",
@@ -4098,6 +4141,7 @@
         "Continental_AOS-895-1_short": "Continental\\nAOS-895-1",
         "Continental_AOS-895-3": "AN/GRC-8",
         "Continental_AOS-895-3_short": "AN/GRC-8",
+        "Continental_AOSI-1195-5": "Continental AOSI-1195-5",
         "Continental_AOSI-895-5": "Continental AOSI-895-5",
         "Continental_AOSI-895-5_short": "Continental\\nAOSI-895-5",
         "Continental_AOSI_895_5_Prem": "Continental AOSI-895-5",
@@ -4236,6 +4280,10 @@
         "F82_AMX_M4_Mle1949_Ter_Custom": "AMX M4 54 Firebird",
         "F82_AMX_M4_Mle1949_Ter_Custom_short": "AMX M4 54 Firebird",
         "F82_AMX_M4_Mle1949_Ter_short": "AMX M4 mle. 54",
+        "F84_Somua_SM": "Somua SM",
+        "F84_Somua_SM_Custom": "Somua Grenadier",
+        "F84_Somua_SM_Custom_short": "Somua Grenadier",
+        "F84_Somua_SM_short": "Somua SM",
         "FCM50t_fwhite": "FCM 50 t Titi",
         "FCM50t_fwhite_short": "FCM 50 t Titi",
         "FCM50t_liliam": "FCM 50 t Zizou",
@@ -4309,6 +4357,8 @@
         "G136_Tiger_131_short": "Tiger 131",
         "G138_VK16801P": "VK 168.01 (P)",
         "G138_VK16801P_short": "VK 168.01 (P)",
+        "G147_mPanzer_64": "Kunze Panzer",
+        "G147_mPanzer_64_short": "Kunze Panzer",
         "G20_Marder_II": "Marder II",
         "G20_Marder_II_short": "Marder II",
         "GAZ-11": "GAZ-11",
@@ -4351,6 +4401,8 @@
         "GB19_Sherman_Firefly_short": "Sherman Firefly",
         "GB20_Crusader": "Crusader",
         "GB20_Crusader_short": "Crusader",
+        "GB21_A27BP": "Explorer",
+        "GB21_A27BP_short": "Explorer",
         "GB21_Cromwell": "Cromwell",
         "GB21_Cromwell_short": "Cromwell",
         "GB22_Comet": "Comet",
@@ -4701,6 +4753,8 @@
         "M-5-400F_Bis": "M-5-400F Bis",
         "M-50T": "M-50T",
         "M-50TD": "M-50TD",
+        "M-6-Y": "M-VI-Yoh",
+        "M-6-Y_short": "M-VI-Yoh",
         "M-80": "M-80",
         "M103": "M103",
         "M10_Wolverine": "M10 Wolverine",
@@ -4792,6 +4846,7 @@
         "MB517": "MB 517",
         "MB_837_Aa": "MB 837 Aa",
         "MB_837_Ea": "MB 837 Ea",
+        "MB_837_K": "MB 837 K",
         "MS-1": "MS-1",
         "MT-5-1": "MT-5-1",
         "MT25": "MT-25",
@@ -4879,6 +4934,7 @@
         "Maybach_HL_234_TRM_P45_1": "Maybach HL 234 TRM P45",
         "Maybach_HL_235": "Maybach HL 235",
         "Maybach_HL_295": "Maybach HL 295",
+        "Maybach_HL_295_003_Somua": "Maybach HL 295.003 \\\"Somua\\\"",
         "Maybach_HL_295_F": "Maybach HL 295 F",
         "Maybach_HL_295_FA": "Maybach HL 295 F",
         "Maybach_HL_45P": "Maybach HL 45 P",
@@ -4907,6 +4963,7 @@
         "Nuffield_liberty_MKII": "Nuffield Liberty Mk. II",
         "Nuffield_liberty_MKIV": "Nuffield Liberty Mk. III",
         "Nuffield_liberty_MKV": "Nuffield Liberty Mk. V",
+        "Nuffield_liberty_MKV_BP": "Nuffield Liberty Mk. VB",
         "OQF_17pdr_Gun_Mk_IV_SH_SH": "OQF 17-pdr Gun Mk. IV SH-SH",
         "OQF_17pdr_Gun_Mk_VII": "OQF 17-pdr Gun Mk. VII",
         "OQF_17pdr_Gun_Mk_VIIG": "OQF 17-pdr Gun Mk. VII G",
@@ -5200,6 +5257,8 @@
         "R109_T54S": "T-54 ltwt.",
         "R109_T54S_short": "T-54 ltwt.",
         "R110_Object_260": "Object 260",
+        "R110_Object_260_Custom": "Object 260 Pike",
+        "R110_Object_260_Custom_short": "Object 260 Pike",
         "R110_Object_260_short": "Obj. 260",
         "R111_ISU130": "ISU-130",
         "R111_ISU130_short": "ISU-130",
@@ -5401,8 +5460,8 @@
         "Skoda_AHK": "Škoda AHK",
         "Skoda_T-11": "Škoda T-11",
         "Skoda_T-15": "Škoda T-15",
-        "Skoda_V12_19_8_liter_450": "Škoda V12 19.8 liter (450)",
-        "Skoda_V12_19_8_liter_500": "Škoda V12 19.8 liter (500)",
+        "Skoda_V12_19_8_liter_450": "Škoda V12 mod. 1",
+        "Skoda_V12_19_8_liter_500": "Škoda V12 mod. 2",
         "Skoda_V16_diesel_600": "Škoda 16 cylinder diesel (600)",
         "Skoda_V16_diesel_660": "Škoda 16 cylinder diesel (660)",
         "Slpprj_m43": "Slpprj m/43",
