@@ -1302,7 +1302,6 @@ class PlayerHistogram():
 		return None
 
 
-
 class ErrorCatchingArgumentParser(argparse.ArgumentParser):
 	def exit(self, status=0, message=None):
 		if status:
@@ -2276,7 +2275,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 			async for replay_json in cursor:
 				_id = replay_json['_id']
 				#del(replay_json['_id'])
-				await queue.put(await mk_readerQ_item(replay_json, 'DB: _id = ' + _id))
+				await queue.put(await mk_readerQ_item(replay_json, _id=_id))
 				Nreplays += 1
 			bu.debug('All the matching replays have been read from the DB')
 		except Exception as err:
@@ -2292,7 +2291,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 				
 				if (p_replayfile.match(line) != None):
 					replay_json = await bu.open_JSON(line, wi.chk_JSON_replay)						
-					await queue.put(await mk_readerQ_item(replay_json, line))
+					await queue.put(await mk_readerQ_item(replay_json, filename=line))
 			except Exception as err:
 				bu.error(exception=err)
 	else:
@@ -2303,7 +2302,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 					fn = fn[:-1] 
 				if os.path.isfile(fn) and (p_replayfile.match(fn) != None):
 					replay_json = await bu.open_JSON(fn, wi.chk_JSON_replay)
-					await queue.put(await mk_readerQ_item(replay_json, fn))
+					await queue.put(await mk_readerQ_item(replay_json, filename=fn))
 					bu.debug('File added to queue: ' + fn)
 					Nreplays += 1
 				elif os.path.isdir(fn):
@@ -2312,7 +2311,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 							if entry.is_file() and (p_replayfile.match(entry.name) != None): 
 								bu.debug(entry.name)
 								replay_json = await bu.open_JSON(entry.path, wi.chk_JSON_replay)
-								await queue.put(await mk_readerQ_item(replay_json, entry.name))
+								await queue.put(await mk_readerQ_item(replay_json, filename=entry.name))
 								bu.debug('File added to queue: ' + entry.path)
 								Nreplays += 1
 			except Exception as err:
@@ -2321,25 +2320,26 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 	return Nreplays
 
 
-async def mk_readerQ_item(replay_json, filename : str = None) -> list:
+async def mk_readerQ_item(replay_json, filename : str = None, _id: str = None) -> list:
 	"""Make an item to replay queue"""
 	global REPLAY_N
 	REPLAY_N +=1
 	try:
 		if wi.chk_JSON_replay(replay_json): 
 			if not '_id' in replay_json:
-				id = wi.read_replay_id(replay_json)
-				replay_json['_id'] = id	
+				_id = wi.read_replay_id(replay_json)
+				replay_json['_id'] = _id	
 		else:
 			replay_json = None # mark error
 	except Exception as err:
 		bu.error(exception=err)
-	if filename == None:
-		return [replay_json, REPLAY_N, '' ]
-	elif RE_SRC_IS_DB.match(filename) != None:
-		return [replay_json, REPLAY_N, filename ]
-	else:
+	
+	if filename != None:
 		return [replay_json, REPLAY_N, os.path.basename(filename) ]
+	elif _id != None: 
+		return [replay_json, REPLAY_N, 'DB: ' + _id ]
+	else:
+		return None
 
 
 async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Namespace):
