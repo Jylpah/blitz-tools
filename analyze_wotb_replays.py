@@ -2029,7 +2029,7 @@ async def get_db_tank_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, stat_
 			project[stat] = True
 		project['_id'] = False
 		
-		cursor = dbc.find({ '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$gte': battletime - time_buffer }}, { 'tank_id' : tank_id } ] }, projection=project).sort('last_battle_time',-1).limit(1)
+		cursor = dbc.find({ '$and': [ { 'tank_id' : tank_id }, { 'account_id': account_id }, { 'last_battle_time': { '$gte': battletime - time_buffer }} ] }, projection=project).sort('last_battle_time',-1).limit(1)
 
 		# pipeline = 	[ { '$match': { '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$lte': battletime + time_buffer }}, { 'tank_id' : tank_id } ]}}, 
 		# 		{ '$sort': { 'last_battle_time': -1 }}, 
