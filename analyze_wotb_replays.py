@@ -1357,14 +1357,14 @@ async def main(argv):
 
 			try:
 				if 'ANALYZER' in config.sections():
-					configAnalyzer	= config['ANALYZER']
-					OPT_MODE_DEFAULT= configAnalyzer.getboolean('mode', OPT_MODE_DEFAULT)
-					OPT_HIST		= configAnalyzer.getboolean('histograms', OPT_HIST)
-					OPT_STAT_FUNC	= configAnalyzer.get('stat_func', fallback=OPT_STAT_FUNC)
-					OPT_WORKERS_N 	= configAnalyzer.getint('workers', OPT_WORKERS_N)
-					OPT_EXPORT_CSV_FILE  = configAnalyzer.get('csv_file', OPT_EXPORT_CSV_FILE)
-					OPT_EXPORT_JSON_FILE = configAnalyzer.get('json_file', OPT_EXPORT_JSON_FILE)
-					res_categorizations  = configAnalyzer.get('categorizations', None)
+					configAnalyzer		= config['ANALYZER']
+					OPT_MODE_DEFAULT	= configAnalyzer.getboolean('mode', OPT_MODE_DEFAULT)
+					OPT_HIST			= configAnalyzer.getboolean('histograms', OPT_HIST)
+					OPT_STAT_FUNC		= configAnalyzer.get('stat_func', fallback=OPT_STAT_FUNC)
+					OPT_WORKERS_N 		= configAnalyzer.getint('workers', OPT_WORKERS_N)
+					OPT_EXPORT_CSV_FILE = configAnalyzer.get('csv_file', OPT_EXPORT_CSV_FILE)
+					OPT_EXPORT_JSON_FILE= configAnalyzer.get('json_file', OPT_EXPORT_JSON_FILE)
+					res_categorizations = configAnalyzer.get('categorizations', None)
 					if res_categorizations != None:
 						res_categorizations.replace(' ','')
 						BattleCategorizationList.set_categorizations_default(res_categorizations.split(','))
@@ -1933,42 +1933,38 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 			try:
 				bu.debug('Stat_id: ' + stat_id, id=workerID)
 				bu.print_progress()
-				# Analysing player performance based on their stats on the tier tanks they are playing 
-
+				stats_tmp = None
+	
 				# Try cache first
-				if (stat_id not in stats):
-					stats_tmp = None
-					pruned_stat_id = prune_stat_id(stat_id)
-					if (pruned_stat_id not in stats):
-						stats_tmp = await stat_wg_func(pruned_stat_id, cache_only = True)
-					else:
-						stat_id_remap[stat_id] = pruned_stat_id
-						queue.task_done()
-						continue
+				pruned_stat_id = prune_stat_id(stat_id)
+				if (pruned_stat_id not in stats):
+					stats_tmp = await stat_wg_func(pruned_stat_id, cache_only = True)
+				else:
+					stat_id_remap[stat_id] = pruned_stat_id
+					continue
 
-					if (stats_tmp != None):
-						stats[pruned_stat_id] = stats_tmp
-						stat_id_remap[stat_id] = pruned_stat_id
-						queue.task_done()
-						continue
-					
-					# try DB
-					stats[stat_id] = await stat_db_func(db, stat_id)				
-					bu.debug('get_db_' + args.stat_func + '_stats returned: account_id=' + str(get_account_id_f_stat_id(stat_id)) + ': ' + str(stats[stat_id]), workerID)
+				if (stats_tmp != None):
+					stats[pruned_stat_id] = stats_tmp
+					stat_id_remap[stat_id] = pruned_stat_id					
+					continue
+				
+				# try DB
+				stats[stat_id] = await stat_db_func(db, stat_id)				
+				bu.debug('get_db_' + args.stat_func + '_stats returned: account_id=' + str(get_account_id_f_stat_id(stat_id)) + ': ' + str(stats[stat_id]), workerID)
 
-					# no DB stats found, trying WG AP
-					if (stats[stat_id] == None):							
-						stats[pruned_stat_id] = await stat_wg_func(pruned_stat_id)
-						stat_id_remap[stat_id] = pruned_stat_id						
-						del stats[stat_id]
-						bu.debug('get_wg_' + args.stat_func + '_stats returned: account_id=' + str(get_account_id_f_stat_id(pruned_stat_id)) + ': ' + str(stats[pruned_stat_id]), workerID)
+				# no DB stats found, trying WG AP
+				if (stats[stat_id] == None):							
+					stats[pruned_stat_id] = await stat_wg_func(pruned_stat_id)
+					stat_id_remap[stat_id] = pruned_stat_id						
+					del stats[stat_id]
+					bu.debug('get_wg_' + args.stat_func + '_stats returned: account_id=' + str(get_account_id_f_stat_id(pruned_stat_id)) + ': ' + str(stats[pruned_stat_id]), workerID)
 
-					
 			except KeyError as err:
 				bu.error('Key not found', err, id=workerID)
 			except Exception as err:
 				bu.error('Unexpected error', err, id=workerID)
-			queue.task_done()
+			finally:
+				queue.task_done()
 
 	except (asyncio.CancelledError, concurrent.futures.CancelledError):
 		bu.debug('Stats queue is empty', id=workerID)		
@@ -2028,7 +2024,7 @@ async def get_db_tank_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, stat_
 		for stat in hist_stats:			
 			project[stat] = True
 		project['_id'] = False
-		
+		bu.debug('find(): tank_id={} account_id={} last_battle_time>={}'.format(tank_id, account_id, battletime - time_buffer))
 		cursor = dbc.find({ '$and': [ { 'tank_id' : tank_id }, { 'account_id': account_id }, { 'last_battle_time': { '$gte': battletime - time_buffer }} ] }, projection=project).sort('last_battle_time',-1).limit(1)
 
 		# pipeline = 	[ { '$match': { '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$lte': battletime + time_buffer }}, { 'tank_id' : tank_id } ]}}, 
