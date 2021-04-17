@@ -22,6 +22,11 @@ _log_level = NORMAL
 LOG = False
 LOGGER = None
 
+MODE_TANK_STATS         = 'tank_stats'
+MODE_PLAYER_STATS       = 'player_stats'
+MODE_PLAYER_ACHIEVEMENTS= 'player_achievements'
+MODE_TANKOPEDIA			= 'tankopedia'
+
 # Progress display
 _progress_N = 100
 _progress_i = 0
@@ -418,12 +423,14 @@ def set_progress_bar(heading: str, max_value: int, step: int = None, slow: bool 
     return
 
 
-def set_counter(heading: str):
+def set_counter(heading: str, step = None):
     global _progress_obj, _progress_i
     _progress_i = 0
     if _progress_obj != None:
         finish_progress_bar()
-    _progress_obj = Counter(heading)
+    _progress_obj = Counter(heading + ': ')
+    if step != None:
+        set_progress_step(step)
     return 
 
 
@@ -649,8 +656,6 @@ class StatsNotFound(Exception):
     pass
 
 
-
-
 # -----------------------------------------------------------
 # Class WG 
 # -----------------------------------------------------------
@@ -686,7 +691,7 @@ class WG:
     #                                 WHERE account_id = {} AND stat = {} 
     #                                 AND date >= {} LIMIT 1;"""
           
-    
+    # TANK_STATS
     SQL_TANK_STATS_TBL          = 'tank_stats'
 
     SQL_TANK_STATS_CREATE_TBL   = 'CREATE TABLE IF NOT EXISTS ' + SQL_TANK_STATS_TBL + \
@@ -700,6 +705,7 @@ class WG:
 
     SQL_TANK_STATS_UPDATE       = 'REPLACE INTO ' + SQL_TANK_STATS_TBL + '(account_id, tank_id, update_time, stats) VALUES(?,?,?,?)'
 
+    # PLAYER_STATS
     SQL_PLAYER_STATS_TBL        = 'player_stats'
 
     SQL_PLAYER_STATS_CREATE_TBL = 'CREATE TABLE IF NOT EXISTS ' + SQL_PLAYER_STATS_TBL + \
@@ -713,6 +719,7 @@ class WG:
 
     SQL_PLAYER_STATS_CACHED     = 'SELECT * FROM ' +  SQL_PLAYER_STATS_TBL + ' WHERE account_id = ? AND update_time > ?'
 
+    # PLAYER_ACHIEVEMENTS
     SQL_PLAYER_ACHIEVEMENTS_TBL  = 'player_achievements'
 
     SQL_PLAYER_ACHIEVEMENTS_CREATE_TBL = 'CREATE TABLE IF NOT EXISTS ' + SQL_PLAYER_ACHIEVEMENTS_TBL + \
@@ -720,12 +727,13 @@ class WG:
                                     update_time INTEGER NOT NULL, 
                                     stats TEXT)"""
 
+    SQL_PLAYER_ACHIEVEMENTS_COUNT      = 'SELECT COUNT(*) FROM ' + SQL_PLAYER_ACHIEVEMENTS_TBL
+    
     SQL_PLAYER_ACHIEVEMENTS_CACHED     = 'SELECT * FROM ' +  SQL_PLAYER_ACHIEVEMENTS_TBL + ' WHERE account_id = ? AND update_time > ?'
 
     SQL_PLAYER_ACHIEVEMENTS_UPDATE     = 'REPLACE INTO ' + SQL_PLAYER_ACHIEVEMENTS_TBL + '(account_id, update_time, stats) VALUES(?,?,?)'
 
-    SQL_PLAYER_ACHIEVEMENTS_COUNT      = 'SELECT COUNT(*) FROM ' + SQL_PLAYER_ACHIEVEMENTS_TBL
-
+    
     SQL_TABLES                  = [ SQL_PLAYER_STATS_TBL, SQL_TANK_STATS_TBL, SQL_PLAYER_ACHIEVEMENTS_TBL ]
 
     SQL_CHECK_TABLE_EXITS       = """SELECT name FROM sqlite_master WHERE type='table' AND name=?"""
@@ -1261,7 +1269,7 @@ class WG:
                 # debug('JSON Response received: ' + str(json_data))
                 stats = json_data['data'][str(account_id)]
                 if cache:
-                    await self.put_2_statsQ('tank_stats', [account_id, tank_ids], stats)
+                    await self.save_tank_stats(account_id, tank_ids, stats)
                 return stats
         except Exception as err:
             error(exception=err)
@@ -1294,7 +1302,7 @@ class WG:
                 # debug('JSON Response received: ' + str(json_data))
                 stats = json_data['data'][str(account_id)]
                 if cache:
-                    await self.put_2_statsQ('player_stats', [account_id], stats)
+                    await self.save_player_stats(account_id, stats)
                 return stats
         except Exception as err:
             error(exception=err)
@@ -1333,7 +1341,7 @@ class WG:
                 for account_id in json_data['data'].keys():
                     stats[account_id] = json_data['data'][account_id]
                     if cache:
-                        await self.put_2_statsQ('player_achievements', [int(account_id)], json_data['data'][account_id])
+                        await self.save_player_achievements(int(account_id), json_data['data'][account_id])
                 return stats
         except Exception as err:
             error(exception=err)
@@ -1440,13 +1448,37 @@ class WG:
         return None
 
 
-    async def put_2_statsQ(self, statsType: str, key: list, stats: list):
+    async def save_stats(self, statsType: str, key: list, stats: list):
         """Save stats to a async queue to be saved by the stat_saver -task"""
         if self.statsQ == None:
             return False
         else:
             await self.statsQ.put([ statsType, key, stats, NOW() ])
             return True
+
+
+    async def save_player_stats(self, account_id: int, stats: dict):
+        try:
+            await self.save_stats(MODE_PLAYER_STATS, [int(account_id)], stats)
+        except Exception as err:
+            error(exception=err)
+        return None
+
+
+    async def save_player_achievements(self, account_id: int, stats: dict):
+        try:
+            await self.save_stats(MODE_PLAYER_ACHIEVEMENTS, [int(account_id)], stats)
+        except Exception as err:
+            error(exception=err)
+        return None
+
+
+    async def save_tank_stats(self, account_id: int, tank_ids: list, stats: dict):
+        try:
+            await self.save_stats(MODE_TANK_STATS, [int(account_id), tank_ids], stats)
+        except Exception as err:
+            error(exception=err)
+        return None
 
 
     async def stat_saver(self): 
@@ -1464,8 +1496,13 @@ class WG:
 
             await self.cache.commit()
             
-            async with self.cache.execute(WG.SQL_TANK_STATS_COUNT) as cursor:
-                debug('Cache contains: ' + str((await cursor.fetchone())[0]) + ' cached player tank stat records' )
+            if is_debug():
+                async with self.cache.execute(WG.SQL_PLAYER_STATS_COUNT) as cursor:
+                    debug('Cache contains: ' + str((await cursor.fetchone())[0]) + ' player stat records' )
+                async with self.cache.execute(WG.SQL_PLAYER_ACHIEVEMENTS_COUNT) as cursor:
+                    debug('Cache contains: ' + str((await cursor.fetchone())[0]) + ' player achievement records' )
+                async with self.cache.execute(WG.SQL_TANK_STATS_COUNT) as cursor:
+                    debug('Cache contains: ' + str((await cursor.fetchone())[0]) + ' player tank stat records' )
         except Exception as err:
             error(exception=err)
             sys.exit(1)
@@ -1474,19 +1511,20 @@ class WG:
             try:
                 stats = await self.statsQ.get()
             
-                stats_type  = stats[0]
+                stat_type  = stats[0]
                 key         = stats[1]
                 stats_data  = stats[2]
                 update_time = stats[3]
 
-                if stats_type == 'tank_stats':
+                #debug('stat_type: ' + stat_type + ', key: ' + str(key))
+                if stat_type == MODE_TANK_STATS:
                     await self.store_tank_stats(key, stats_data, update_time)
-                elif stats_type == 'player_stats':
+                elif stat_type == MODE_PLAYER_STATS:
                     await self.store_player_stats(key, stats_data, update_time)
-                elif stats_type == 'player_achievements':
+                elif stat_type == MODE_PLAYER_ACHIEVEMENTS:
                     await self.store_player_achievements(key, stats_data, update_time)
                 else: 
-                    error('Function to saves stats type \'' + stats_type + '\' is not implemented yet')
+                    error('Function to saves stats type \'' + stat_type + '\' is not implemented yet')
             
             except asyncio.CancelledError:
                 # this is an eternal loop that will wait until cancelled	
@@ -1521,7 +1559,7 @@ class WG:
                 for stat in stats_data:
                     tank_id = stat['tank_id']
                     await self.cache.execute(WG.SQL_TANK_STATS_UPDATE, (account_id, tank_id, update_time, json.dumps(stat)))
-                    tank_ids.remove(tank_id)
+                    tank_ids.discard(tank_id)
             # no stats found => Add None to mark that
             for tank_id in tank_ids:
                 await self.cache.execute(WG.SQL_TANK_STATS_UPDATE, (account_id, tank_id, update_time, None))
