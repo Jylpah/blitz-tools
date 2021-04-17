@@ -1440,7 +1440,7 @@ async def main(argv):
 		# res_categories = BattleCategorization.get_categorizations(OPT_CATEGORIZATIONS, args)
 
 		bu.set_log_level(args.silent, args.verbose, args.debug)
-		bu.set_progress_step(250)  						# Set the frequency of the progress dots. 
+		# bu.set_progress_step(250)  						# Set the frequency of the progress dots. 
 
 		#### Connect to MongoDB. You are unlikely to have this set up... 
 		bu.debug('DB_SERVER: ' + DB_SERVER)
@@ -1490,7 +1490,7 @@ async def main(argv):
 			# Make replay Queue
 
 			scanner_task = asyncio.create_task(mk_replayQ(replayQ, args, db))
-			bu.debug('Replay scanner started')
+			bu.set_counter('Reading replays', 10)
 			# Start tasks to process the Queue
 			for i in range(OPT_WORKERS_N):
 				reader_tasks.append(asyncio.create_task(replay_reader(replayQ, i, args)))
@@ -1998,7 +1998,7 @@ async def get_wg_tank_stats(stat_id_str: str, cache_only = False) -> dict:
 		player_stats = await wg.get_player_tank_stats(account_id, [ tank_id ], hist_stats, cache_only = cache_only)
 		#bu.debug('account_id: ' + str(account_id) + ' ' + str(player_stats))
 
-		return await tank_stats_helper(player_stats)
+		return tank_stats_helper(player_stats)
 
 	except KeyError as err:
 		bu.error('account_id: ' + str(account_id) + ' tank_id:' + str(tank_id) +' : Key not found', err)
@@ -2036,7 +2036,11 @@ async def get_db_tank_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, stat_
 		# cursor = dbc.aggregate(pipeline, allowDiskUse=True)
 		#cursor = dbc.aggregate(pipeline)
 
-		return await tank_stats_helper(await cursor.to_list(1)) 
+		stats = await cursor.to_list(1)
+		# store cache
+		# await wg.save_tank_stats(account_id, [tank_id], stats)
+		
+		return tank_stats_helper(stats) 	
 				
 	except Exception as err:
 		bu.error('account_id: ' + str(account_id) + ' Error', err)
@@ -2057,7 +2061,7 @@ async def get_wg_tank_tier_stats(stat_id_str: str, cache_only = False) -> dict:
 		player_stats = await wg.get_player_tank_stats(account_id, tier_tanks, hist_stats, cache_only = cache_only)
 		#bu.debug('account_id: ' + str(account_id) + ' ' + str(player_stats))
 
-		return await tank_stats_helper(player_stats)
+		return tank_stats_helper(player_stats)
 
 	except KeyError as err:
 		bu.error('account_id: ' + str(account_id) + ' Key not found', err)
@@ -2080,7 +2084,7 @@ async def get_wg_tier_x_stats(stat_id_str: str, cache_only = False) -> dict:
 		player_stats = await wg.get_player_tank_stats(account_id, tier_tanks, hist_stats, cache_only = cache_only)
 		#bu.debug('account_id: ' + str(account_id) + ' ' + str(player_stats))
 
-		return await tank_stats_helper(player_stats)
+		return tank_stats_helper(player_stats)
 
 	except KeyError as err:
 		bu.error('account_id: ' + str(account_id) + ' Key not found', err)
@@ -2108,8 +2112,10 @@ async def get_db_tank_tier_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, 
 		# cursor = dbc.aggregate(pipeline, allowDiskUse=True)
 		cursor = dbc.aggregate(pipeline)
 
-		return await tank_stats_helper(await cursor.to_list(1000)) 
-				
+		stats = await cursor.to_list(1000)
+		# await wg.save_tank_stats(account_id, tier_tanks, stats)
+		return tank_stats_helper(stats) 
+		
 	except Exception as err:
 		bu.error('account_id: ' + str(account_id) + ' Error', err)
 	return None
@@ -2119,23 +2125,9 @@ async def get_db_tier_x_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, sta
 	"""Get player stats from MongoDB (you are very unlikely to have it, unless you have set it up)"""
 	if db == None:
 		return None
-	try:
-		dbc = db[DB_C_TANK_STATS]
+	try:		
 		( account_id, battletime ) = str2ints(stat_id_str)
-		tier_tanks = wg.get_tanks_by_tier(10)
-		time_buffer = 2*7*24*3600
-
-		pipeline = 	[ { '$match': { '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$lte': battletime + time_buffer }}, { 'tank_id' : {'$in': tier_tanks} } ]}}, 
-				{ '$sort': { 'last_battle_time': -1 }}, 
-				{ '$group': { '_id': '$tank_id', 'doc': { '$first': '$$ROOT' }}}, 
-				{ '$replaceRoot': { 'newRoot': '$doc' }}, 
-				{ '$project': { '_id': 0 }} ]
-
-		# cursor = dbc.aggregate(pipeline, allowDiskUse=True)
-		cursor = dbc.aggregate(pipeline)
-
-		return await tank_stats_helper(await cursor.to_list(1000)) 
-				
+		return await get_db_tank_tier_stats(db,get_stat_id(account_id, 10, battletime) )
 	except Exception as err:
 		bu.error('account_id: ' + str(account_id) + ' Error', err)
 	return None
@@ -2160,7 +2152,9 @@ async def get_db_player_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, sta
 		# cursor = dbc.aggregate(pipeline, allowDiskUse=True)
 		cursor = dbc.aggregate(pipeline)
 
-		return await tank_stats_helper(await cursor.to_list(1000)) 
+		stats = await cursor.to_list(1000)
+		# await wg.save_tank_stats(account_id, [], stats)
+		return tank_stats_helper(stats) 
 				
 	except Exception as err:
 		bu.error('account_id: ' + str(account_id) + ' Error', err)
@@ -2188,20 +2182,17 @@ async def get_wg_player_stats(stat_id_str: str, cache_only = False) -> dict:
 	return None
 
 
-async def tank_stats_helper(stat_list: list):
+def tank_stats_helper(stat_list: list):
 	"""Helpher func got get_db_tank_tier_stats() and get_wg_tank_tier_stats()"""
 	try:
 		if stat_list == None: 
 			return None
-		stats = dict()
+		stats = collections.defaultdict(def_value_zero)
 		hist_fields = histogram_fields.keys()
 		if 'battles' not in hist_fields:
 			bu.error('\'battles\' must be defined in \'histogram_fields\'')
 			return None
 
-		for field in hist_fields:
-			stats[field] = 0
-		
 		for tank_stat in stat_list: 
 			tank_stat = tank_stat['all']
 			for field in hist_fields:
@@ -2536,8 +2527,8 @@ def prune_stat_id(stat_id_str: str) -> str:
 	return ':'.join(stat_id)
 
 
-def get_stat_id(account_id: int, tank_id: int, battletime: int) -> str:
-	return ':'.join([ str(account_id), str(tank_id), str(battletime)])
+def get_stat_id(account_id: int, tank_id: int, battle_time: int) -> str:
+	return ':'.join(map(str, [account_id, tank_id, battle_time ]))
 
 
 def get_stat_id_tank_tier(stat_id_str: str) -> str:
@@ -2547,7 +2538,7 @@ def get_stat_id_tank_tier(stat_id_str: str) -> str:
 		account_id	= stat_id[0]
 		tank_tier 	= wg.get_tank_tier(stat_id[1])
 		battle_time = (stat_id[2] // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
-		return ':'.join(map(str, [account_id, tank_tier, battle_time ]))
+		return get_stat_id(account_id, tank_tier, battle_time)
 	except Exception as err:
 		bu.error('Stats_id: ' + stat_id_str, exception=err)
 	return None
@@ -2560,7 +2551,7 @@ def get_stat_id_tank(stat_id_str: str) -> str:
 		account_id	= stat_id[0]
 		tank_id 	= stat_id[1]
 		battle_time = (stat_id[2] // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
-		return ':'.join(map(str, [account_id, tank_id, battle_time ]))
+		return get_stat_id(account_id, tank_id, battle_time)		
 	except Exception as err:
 		bu.error('Stats_id: ' + stat_id_str, exception=err)
 	return None
