@@ -2,6 +2,7 @@
 
 | Release | Date     | Notes       | Inaccurate? |
 |:-------:|:--------:|-------------|-----|
+| 7.9 | 2021-04-27 | Mines rework, new tutorial, colorblind mode, JgPz E100 legendary camo |  |
 | 7.8 | 2021-03-24 | Mid-tier balance changes, Grille line new consumables  |  |
 | 7.7 | 2021-02-24 | Czechoslovakian medium tanks  |  |
 | 7.6 | 2021-01-27 | AMC 13 90, TOG II buffs, free replay camera  |  |
