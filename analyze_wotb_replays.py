@@ -2145,7 +2145,7 @@ async def get_db_player_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, sta
 		
 		pipeline = 	[ { '$match': { '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$lte': battletime + time_buffer }} ]}}, 
 				{ '$sort': { 'last_battle_time': -1 }}, 
-				{ '$group': { '_id': '$tank_id', 'doc': { '$first': '$$ROOT' }}}, 
+				{ '$group': { '_id': { 'tank_id':'$tank_id'}, 'doc': { '$first': '$$ROOT' }}}, 
 				{ '$replaceRoot': { 'newRoot': '$doc' }}, 
 				{ '$project': { '_id': 0 }} ]
 
