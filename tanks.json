@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 481
+        "count": 489
     },
     "data": {
         "1": {
@@ -414,7 +414,7 @@
         },
         "1649": {
             "is_premium": true,
-            "name": "Helsing H0",
+            "name": "Helsing",
             "nation": "other",
             "tank_id": 1649,
             "tier": 7,
@@ -894,7 +894,7 @@
         },
         "3937": {
             "is_premium": false,
-            "name": "Ho-Ri Type 3",
+            "name": "Ho-Ri Type III",
             "nation": "japan",
             "tank_id": 3937,
             "tier": 10,
@@ -2262,7 +2262,7 @@
         },
         "12321": {
             "is_premium": true,
-            "name": "T6E1",
+            "name": "T6E1 Grizzly",
             "nation": "usa",
             "tank_id": 12321,
             "tier": 4,
@@ -2614,7 +2614,7 @@
         },
         "17473": {
             "is_premium": true,
-            "name": "AMX 13 90 Defender",
+            "name": "AMX Defender",
             "nation": "france",
             "tank_id": 17473,
             "tier": 8,
@@ -3638,7 +3638,7 @@
         },
         "63585": {
             "is_premium": true,
-            "name": "Kuro Mori Mine",
+            "name": "Tiger Kuromorimine SP",
             "nation": "japan",
             "tank_id": 63585,
             "tier": 6,
@@ -3646,7 +3646,7 @@
         },
         "63601": {
             "is_premium": true,
-            "name": "T6 Dracula",
+            "name": "Dracula",
             "nation": "other",
             "tank_id": 63601,
             "tier": 7,
@@ -3654,7 +3654,7 @@
         },
         "63841": {
             "is_premium": true,
-            "name": "Panzer IV Anko Special",
+            "name": "Panzer IV Ankou Special",
             "nation": "japan",
             "tank_id": 63841,
             "tier": 5,
@@ -3753,7 +3753,7 @@
             "name": "Pz.Kpfw. II",
             "nation": "germany",
             "tank_id": 64785,
-            "tier": 2,
+            "tier": 1,
             "type": "lightTank"
         },
         "64801": {
@@ -3851,6 +3851,70 @@
             "tank_id": 65377,
             "tier": 5,
             "type": "mediumTank"
+        },
+        "7041": {
+            "is_premium": true,
+            "name": "Turbo",
+            "nation": "european",
+            "tank_id": 7041,
+            "tier": 6,
+            "type": "mediumTank"
+        },
+        "17985": {
+            "is_premium": true,
+            "name": "Bretagne Panther",
+            "nation": "france",
+            "tank_id": 17985,
+            "tier": 6,
+            "type": "mediumTank"
+        },
+        "21537": {
+            "is_premium": true,
+            "name": "Sherman Easy 8",
+            "nation": "usa",
+            "tank_id": 21537,
+            "tier": 6,
+            "type": "mediumTank"
+        },
+        "22017": {
+            "is_premium": true,
+            "name": "T-34-85",
+            "nation": "ussr",
+            "tank_id": 22017,
+            "tier": 6,
+            "type": "mediumTank"
+        },
+        "22289": {
+            "is_premium": true,
+            "name": "Tiger I",
+            "nation": "germany",
+            "tank_id": 22289,
+            "tier": 6,
+            "type": "heavyTank"
+        },
+        "22785": {
+            "is_premium": true,
+            "name": "Triumphant",
+            "nation": "ussr",
+            "tank_id": 22785,
+            "tier": 6,
+            "type": "mediumTank"
+        },
+        "23313": {
+            "is_premium": true,
+            "name": "Kampfpanzer 50 t",
+            "nation": "germany",
+            "tank_id": 23313,
+            "tier": 10,
+            "type": "mediumTank"
+        },
+        "23841": {
+            "is_premium": true,
+            "name": "Super Hellcat",
+            "nation": "usa",
+            "tank_id": 23841,
+            "tier": 7,
+            "type": "AT-SPG"
         }
     },
     "userStr": {
@@ -3902,8 +3966,8 @@
         "A125_AEP_1_short": "AE Phase I",
         "A68_T28D": "T28 Defender",
         "A68_T28D_short": "T28 Defender",
-        "A77_T6M": "T6E1",
-        "A77_T6M_short": "T6E1",
+        "A77_T6M": "T6E1 Grizzly",
+        "A77_T6M_short": "T6E1 Grizzly",
         "A94_T37": "T37",
         "A95_T95E6": "T95E6",
         "A95_T95E6_short": "T95E6",
@@ -4800,8 +4864,8 @@
         "M48A1_short": "M48 Patton",
         "M4A2E4": "M4A2E4 Sherman",
         "M4A2E4_short": "M4A2E4",
-        "M4A3E8TU": "M4A3E8 Sherman",
-        "M4A3E8TU_short": "M4A3E8",
+        "M4A3E8TU": "Sherman Easy 8",
+        "M4A3E8TU_short": "Sherman Easy 8",
         "M4A3E8_BP": "Rudolph",
         "M4A3E8_BP_short": "Rudolph",
         "M4A3E8_Sherman": "M4A3E8 Sherman",
@@ -5865,6 +5929,28 @@
         "chinaNY_short": "#other_vehicles:chinaNY_short",
         "skin_121B_Gold_dragon_Custom": "121B Invincible",
         "skin_121B_Gold_dragon_Custom_short": "121B Invincible",
-        "turret_IS-2Sh": "IS-2Sh"
+        "turret_IS-2Sh": "IS-2Sh",
+        "A130_Super_Hellcat": "Super Hellcat",
+        "A130_Super_Hellcat_short": "Super Hellcat",
+        "Cz13_T-27_Custom": "Škoda T 27 Rampant",
+        "Cz13_T-27_Custom_short": "Škoda T 27 Rampant",
+        "F113_PzV_FR": "Bretagne Panther",
+        "F113_PzV_FR_short": "Bretagne Panther",
+        "G144_Kpz_50t": "Kampfpanzer 50 t",
+        "G144_Kpz_50t_short": "Kampfpanzer 50 t",
+        "JagdPz_E100_Custom": "Jagdpanzer Mighty",
+        "JagdPz_E100_Custom_short": "Jg.Pz. Mighty",
+        "MB_837_F": "MB 837 F",
+        "Maybach_HL_230_TRM_P30_FR": "Maybach HL 230 TRM P30 fr.",
+        "Object_907_Custom": "Object 907 Ruthless",
+        "Object_907_Custom_short": "Object 907 Ruthless",
+        "S07_Strv74BP": "Turbo",
+        "S07_Strv74BP_Custom": "Turbo",
+        "S07_Strv74BP_Custom_short": "Turbo",
+        "S07_Strv74BP_short": "Turbo",
+        "T34_85BP": "Triumphant",
+        "T34_85BP_short": "Triumphant",
+        "V-2-34M_BP": "V-2-34M B",
+        "Wright_Continental_R_975_C4_858": "Wright Continental\\nR-975-C4 (858)"
     }
 }
