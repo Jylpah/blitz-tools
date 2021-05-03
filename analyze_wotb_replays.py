@@ -134,7 +134,7 @@ replay_details_flds = [
 ## Syntax: key == stat field in https://api.wotblitz.eu/wotb/tanks/stats/  (all.KEY)
 ## Value array [ 'Stat Title', [ 0, data buckets ....], scaling_factor_for_bucket_values, 'print_format' ]
 histogram_fields = {
-	'wins'				: [ 'Win rate', 	[0, .35, .40, .45, .48, .5, .52, .55, .60, .65, .70, 1], 100, '{:2.0%}' ],
+	'wins'				: [ 'Win rate', 	[0, .35, .40, .45, .48, .5, .52, .55, .60, .65, .70, 1], 1, '{:2.0%}' ],
 	'damage_dealt'		: [ 'Avg. Dmg.', 	[0, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 100e3], 1, '{:3.0f}' ],
 	'battles'			: [ 'Battles', 		[0, 1000, 2500, 5000, 7000, 10e3, 15e3, 25e3, 50e3, 5e7], .001, '{:.0f}k']	# battles is a mandatory stat to include
 	}
@@ -1515,7 +1515,7 @@ class BattleCategorySingle(BattleCategory):
 
 
 class PlayerHistogram():
-	def __init__(self, field: str, name: str, fields : list, factor: float, format: str ):
+	def __init__(self, field: str, name: str, fields : list, factor: float, cat_format: str ):
 		self.field 		= field
 		if self.field == 'wins':
 			self.name 		= StatFunc.get_title()
@@ -1523,7 +1523,7 @@ class PlayerHistogram():
 			self.name = name
 		self.fields 	= fields
 		self.cat_factor = factor
-		self.cat_format = format
+		self.cat_format = cat_format
 		self.ncat 		= len(self.fields) - 1
 		self.allies 	= [0] * self.ncat
 		self.enemies 	= [0] * self.ncat
@@ -1613,13 +1613,12 @@ class PlayerHistogram():
 				print("\n{:12s} | {:13s} | {:13s} | {:13s}".format(self.name, "Allies", "Enemies", "TOTAL"))
 				for cat in self.results:
 					stat = self.results[cat]
-					print("{:12s} | {:5d} ({:4.1%}) | {:5d} ({:4.1%}) | {:5d} ({:4.1%})".format(cat, stat['allies'], stat['allies%']*100, stat['enemies'], stat['enemies%']*100, stat['total'], stat['total%']*100 ))
+					print("{:12s} | {:5d} ({:5.1%}) | {:5d} ({:5.1%}) | {:5d} ({:5.1%})".format(cat, stat['allies'], stat['allies%'], stat['enemies'], stat['enemies%'], stat['total'], stat['total%'] ))
 			else:
 				bu.error('Results have not been calculated yet.')
 		except Exception as err:
 			bu.error(exception=err)
 		return None
-
 
 
 class ErrorCatchingArgumentParser(argparse.ArgumentParser):
@@ -1677,14 +1676,14 @@ async def main(argv):
 
 			try:
 				if 'ANALYZER' in config.sections():
-					configAnalyzer	= config['ANALYZER']
-					OPT_MODE_DEFAULT= configAnalyzer.getboolean('mode', OPT_MODE_DEFAULT)
-					OPT_HIST		= configAnalyzer.getboolean('histograms', OPT_HIST)
-					OPT_STAT_FUNC	= configAnalyzer.get('stat_func', fallback=OPT_STAT_FUNC)
-					OPT_WORKERS_N 	= configAnalyzer.getint('workers', OPT_WORKERS_N)
-					OPT_EXPORT_CSV_FILE  = configAnalyzer.get('csv_file', OPT_EXPORT_CSV_FILE)
-					OPT_EXPORT_JSON_FILE = configAnalyzer.get('json_file', OPT_EXPORT_JSON_FILE)
-					res_categorizations  = configAnalyzer.get('categorizations', None)
+					configAnalyzer		= config['ANALYZER']
+					OPT_MODE_DEFAULT	= configAnalyzer.getboolean('mode', OPT_MODE_DEFAULT)
+					OPT_HIST			= configAnalyzer.getboolean('histograms', OPT_HIST)
+					OPT_STAT_FUNC		= configAnalyzer.get('stat_func', fallback=OPT_STAT_FUNC)
+					OPT_WORKERS_N 		= configAnalyzer.getint('workers', OPT_WORKERS_N)
+					OPT_EXPORT_CSV_FILE = configAnalyzer.get('csv_file', OPT_EXPORT_CSV_FILE)
+					OPT_EXPORT_JSON_FILE= configAnalyzer.get('json_file', OPT_EXPORT_JSON_FILE)
+					res_categorizations = configAnalyzer.get('categorizations', None)
 					if res_categorizations != None:
 						res_categorizations.replace(' ','')
 						BattleCategorizationList.set_categorizations_default(res_categorizations.split(','))
@@ -1744,7 +1743,7 @@ async def main(argv):
 		parser.add_argument('--csv', action='store_true', default=False, help='Export data in CSV format')
 		parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
 		parser.add_argument('--db', action='store_true', default=OPT_DB, help='Use DB - You are unlikely to have it')
-		parser.add_argument('--filters', type=str, default=None, help='Filter replays based on categories. Filters given in JSON format.\nUse array "[]" for multiple filters/values. see --mode help.\nExample: : [ {"tier" : [8,9,20] }, { "player_wins" : 5 }]')
+		parser.add_argument('--filters', type=str, default=None, help='Filter replays based on categories. Filters given in JSON format.\nUse array "[]" for multiple filters/values. see --mode help.\nExample: : [ {"tier" : [8,9,10] }, { "player_wins" : 5 }]')
 		parser.add_argument('--filters_db', type=str, default=None, help='[only for DB setup] Filter replays in DB based on categories. Filters given in MongoDB JSON format. See --mode help')
 		parser.add_argument('--min', type=int, default=None, help='Only select replays from players with minimum number of replays in the dataset')
 		argverbosity = parser.add_mutually_exclusive_group()
@@ -1765,7 +1764,7 @@ async def main(argv):
 		# res_categories = BattleCategorization.get_categorizations(OPT_CATEGORIZATIONS, args)
 
 		bu.set_log_level(args.silent, args.verbose, args.debug)
-		bu.set_progress_step(250)  						# Set the frequency of the progress dots. 
+		# bu.set_progress_step(250)  						# Set the frequency of the progress dots. 
 
 		#### Connect to MongoDB. You are unlikely to have this set up... 
 		bu.debug('DB_SERVER: ' + DB_SERVER)
@@ -1815,7 +1814,7 @@ async def main(argv):
 			# Make replay Queue
 
 			scanner_task = asyncio.create_task(mk_replayQ(replayQ, args, db))
-			bu.debug('Replay scanner started')
+			bu.set_counter('Reading replays', 10)
 			# Start tasks to process the Queue
 			for i in range(OPT_WORKERS_N):
 				reader_tasks.append(asyncio.create_task(replay_reader(replayQ, i, args)))
@@ -2111,7 +2110,7 @@ async def process_player_stats(players, N_workers: int, args : argparse.Namespac
 	try:
 		statsQ = asyncio.Queue()
 		bu.debug('Create player stats queue: ' + str(len(players)) + ' players')
-		stat_id_map = {}
+		stat_id_map = dict()
 		stat_ids = set()
 
 		stat_id_map_func = globals()[StatFunc.get_stat_id_func()]
@@ -2137,8 +2136,8 @@ async def process_player_stats(players, N_workers: int, args : argparse.Namespac
 		bu.debug('Cancelling stats workers')
 		for task in stats_tasks: 
 			task.cancel()	
-		player_stats = {}
-		stat_id_remap = {}
+		player_stats = dict()
+		stat_id_remap = dict()
 
 		bu.debug('Gathering stats worker outputs')
 		for (stats, id_remap) in await asyncio.gather(*stats_tasks):
@@ -2245,8 +2244,8 @@ def calc_team_stats(results: list, player_stats  : dict, stat_id_map : dict, arg
 async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Namespace, db : motor.motor_asyncio.AsyncIOMotorDatabase) -> list:
 	"""Worker thread to find stats for player / tank pairs"""
 	# global wg
-	stats 			= {}
-	stat_id_remap 	= {}
+	stats 			= dict()
+	stat_id_remap 	= dict()
 
 	stat_db_func = globals()[StatFunc.get_db_func()]
 	stat_wg_func = globals()[StatFunc.get_wg_func()]
@@ -2258,42 +2257,38 @@ async def stat_worker(queue : asyncio.Queue, workerID: int, args : argparse.Name
 			try:
 				bu.debug('Stat_id: ' + stat_id, id=workerID)
 				bu.print_progress()
-				# Analysing player performance based on their stats on the tier tanks they are playing 
-
+				stats_tmp = None
+	
 				# Try cache first
-				if (stat_id not in stats):
-					stats_tmp = None
-					pruned_stat_id = prune_stat_id(stat_id)
-					if (pruned_stat_id not in stats):
-						stats_tmp = await stat_wg_func(pruned_stat_id, cache_only = True)
-					else:
-						stat_id_remap[stat_id] = pruned_stat_id
-						queue.task_done()
-						continue
+				pruned_stat_id = prune_stat_id(stat_id)
+				if (pruned_stat_id not in stats):
+					stats_tmp = await stat_wg_func(pruned_stat_id, cache_only = True)
+				else:
+					stat_id_remap[stat_id] = pruned_stat_id
+					continue
 
-					if (stats_tmp != None):
-						stats[pruned_stat_id] = stats_tmp
-						stat_id_remap[stat_id] = pruned_stat_id
-						queue.task_done()
-						continue
-					
-					# try DB
-					stats[stat_id] = await stat_db_func(db, stat_id)				
-					bu.debug('get_db_' + args.stat_func + '_stats returned: account_id=' + str(get_account_id_f_stat_id(stat_id)) + ': ' + str(stats[stat_id]), workerID)
+				if (stats_tmp != None):
+					stats[pruned_stat_id] = stats_tmp
+					stat_id_remap[stat_id] = pruned_stat_id					
+					continue
+				
+				# try DB
+				stats[stat_id] = await stat_db_func(db, stat_id)				
+				bu.debug('get_db_' + args.stat_func + '_stats returned: account_id=' + str(get_account_id_f_stat_id(stat_id)) + ': ' + str(stats[stat_id]), workerID)
 
-					# no DB stats found, trying WG AP
-					if (stats[stat_id] == None):							
-						stats[pruned_stat_id] = await stat_wg_func(pruned_stat_id)
-						stat_id_remap[stat_id] = pruned_stat_id						
-						del stats[stat_id]
-						bu.debug('get_wg_' + args.stat_func + '_stats returned: account_id=' + str(get_account_id_f_stat_id(pruned_stat_id)) + ': ' + str(stats[pruned_stat_id]), workerID)
+				# no DB stats found, trying WG AP
+				if (stats[stat_id] == None):							
+					stats[pruned_stat_id] = await stat_wg_func(pruned_stat_id)
+					stat_id_remap[stat_id] = pruned_stat_id						
+					del stats[stat_id]
+					bu.debug('get_wg_' + args.stat_func + '_stats returned: account_id=' + str(get_account_id_f_stat_id(pruned_stat_id)) + ': ' + str(stats[pruned_stat_id]), workerID)
 
-					
 			except KeyError as err:
 				bu.error('Key not found', err, id=workerID)
 			except Exception as err:
 				bu.error('Unexpected error', err, id=workerID)
-			queue.task_done()
+			finally:
+				queue.task_done()
 
 	except (asyncio.CancelledError, concurrent.futures.CancelledError):
 		bu.debug('Stats queue is empty', id=workerID)		
@@ -2327,7 +2322,7 @@ async def get_wg_tank_stats(stat_id_str: str, cache_only = False) -> dict:
 		player_stats = await wg.get_player_tank_stats(account_id, [ tank_id ], hist_stats, cache_only = cache_only)
 		#bu.debug('account_id: ' + str(account_id) + ' ' + str(player_stats))
 
-		return await tank_stats_helper(player_stats)
+		return tank_stats_helper(player_stats)
 
 	except KeyError as err:
 		bu.error('account_id: ' + str(account_id) + ' tank_id:' + str(tank_id) +' : Key not found', err)
@@ -2353,8 +2348,8 @@ async def get_db_tank_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, stat_
 		for stat in hist_stats:			
 			project[stat] = True
 		project['_id'] = False
-		
-		cursor = dbc.find({ '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$gte': battletime - time_buffer }}, { 'tank_id' : tank_id } ] }, projection=project).sort('last_battle_time',-1).limit(1)
+		bu.debug('find(): tank_id={} account_id={} last_battle_time>={}'.format(tank_id, account_id, battletime - time_buffer))
+		cursor = dbc.find({ '$and': [ { 'tank_id' : tank_id }, { 'account_id': account_id }, { 'last_battle_time': { '$gte': battletime - time_buffer }} ] }, projection=project).sort('last_battle_time',-1).limit(1)
 
 		# pipeline = 	[ { '$match': { '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$lte': battletime + time_buffer }}, { 'tank_id' : tank_id } ]}}, 
 		# 		{ '$sort': { 'last_battle_time': -1 }}, 
@@ -2365,7 +2360,11 @@ async def get_db_tank_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, stat_
 		# cursor = dbc.aggregate(pipeline, allowDiskUse=True)
 		#cursor = dbc.aggregate(pipeline)
 
-		return await tank_stats_helper(await cursor.to_list(1)) 
+		stats = await cursor.to_list(1)
+		# store cache
+		# await wg.save_tank_stats(account_id, [tank_id], stats)
+		
+		return tank_stats_helper(stats) 	
 				
 	except Exception as err:
 		bu.error('account_id: ' + str(account_id) + ' Error', err)
@@ -2386,7 +2385,7 @@ async def get_wg_tank_tier_stats(stat_id_str: str, cache_only = False) -> dict:
 		player_stats = await wg.get_player_tank_stats(account_id, tier_tanks, hist_stats, cache_only = cache_only)
 		#bu.debug('account_id: ' + str(account_id) + ' ' + str(player_stats))
 
-		return await tank_stats_helper(player_stats)
+		return tank_stats_helper(player_stats)
 
 	except KeyError as err:
 		bu.error('account_id: ' + str(account_id) + ' Key not found', err)
@@ -2409,7 +2408,7 @@ async def get_wg_tier_x_stats(stat_id_str: str, cache_only = False) -> dict:
 		player_stats = await wg.get_player_tank_stats(account_id, tier_tanks, hist_stats, cache_only = cache_only)
 		#bu.debug('account_id: ' + str(account_id) + ' ' + str(player_stats))
 
-		return await tank_stats_helper(player_stats)
+		return tank_stats_helper(player_stats)
 
 	except KeyError as err:
 		bu.error('account_id: ' + str(account_id) + ' Key not found', err)
@@ -2437,8 +2436,10 @@ async def get_db_tank_tier_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, 
 		# cursor = dbc.aggregate(pipeline, allowDiskUse=True)
 		cursor = dbc.aggregate(pipeline)
 
-		return await tank_stats_helper(await cursor.to_list(1000)) 
-				
+		stats = await cursor.to_list(1000)
+		# await wg.save_tank_stats(account_id, tier_tanks, stats)
+		return tank_stats_helper(stats) 
+		
 	except Exception as err:
 		bu.error('account_id: ' + str(account_id) + ' Error', err)
 	return None
@@ -2448,23 +2449,9 @@ async def get_db_tier_x_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, sta
 	"""Get player stats from MongoDB (you are very unlikely to have it, unless you have set it up)"""
 	if db == None:
 		return None
-	try:
-		dbc = db[DB_C_TANK_STATS]
+	try:		
 		( account_id, battletime ) = str2ints(stat_id_str)
-		tier_tanks = wg.get_tanks_by_tier(10)
-		time_buffer = 2*7*24*3600
-
-		pipeline = 	[ { '$match': { '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$lte': battletime + time_buffer }}, { 'tank_id' : {'$in': tier_tanks} } ]}}, 
-				{ '$sort': { 'last_battle_time': -1 }}, 
-				{ '$group': { '_id': '$tank_id', 'doc': { '$first': '$$ROOT' }}}, 
-				{ '$replaceRoot': { 'newRoot': '$doc' }}, 
-				{ '$project': { '_id': 0 }} ]
-
-		# cursor = dbc.aggregate(pipeline, allowDiskUse=True)
-		cursor = dbc.aggregate(pipeline)
-
-		return await tank_stats_helper(await cursor.to_list(1000)) 
-				
+		return await get_db_tank_tier_stats(db,get_stat_id(account_id, 10, battletime) )
 	except Exception as err:
 		bu.error('account_id: ' + str(account_id) + ' Error', err)
 	return None
@@ -2482,14 +2469,16 @@ async def get_db_player_stats(db : motor.motor_asyncio.AsyncIOMotorDatabase, sta
 		
 		pipeline = 	[ { '$match': { '$and': [ { 'account_id': account_id }, { 'last_battle_time': { '$lte': battletime + time_buffer }} ]}}, 
 				{ '$sort': { 'last_battle_time': -1 }}, 
-				{ '$group': { '_id': '$tank_id', 'doc': { '$first': '$$ROOT' }}}, 
+				{ '$group': { '_id': { 'tank_id':'$tank_id'}, 'doc': { '$first': '$$ROOT' }}}, 
 				{ '$replaceRoot': { 'newRoot': '$doc' }}, 
 				{ '$project': { '_id': 0 }} ]
 
 		# cursor = dbc.aggregate(pipeline, allowDiskUse=True)
 		cursor = dbc.aggregate(pipeline)
 
-		return await tank_stats_helper(await cursor.to_list(1000)) 
+		stats = await cursor.to_list(1000)
+		# await wg.save_tank_stats(account_id, [], stats)
+		return tank_stats_helper(stats) 
 				
 	except Exception as err:
 		bu.error('account_id: ' + str(account_id) + ' Error', err)
@@ -2517,20 +2506,17 @@ async def get_wg_player_stats(stat_id_str: str, cache_only = False) -> dict:
 	return None
 
 
-async def tank_stats_helper(stat_list: list):
+def tank_stats_helper(stat_list: list):
 	"""Helpher func got get_db_tank_tier_stats() and get_wg_tank_tier_stats()"""
 	try:
 		if stat_list == None: 
 			return None
-		stats = {}
+		stats = collections.defaultdict(def_value_zero)
 		hist_fields = histogram_fields.keys()
 		if 'battles' not in hist_fields:
 			bu.error('\'battles\' must be defined in \'histogram_fields\'')
 			return None
 
-		for field in hist_fields:
-			stats[field] = 0
-		
 		for tank_stat in stat_list: 
 			tank_stat = tank_stat['all']
 			for field in hist_fields:
@@ -2554,7 +2540,7 @@ async def player_stats_helper(player_stats: dict):
 	try:
 		if player_stats == None: 
 			return None
-		stats = {}
+		stats = dict()
 		hist_fields = histogram_fields.keys()
 		if 'battles' not in hist_fields:
 			bu.error('\'battles\' must be defined in \'histogram_fields\'')
@@ -2595,12 +2581,12 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 				cursor = dbc.find(filters)
 			else:
 				# select all
-				cursor = dbc.find({})
+				cursor = dbc.find(dict())
 			bu.debug('Reading replays...')	
 			async for replay_json in cursor:
 				_id = replay_json['_id']
 				#del(replay_json['_id'])
-				await queue.put(await mk_readerQ_item(replay_json, 'DB: _id = ' + _id))
+				await queue.put(await mk_readerQ_item(replay_json, _id=_id))
 				Nreplays += 1
 			bu.debug('All the matching replays have been read from the DB')
 		except Exception as err:
@@ -2616,7 +2602,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 				
 				if (p_replayfile.match(line) != None):
 					replay_json = await bu.open_JSON(line, wi.chk_JSON_replay)						
-					await queue.put(await mk_readerQ_item(replay_json, line))
+					await queue.put(await mk_readerQ_item(replay_json, filename=line))
 			except Exception as err:
 				bu.error(exception=err)
 	else:
@@ -2627,7 +2613,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 					fn = fn[:-1] 
 				if os.path.isfile(fn) and (p_replayfile.match(fn) != None):
 					replay_json = await bu.open_JSON(fn, wi.chk_JSON_replay)
-					await queue.put(await mk_readerQ_item(replay_json, fn))
+					await queue.put(await mk_readerQ_item(replay_json, filename=fn))
 					bu.debug('File added to queue: ' + fn)
 					Nreplays += 1
 				elif os.path.isdir(fn):
@@ -2636,7 +2622,7 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 							if entry.is_file() and (p_replayfile.match(entry.name) != None): 
 								bu.debug(entry.name)
 								replay_json = await bu.open_JSON(entry.path, wi.chk_JSON_replay)
-								await queue.put(await mk_readerQ_item(replay_json, entry.name))
+								await queue.put(await mk_readerQ_item(replay_json, filename=entry.name))
 								bu.debug('File added to queue: ' + entry.path)
 								Nreplays += 1
 			except Exception as err:
@@ -2645,22 +2631,26 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 	return Nreplays
 
 
-async def mk_readerQ_item(replay_json, filename : str = None) -> list:
+async def mk_readerQ_item(replay_json, filename : str = None, _id: str = None) -> list:
 	"""Make an item to replay queue"""
 	global REPLAY_N
 	REPLAY_N +=1
 	try:
-		if not '_id' in replay_json:
-			id = wi.read_replay_id(replay_json)
-			replay_json['_id'] = id	
+		if wi.chk_JSON_replay(replay_json): 
+			if not '_id' in replay_json:
+				_id = wi.read_replay_id(replay_json)
+				replay_json['_id'] = _id	
+		else:
+			replay_json = None # mark error
 	except Exception as err:
 		bu.error(exception=err)
-	if filename == None:
-		return [replay_json, REPLAY_N, '' ]
-	elif RE_SRC_IS_DB.match(filename) != None:
-		return [replay_json, REPLAY_N, filename ]
-	else:
+	
+	if filename != None:
 		return [replay_json, REPLAY_N, os.path.basename(filename) ]
+	elif _id != None: 
+		return [replay_json, REPLAY_N, 'DB: ' + _id ]
+	else:
+		return None
 
 
 async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Namespace):
@@ -2676,9 +2666,9 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 			replay_file 	= item[2]
 
 			try:
-				msg_str = 'Replay[' + str(replayID) + ']: ' 
+				# msg_str = 'Replay[' + str(replayID) + ']: ' 
 				if replay_json == None:
-					bu.warning(msg_str + 'Invalid replay. Skipping: '  + (replay_file if replay_file != None else '') )
+					bu.warning('Invalid replay. Skipping: '  + (replay_file if replay_file != None else '') )
 					queue.task_done()
 					continue
 						
@@ -2687,7 +2677,7 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 				result = await read_replay_JSON(replay_json, args)
 				bu.print_progress()
 				if result == None:
-					bu.warning(msg_str + 'Invalid replay ' + (replay_file if replay_file != None else '') )
+					bu.warning('Invalid replay ' + (replay_file if replay_file != None else '') )
 					queue.task_done()
 					continue
 				
@@ -2696,7 +2686,7 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 				playerstanks.update(set([result['player']]))
 				
 				results.append(result)
-				bu.debug('Marking task ' + str(replayID) + ' done')
+				bu.debug('Marking replay [' + str(replayID) + '] done', id=readerID)
 						
 			except Exception as err:
 				bu.error(exception=err)
@@ -2713,7 +2703,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 	account_id = args.account_id
 	url = args.url
 	#db = args.db
-	result = {}
+	result = dict()
 	try:
 		# bu.debug(str(replay_json))
 		if not wi.chk_JSON_replay(replay_json):
@@ -2778,7 +2768,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 
 			if player['dbid'] == account_id:
 				# player itself is not put in results['allies']
-				tmp = {}
+				tmp = dict()
 				tmp['account_id'] 	= account_id
 				tmp['tank_id'] 		= player['vehicle_descr']
 				tmp['tank_tier'] 	= player_tank_tier
@@ -2879,8 +2869,8 @@ def prune_stat_id(stat_id_str: str) -> str:
 	return ':'.join(stat_id)
 
 
-def get_stat_id(account_id: int, tank_id: int, battletime: int) -> str:
-	return ':'.join([ str(account_id), str(tank_id), str(battletime)])
+def get_stat_id(account_id: int, tank_id: int, battle_time: int) -> str:
+	return ':'.join(map(str, [account_id, tank_id, battle_time ]))
 
 
 def get_stat_id_tank_tier(stat_id_str: str) -> str:
@@ -2890,7 +2880,7 @@ def get_stat_id_tank_tier(stat_id_str: str) -> str:
 		account_id	= stat_id[0]
 		tank_tier 	= wg.get_tank_tier(stat_id[1])
 		battle_time = (stat_id[2] // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
-		return ':'.join(map(str, [account_id, tank_tier, battle_time ]))
+		return get_stat_id(account_id, tank_tier, battle_time)
 	except Exception as err:
 		bu.error('Stats_id: ' + stat_id_str, exception=err)
 	return None
@@ -2903,7 +2893,7 @@ def get_stat_id_tank(stat_id_str: str) -> str:
 		account_id	= stat_id[0]
 		tank_id 	= stat_id[1]
 		battle_time = (stat_id[2] // BATTLE_TIME_BUCKET) * BATTLE_TIME_BUCKET
-		return ':'.join(map(str, [account_id, tank_id, battle_time ]))
+		return get_stat_id(account_id, tank_id, battle_time)		
 	except Exception as err:
 		bu.error('Stats_id: ' + stat_id_str, exception=err)
 	return None

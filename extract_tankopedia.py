@@ -115,13 +115,12 @@ async def extract_tanks(blitz_app_base : str, nation: str):
             for data in tankList['root'].keys():
                 tank_xml = tankList['root'][data]
                 tank = dict()
-                tank['tank_id'] = await get_tank_id(nation, int(tank_xml['id']))
-                tank['userStr'] = tank_xml['userString']
-                tank['nation']  = nation
-                tank['tier']    = int(tank_xml['level'])
-                #debug(tank_xml['price'])
                 tank['is_premium'] = issubclass(type(tank_xml['price']), dict)
+                tank['nation']  = nation
+                tank['tank_id'] = await get_tank_id(nation, int(tank_xml['id']))
+                tank['tier']    = int(tank_xml['level'])
                 tank['type'] = await get_tank_type(tank_xml['tags'])
+                tank['userStr'] = tank_xml['userString']
                 #bu.debug('Reading tank string: ' + tank['userStr'], force=True)
                 tanks.append(tank)
         except Exception as err:
@@ -165,7 +164,10 @@ async def convert_tank_names(tanklist : list, tank_strs: dict) -> dict:
             tank['name'] = tank_strs[tank['userStr']]
             #userStrs[tank['userStr'].split(':')[1]] = tank['name']
             tank.pop('userStr', None)
-            tankopedia[str(tank['tank_id'])] = tank
+            tank_tmp = collections.OrderedDict()
+            for key in sorted(tank.keys()):
+                tank_tmp[key] = tank[key]
+            tankopedia[str(tank['tank_id'])] = tank_tmp
 
         for tank_str in tank_strs:
             skip = False
