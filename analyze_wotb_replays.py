@@ -1009,7 +1009,29 @@ class ResultFields():
 		'mastery_badge'
 	}
 
-	_ratios = {
+	## Field types
+	FLD_TYPE_BATTLE 		= 'battle'
+	FLD_TYPE_PLAYER			= 'player'
+	
+	FLD_TYPE_TEAMS			= 'teams'
+	# FLD_TYPE_ALLIES			= 'allies'
+	# FLD_TYPE_ENEMIES		= 'enemies'
+	FLD_TYPE_OTHER_PLAYERS 	= 'other_players'
+	FLD_TYPE_ALL_PLAYERS 	= 'all_players'
+	FLD_TYPE_PLATOONS		= 'platoons'
+	FLD_TYPE_TEAMS_PLATS	= 'teams_plats'
+	
+	PLAYER_INCLUSION		= [ 'no', 'yes', 'both']
+	BY_TEAM					= [ 'total', 'team' ]
+	FLD_TEAMS			 	= [ 'allies', 'enemies' ]
+	GROUPING				= [ 'all', 'platoon', 'solo']	
+
+	# FLD_TYPE_ALLIES_PLATS	= 'allies_plat'
+	# FLD_TYPE_ENEMIES_PLATS	= 'enemies_plat'
+	
+	FLD_TYPE_TEAM_FIELDS = [ FLD_TYPE_TEAMS, FLD_TYPE_TEAMS_PLATS ]
+	
+	ratios = {
 		'KDR'				: [ 'enemies_destroyed', 'destroyed' ],
 		'DR'				: [ 'damage_made', 'damage_received' ],
 		'hit_rate'			: [ 'shots_hit', 'shots_made' ],
@@ -1075,6 +1097,9 @@ class ResultFields():
 			cls.mode = mode
 			cls.results = set(cls.get_mode_fields(cls.mode))   # cls.mode == None ==> empty results set
 			cls.results = cls.results | set(extra)			
+
+			## Specs:
+			## - Field type (battle, player, platoon, team, allies, enemies,  allies_plat, enemies_plat) is separated with ':' from the field
 
 			# platoon fields
 			cls.plat_fields = set()
