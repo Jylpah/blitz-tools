@@ -28,6 +28,8 @@ REPLAY_I = 0
 STAT_TANK_BATTLE_MIN = 100
 BATTLE_TIME_BUCKET = 3600*24*14
 
+OPT_EXPORT_REPLAY_DIR = 'export_replays'
+
 RE_SRC_IS_DB = re.compile(r'^DB:')
 
 class StatFunc:
@@ -1419,6 +1421,7 @@ async def main(argv):
 		parser.add_argument('--mapfile', type=str, default='maps.json', help='JSON file to read Blitz map names from. Default is "maps.json"')
 		parser.add_argument('--json', action='store_true', default=False, help='Export data in JSON format')
 		parser.add_argument('--csv', action='store_true', default=False, help='Export data in CSV format')
+		parser.add_argument('--replays', action='store_true', default=False, help='Export replay info in JSON format')
 		parser.add_argument('-o','--outfile', type=str, default='-', metavar="OUTPUT", help='File to write results. Default STDOUT')
 		parser.add_argument('--db', action='store_true', default=OPT_DB, help='Use DB - You are unlikely to have it')
 		parser.add_argument('--filters', type=str, default=None, help='Filter replays based on categories. Filters given in JSON format.\nUse array "[]" for multiple filters/values. see --mode help.\nExample: : [ {"tier" : [8,9,10] }, { "player_wins" : 5 }]')
@@ -1498,7 +1501,7 @@ async def main(argv):
 
 			bu.debug('Waiting for the replay scanner to finish')
 			await asyncio.wait([scanner_task])
-			
+			bu.finish_progress_bar()
 			# bu.debug('Scanner finished. Waiting for replay readers to finish the queue')
 			await replayQ.join()
 			await asyncio.sleep(0.1)
@@ -1508,15 +1511,19 @@ async def main(argv):
 				await asyncio.sleep(0.1)	
 			results = []
 			players = set()
+			replays	= dict()
 			for res in await asyncio.gather(*reader_tasks):
 				results.extend(res[0])
 				players.update(res[1])
+				replays.update(res[2])
+			
 			if len(players) == 0:
 				raise Exception("No players found to fetch stats for. No replays found?")
 
 			if args.min != None:
 				results = filter_min_replays_by_player(results, args.min)
 				players = get_players(results)
+				replays = filter_replays(replays, results)
 
 			(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
 			bu.debug('Number of player stats: ' + str(len(player_stats)))
@@ -1563,6 +1570,9 @@ async def main(argv):
 					csvwriter.writerows(rows)
 					bu.verbose_std('Results exported to: ' + export_file)			
 			
+			if args.replays:
+				await export_replays(replays)
+
 			bu.debug('Finished. Cleaning up..................')
 		except Exception as err:
 			bu.error(exception=err)
@@ -1629,6 +1639,25 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 	print('No, I am not planning to fix these for now.')	
 
 
+async def export_replays(replays: dict):
+	"""Export replays"""
+	try:
+		replay_dir = OPT_EXPORT_REPLAY_DIR +  '_' + bu.get_date_str()
+		bu.verbose_std('Exporting replays to ' + replay_dir)
+		if not os.path.isdir(replay_dir):
+			os.mkdir(replay_dir)
+
+		i = 0
+		for replay in replays.values():
+			filename = wg.get_replay_filename(replay)
+			async with aiofiles.open(os.path.join(replay_dir, filename), 'w', encoding="utf8") as f:
+				await f.write(json.dumps(replay, indent=4))
+			i += 1
+		bu.verbose_std( str(i) + ' replays exported')
+	except Exception as err:
+		bu.error(exception=err)
+
+
 ## move the class PlayerHistogram?
 def set_histogram_buckets(json: dict):
 	global histogram_fields
@@ -1668,7 +1697,7 @@ def filter_min_replays_by_player(results: list, min_replays: int) -> list:
 		for res in results:
 			if res['protagonist'] in players_enough_replays:
 				res_ret.append(res)
-
+		bu.verbose_std('Replays after filtering: ' + str(len(res_ret)))	
 		return res_ret
 
 	except Exception as err:
@@ -1719,7 +1748,7 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 		
 		
 		if args.filters != None:
-			results = filter_replays(results, args.filters)
+			results = filter_results(results, args.filters)
 		if len(results) > 0:
 			blt_cat_list = BattleCategorizationList(cats)
 			for result in results:
@@ -1739,7 +1768,7 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 	return blt_cat_list
 
 
-def filter_replays(results: list, filter_json : str) -> bool:
+def filter_results(results: list, filter_json : str) -> bool:
 	"""Filter replays based on battle category filters"""
 	try:
 		filters = json.loads(filter_json)
@@ -1773,12 +1802,26 @@ def filter_replays(results: list, filter_json : str) -> bool:
 					res.append(result)
 			except Exception as err:
 				bu.error(exception=err)
-		bu.verbose('Replays after filtering: ' + str(len(res)))	
+		bu.verbose_std('Replays after filtering: ' + str(len(res)))	
 		return res
 	except Exception as err:
 		bu.error(exception=err)
 	return None
 
+
+def filter_replays(replays_in: dict, results: list) -> list:
+	"""Filter source replays based on (filtered) results"""
+	replays = dict()
+	for res in results:
+		try:
+			# bu.debug('res[_id] : ' + res['_id'], force=True)			
+			_id = res['_id']
+			replays[_id] = replays_in[_id]
+		except Exception as err:
+			bu.error(exception=err)	
+	return replays
+	
+	
 
 async def process_player_stats(players, N_workers: int, args : argparse.Namespace, db : motor.motor_asyncio.AsyncIOMotorDatabase) -> dict:
 	"""Start stat_workers to retrieve and store players' stats"""
@@ -2314,8 +2357,9 @@ async def mk_readerQ_item(replay_json, filename : str = None, _id: str = None) -
 	try:
 		if wi.chk_JSON_replay(replay_json): 
 			if not '_id' in replay_json:
-				_id = wi.read_replay_id(replay_json)
-				replay_json['_id'] = _id	
+				if _id  != None:			
+					_id = wi.read_replay_id(replay_json)
+				replay_json['_id'] = _id
 		else:
 			replay_json = None # mark error
 	except Exception as err:
@@ -2334,6 +2378,7 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 	#global SKIPPED_N
 	results = []
 	playerstanks = set()
+	replays		 = dict()
 	try:
 		while True:
 			item = await queue.get()
@@ -2360,8 +2405,10 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 				playerstanks.update(set(result['allies']))
 				playerstanks.update(set(result['enemies']))	
 				playerstanks.update(set([result['player']]))
-				
+				_id = wi.read_replay_id(replay_json)
+				replays[_id] = replay_json
 				results.append(result)
+
 				bu.debug('Marking replay [' + str(replayID) + '] done', id=readerID)
 						
 			except Exception as err:
@@ -2369,7 +2416,7 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 			queue.task_done()
 	except (asyncio.CancelledError, concurrent.futures.CancelledError):		
 		bu.debug( str(len(results)) + ' replays, ' + str(len(playerstanks)) + ' player/tanks', readerID)
-		return results, playerstanks
+		return results, playerstanks, replays
 	return None
 
 
