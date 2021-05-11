@@ -1501,7 +1501,7 @@ async def main(argv):
 
 			bu.debug('Waiting for the replay scanner to finish')
 			await asyncio.wait([scanner_task])
-			
+			bu.finish_progress_bar()
 			# bu.debug('Scanner finished. Waiting for replay readers to finish the queue')
 			await replayQ.join()
 			await asyncio.sleep(0.1)
@@ -1515,8 +1515,7 @@ async def main(argv):
 			for res in await asyncio.gather(*reader_tasks):
 				results.extend(res[0])
 				players.update(res[1])
-				replay = res[2]
-				replays[replay['_id']] = replay
+				replays.update(res[2])
 			
 			if len(players) == 0:
 				raise Exception("No players found to fetch stats for. No replays found?")
@@ -1698,7 +1697,7 @@ def filter_min_replays_by_player(results: list, min_replays: int) -> list:
 		for res in results:
 			if res['protagonist'] in players_enough_replays:
 				res_ret.append(res)
-
+		bu.verbose_std('Replays after filtering: ' + str(len(res_ret)))	
 		return res_ret
 
 	except Exception as err:
@@ -1803,25 +1802,26 @@ def filter_results(results: list, filter_json : str) -> bool:
 					res.append(result)
 			except Exception as err:
 				bu.error(exception=err)
-		bu.verbose('Replays after filtering: ' + str(len(res)))	
+		bu.verbose_std('Replays after filtering: ' + str(len(res)))	
 		return res
 	except Exception as err:
 		bu.error(exception=err)
 	return None
 
 
-def filter_replays(replays_in: dict, results: set) -> list:
+def filter_replays(replays_in: dict, results: list) -> list:
 	"""Filter source replays based on (filtered) results"""
-	try:
-		replays = dict()
-		for res in results:
+	replays = dict()
+	for res in results:
+		try:
+			# bu.debug('res[_id] : ' + res['_id'], force=True)			
 			_id = res['_id']
 			replays[_id] = replays_in[_id]
-		return replays
-	except Exception as err:
-		bu.error(exception=err)
-	return None
-
+		except Exception as err:
+			bu.error(exception=err)	
+	return replays
+	
+	
 
 async def process_player_stats(players, N_workers: int, args : argparse.Namespace, db : motor.motor_asyncio.AsyncIOMotorDatabase) -> dict:
 	"""Start stat_workers to retrieve and store players' stats"""
@@ -2357,8 +2357,9 @@ async def mk_readerQ_item(replay_json, filename : str = None, _id: str = None) -
 	try:
 		if wi.chk_JSON_replay(replay_json): 
 			if not '_id' in replay_json:
-				_id = wi.read_replay_id(replay_json)
-				replay_json['_id'] = _id	
+				if _id  != None:			
+					_id = wi.read_replay_id(replay_json)
+				replay_json['_id'] = _id
 		else:
 			replay_json = None # mark error
 	except Exception as err:
@@ -2377,6 +2378,7 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 	#global SKIPPED_N
 	results = []
 	playerstanks = set()
+	replays		 = dict()
 	try:
 		while True:
 			item = await queue.get()
@@ -2403,8 +2405,10 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 				playerstanks.update(set(result['allies']))
 				playerstanks.update(set(result['enemies']))	
 				playerstanks.update(set([result['player']]))
-				
+				_id = wi.read_replay_id(replay_json)
+				replays[_id] = replay_json
 				results.append(result)
+
 				bu.debug('Marking replay [' + str(replayID) + '] done', id=readerID)
 						
 			except Exception as err:
@@ -2412,7 +2416,7 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 			queue.task_done()
 	except (asyncio.CancelledError, concurrent.futures.CancelledError):		
 		bu.debug( str(len(results)) + ' replays, ' + str(len(playerstanks)) + ' player/tanks', readerID)
-		return results, playerstanks, replay_json
+		return results, playerstanks, replays
 	return None
 
 
