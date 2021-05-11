@@ -1508,15 +1508,20 @@ async def main(argv):
 				await asyncio.sleep(0.1)	
 			results = []
 			players = set()
+			replays	= dict()
 			for res in await asyncio.gather(*reader_tasks):
 				results.extend(res[0])
 				players.update(res[1])
+				replay = res[2]
+				replays[replay['_id']] = replay
+			
 			if len(players) == 0:
 				raise Exception("No players found to fetch stats for. No replays found?")
 
 			if args.min != None:
 				results = filter_min_replays_by_player(results, args.min)
 				players = get_players(results)
+				replays = filter_replays(replays, results)
 
 			(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
 			bu.debug('Number of player stats: ' + str(len(player_stats)))
@@ -1719,7 +1724,7 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 		
 		
 		if args.filters != None:
-			results = filter_replays(results, args.filters)
+			results = filter_results(results, args.filters)
 		if len(results) > 0:
 			blt_cat_list = BattleCategorizationList(cats)
 			for result in results:
@@ -1739,7 +1744,7 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 	return blt_cat_list
 
 
-def filter_replays(results: list, filter_json : str) -> bool:
+def filter_results(results: list, filter_json : str) -> bool:
 	"""Filter replays based on battle category filters"""
 	try:
 		filters = json.loads(filter_json)
@@ -1775,6 +1780,19 @@ def filter_replays(results: list, filter_json : str) -> bool:
 				bu.error(exception=err)
 		bu.verbose('Replays after filtering: ' + str(len(res)))	
 		return res
+	except Exception as err:
+		bu.error(exception=err)
+	return None
+
+
+def filter_replays(replays: dict, results: set) -> list:
+	"""Filter source replays based on (filtered) results"""
+	try:
+		ret_replays = dict()
+		for res in results:
+			_id = res['_id']
+			ret_replays[_id] = replays[_id]
+		return ret_replays
 	except Exception as err:
 		bu.error(exception=err)
 	return None
@@ -2369,7 +2387,7 @@ async def replay_reader(queue: asyncio.Queue, readerID: int, args : argparse.Nam
 			queue.task_done()
 	except (asyncio.CancelledError, concurrent.futures.CancelledError):		
 		bu.debug( str(len(results)) + ' replays, ' + str(len(playerstanks)) + ' player/tanks', readerID)
-		return results, playerstanks
+		return results, playerstanks, replay_json
 	return None
 
 
