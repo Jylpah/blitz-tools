@@ -486,6 +486,16 @@ def NOW() -> int:
     return int(time.time())
 
 
+def get_date_str(timestamp:int = NOW(), date_format = '%Y%m%d_%H%M%S'):
+    """Return YYYYMMDD_HHmm date string"""
+    try:
+        ts = datetime.fromtimestamp(timestamp)
+        return ts.strftime(date_format)
+    except Exception as err:
+        error(exception=err)
+    return None
+
+
 def rebase_file_args(current_dir, files):
     """REbase file command line params after moving working dir to the script's dir""" 
     if isinstance(files, list):    
@@ -916,33 +926,18 @@ class WG:
 
 
     @classmethod
-    def get_map(cls, map_str: str) -> str:
+    def get_map(self, map_str: str) -> str:
         """Return map name from short map string in replays"""
         try:
-            return cls.maps[map_str]
+            return self.maps[map_str]
         except:
             error('Map ' + map_str + ' not found')
         return None
     
 
     @classmethod
-    def get_map_user_strs(cls) -> str:
-        return cls.maps.keys()
-
-
-    @classmethod
-    def tank_str2name(cls, tank_str: str) -> str:
-        """Return tank name from short tank string in replays"""
-        try:
-            return cls.tanks["userStr"][tank_str]
-        except:
-            error('Tank ' + tank_str + ' not found')
-        return tank_str
-
-
-    @classmethod
-    def get_tank_user_strs(cls) -> str:
-        return cls.tanks["userStr"].keys()
+    def get_tank_user_strs(self) -> str:
+        return self.tanks["userStr"].keys()
 
 
     @classmethod
@@ -1078,11 +1073,15 @@ class WG:
     def load_tanks(self, tankopedia_fn: str):
         """Load tanks from tankopedia JSON"""
         if tankopedia_fn == None:
-            return False 
-
+            return False
         try:
             with open(tankopedia_fn, 'rt', encoding='utf8') as f:
                 self.tanks = json.loads(f.read())
+                self.tanks['tankStr'] = dict()
+                p = re.compile('.+_short$')
+                for usr_str in self.tanks['userStr']:
+                    if p.match(usr_str) == None:
+                        self.tanks['tankStr'][self.tanks['userStr'][usr_str]] = usr_str
                 self.tanks_by_tier = dict()
                 for tier in range(1,11):
                     self.tanks_by_tier[str(tier)] = list()
@@ -1092,7 +1091,44 @@ class WG:
         except Exception as err:
             error('Could not read tankopedia: ' + tankopedia_fn, err) 
         return False     
-     
+    
+
+    def get_replay_filename(self, replay: dict):
+        try:
+            summary = replay['data']['summary']
+            timestamp   = int(summary['battle_start_timestamp'])
+            timestamp    = get_date_str(timestamp, date_format='%Y%m%d_%H%M')
+            player      = summary['player_name']
+            arena_id    = int(summary['arena_unique_id'])
+            vehicle     = self.name2tank_str(summary['vehicle'])
+            vehicle.replace(' ','_')
+
+            return '{:s}_{:s}_{:s}_{:d}.wotbreplay.json'.format(timestamp, player, vehicle, arena_id)
+        except Exception as err:
+            error('Unexpected Exception', err) 
+            return None 
+
+    def get_map_user_strs(self) -> str:
+        return self.maps.keys()
+
+
+    def tank_str2name(self, tank_str: str) -> str:
+        """Return tank name from short tank string in replays"""
+        try:
+            return self.tanks["userStr"][tank_str]
+        except:
+            error('Tank ' + tank_str + ' not found')
+        return tank_str
+
+    
+    def name2tank_str(self, name: str) -> str:
+        """Return shorttank string from tank string in replays"""
+        try:
+            return self.tanks["tankStr"][name]
+        except:
+            error('Tank ' + name + ' not found')
+        return name
+
 
     def get_tanks_by_tier(self, tier: int) -> list():
         """Returns tank_ids by tier"""
