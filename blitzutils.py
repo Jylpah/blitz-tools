@@ -1126,7 +1126,7 @@ class WG:
         try:
             return self.tanks["tankStr"][name]
         except:
-            error('Tank ' + name + ' not found')
+            debug('Tank ' + name + ' not found')
         return name
 
 
