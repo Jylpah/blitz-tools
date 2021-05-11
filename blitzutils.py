@@ -1867,6 +1867,8 @@ class WoTinspector:
             except Exception as err:
                 debug(exception=err, id=N)
             await asyncio.sleep(SLEEP)
+            _id  = self.read_replay_id(json_resp)
+            json_resp['_id']  =  _id
             
         debug(' Could not post replay: ' + title, id=N)
         return json_resp
