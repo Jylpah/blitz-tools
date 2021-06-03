@@ -902,10 +902,12 @@ class BattleCategory():
 		'hit_rate'			: [ 'Hit rate', 'Shots hit / all shots made', 						8, '{:8.1%}' ],
 		'shots_made'		: [ 'Shots', 'Shots made',			 								5, '{:5.1f}' ],
 		'hits_received'		: [ 'Hits R.', 'Hits reveived',		 								7, '{:7.1f}' ],
+		'hits_bounced'		: [ 'Bounced R.', 'Hits & bounced reveived',						10, '{:10.1f}' ],
+		
 		'pen_rate'			: [ 'Pen rate', 'Shots pen / shots hit', 							8, '{:8.1%}' ],
 		'pen_rate_received'	: [ 'Penned%', 'Received hits pen / hits received',						7, '{:7.1%}' ],
 		'splash_rate'		: [ 'Splash%', 'HE splash shots / shots hit',						7, '{:7.1%}' ],
-		'splash_rate_received'	: [ 'Splashed%', 'HE splash shots received / hits received',		9, '{:9.1%}' ],		
+		'splash_rate_received'	: [ 'Splashed%', 'HE splash shots received / hits hit',		9, '{:9.1%}' ],		
 		'survived'			: [ 'Surv%', 'Survival rate', 										6, '{:6.1%}' ],
 		'time_alive'		: [ 'T alive', 'Time being alive in a battle in secs', 				7, '{:7.0f}' ],
 		'alive'				: [ 'Share live', 'Percentage of time being alive in a battle', 	8, '{:8.0%}' ],
@@ -937,7 +939,7 @@ class BattleCategory():
 							'top_tier', 'DR', 'KDR', 'hit_rate', 'pen_rate', 'survived', 'alive', 
 							'player_wins', 'allies_wins', 'enemies_wins', MISSING_STATS ],
 		'dmg_received'	: [ 'battles',	'win','damage_made', 'damage_received', 'enemies_destroyed', 'top_tier', 'DR', 
-							'hits_received', 'pen_rate_received', 'splash_rate_received'], 
+							'hits_received', 'hits_bounced', 'pen_rate_received', 'splash_rate_received'], 
 		'all'			: [ cat for cat in _result_fields.keys() ]
 	}
 
