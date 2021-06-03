@@ -894,15 +894,21 @@ class BattleCategory():
 		'battles%'			: [ '% Battles', 'Share of Battles',								9, '{:9.0%}' ],
 		'win'				: [ 'WR', 'Win rate', 												6, '{:6.1%}' ],
 		'damage_made'		: [ 'DPB', 'Average Damage', 										5, '{:5.0f}' ],
+		'damage_received'	: [ 'DPBr', 'Average Damage  Received', 							5, '{:5.0f}' ],
 		'enemies_destroyed'	: [ 'KPB', 'Kills / Battle', 										4, '{:4.2f}' ],
 		'DR'				: [ 'DR', 'Damage Ratio', 											5, '{:5.1f}' ],
 		'KDR'				: [ 'KDR', 'Kills / Death', 										4, '{:4.1f}' ],
 		'enemies_spotted'	: [ 'Spot', 'Enemies spotted per battle', 							4, '{:4.1f}' ],
 		'hit_rate'			: [ 'Hit rate', 'Shots hit / all shots made', 						8, '{:8.1%}' ],
+		'shots_made'		: [ 'Shots', 'Shots made',			 								5, '{:5.1f}' ],
+		'hits_received'		: [ 'Hits R.', 'Hits reveived',		 								7, '{:7.1f}' ],
 		'pen_rate'			: [ 'Pen rate', 'Shots pen / shots hit', 							8, '{:8.1%}' ],
+		'pen_rate_received'	: [ 'Penned%', 'Received hits pen / hits received',						7, '{:7.1%}' ],
+		'splash_rate'		: [ 'Splash%', 'HE splash shots / shots hit',						7, '{:7.1%}' ],
+		'splash_rate_received'	: [ 'Splashed%', 'HE splash shots received / hits received',		9, '{:9.1%}' ],		
 		'survived'			: [ 'Surv%', 'Survival rate', 										6, '{:6.1%}' ],
 		'time_alive'		: [ 'T alive', 'Time being alive in a battle in secs', 				7, '{:7.0f}' ],
-		'alive'				: [ 'Share live', 'Percentage of time being alive in a battle', 		8, '{:8.0%}' ],
+		'alive'				: [ 'Share live', 'Percentage of time being alive in a battle', 	8, '{:8.0%}' ],
 		'battle_duration'	: [ 'Duration', 'Battle duration', 									8, '{:8.0f}' ], 
 		'distance_travelled': [ 'Distance', 'Distance travelled',								8, '{:8.0f}' ], 
 		'top_tier'			: [ 'Top tier', 'Share of games as top tier', 						8, '{:8.0%}' ],
@@ -929,7 +935,9 @@ class BattleCategory():
 							'player_battles','allies_battles','enemies_battles' ],
 		'extended'		: [ 'battles',	'battles%',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 
 							'top_tier', 'DR', 'KDR', 'hit_rate', 'pen_rate', 'survived', 'alive', 
-							'player_wins', 'allies_wins', 'enemies_wins', MISSING_STATS ], 
+							'player_wins', 'allies_wins', 'enemies_wins', MISSING_STATS ],
+		'dmg_received'	: [ 'battles',	'win','damage_made', 'damage_received', 'enemies_destroyed', 'top_tier', 'DR', 
+							'hits_received', 'pen_rate_received', 'splash_rate_received'], 
 		'all'			: [ cat for cat in _result_fields.keys() ]
 	}
 
@@ -945,7 +953,10 @@ class BattleCategory():
 		'KDR'				: [ 'enemies_destroyed', 'destroyed' ],
 		'DR'				: [ 'damage_made', 'damage_received' ],
 		'hit_rate'			: [ 'shots_hit', 'shots_made' ],
+		'splash_rate'		: [ 'shots_splash', 'shots_hit' ],
+		'splash_rate_received'	: [ 'hits_splash', 'hits_received' ],
 		'pen_rate'			: [ 'shots_pen', 'shots_hit' ],
+		'pen_rate_received'	: [ 'hits_pen', 'hits_received' ],		
 		'dmg_block_rate' 	: [ 'damage_blocked', 'damage_received' ]
 	}
 
@@ -1016,12 +1027,21 @@ class BattleCategory():
 
 
 	@classmethod
-	def get_field_name(cls, field: str):
+	def get_field_name(cls, field: str) -> str:
 		try:
 			return cls._result_fields[field][0]
 		except Exception as err:
 			bu.error(exception=err)
 
+	
+	@classmethod
+	def get_field_description(cls, field: str) -> str:
+		try:
+			return cls._result_fields[field][1]
+		except Exception as err:
+			bu.error(exception=err)
+
+	
 	@classmethod
 	def get_field_width(cls, field: str):
 		try:
@@ -1081,6 +1101,17 @@ class BattleCategory():
 		except Exception as err:
 			bu.error(exception=err) 
 		return None
+
+
+	@classmethod
+	def help(cls):
+		try:
+			for field in cls.get_result_fields_all():
+				print('{:24s} : {}'.format(field, cls.get_field_description(field)))
+		except Exception as err:
+			bu.error(exception=err) 
+		return None
+
 
 
 	def __init__(self):
@@ -1597,11 +1628,17 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 		parser.print_help()
 	# Result category options
 
+	# Results fields
+	print('\n-------------------------------------------------------------------')
+	print('| Result fields                                                   |')
+	print('-------------------------------------------------------------------\n')
+	
+	BattleCategory.help()
+
 	# Filter usage
 	print('\n-------------------------------------------------------------------')
 	print('| DB Filter usage                                                 |')
-	print('-------------------------------------------------------------------')
-	print('')
+	print('-------------------------------------------------------------------\n')
 	print('You are unlikely to have DB setup required for these filters. This is "Jylpah\'s special"')
 	print('')
 	print("Syntax: --filters_db '{ \"replay.param\": VALUE, \"replay.param2\": { \"$MONGO_OPERATOR\" : VALUE }, ... }'")
@@ -1622,8 +1659,7 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 
 	print('\n-------------------------------------------------------------------')
 	print('| Filters                                                         |')
-	print('-------------------------------------------------------------------')
-	print('')
+	print('-------------------------------------------------------------------\n')
 	print("\t--filters '{ \"categorization\" : category }'")
 	print('\tThese filters let you filter only battles matching the filter. The filter has been proper JSON dict.')
 	print("\tExample: --filter '{ \"room_type\" :1 }'")
@@ -1631,8 +1667,7 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 	BattleCategorizationList.help()
 	print('\n-------------------------------------------------------------------')
 	print('| Rounding errors                                                 |')
-	print('-------------------------------------------------------------------')
-	print('')
+	print('-------------------------------------------------------------------\n')
 	print('Yes, the numbers are rounded UP because reasons.')
 	print('If interested why please read this: ')
 	print('\thttps://realpython.com/python-rounding/#pythons-built-in-round-function')
