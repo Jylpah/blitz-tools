@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 489
+        "count": 497
     },
     "data": {
         "1": {
@@ -3133,7 +3133,7 @@
             "type": "heavyTank"
         },
         "22817": {
-            "is_premium": true,
+            "is_premium": false,
             "name": "M-VI-Yoh",
             "nation": "usa",
             "tank_id": 22817,
@@ -3915,6 +3915,70 @@
             "tank_id": 23841,
             "tier": 7,
             "type": "AT-SPG"
+        },
+        "18241": {
+            "is_premium": true,
+            "name": "Bat.-Châtillon Bourrasque",
+            "nation": "france",
+            "tank_id": 18241,
+            "tier": 8,
+            "type": "mediumTank"
+        },
+        "22561": {
+            "is_premium": true,
+            "name": "TS-5",
+            "nation": "usa",
+            "tank_id": 22561,
+            "tier": 8,
+            "type": "AT-SPG"
+        },
+        "23041": {
+            "is_premium": true,
+            "name": "T-34 shielded",
+            "nation": "ussr",
+            "tank_id": 23041,
+            "tier": 5,
+            "type": "mediumTank"
+        },
+        "23073": {
+            "is_premium": false,
+            "name": "M-V-Yoh",
+            "nation": "usa",
+            "tank_id": 23073,
+            "tier": 9,
+            "type": "heavyTank"
+        },
+        "23329": {
+            "is_premium": false,
+            "name": "M-III-Yoh",
+            "nation": "usa",
+            "tank_id": 23329,
+            "tier": 8,
+            "type": "heavyTank"
+        },
+        "23569": {
+            "is_premium": true,
+            "name": "Pz. IV Gargoyle",
+            "nation": "germany",
+            "tank_id": 23569,
+            "tier": 5,
+            "type": "mediumTank"
+        },
+        "23585": {
+            "is_premium": false,
+            "name": "M-VII-Yoh",
+            "nation": "usa",
+            "tank_id": 23585,
+            "tier": 7,
+            "type": "heavyTank"
+        },
+        "24097": {
+            "is_premium": true,
+            "name": "BLTZ9000",
+            "nation": "usa",
+            "tank_id": 24097,
+            "tier": 6,
+            "type": "mediumTank"
         }
     },
     "userStr": {
@@ -5946,11 +6010,51 @@
         "Object_907_Custom_short": "Object 907 Ruthless",
         "S07_Strv74BP": "Turbo",
         "S07_Strv74BP_Custom": "Turbo",
-        "S07_Strv74BP_Custom_short": "Turbo",
+        "S07_Strv74BP_Custom_short": "Turbo Firestorm",
         "S07_Strv74BP_short": "Turbo",
         "T34_85BP": "Triumphant",
         "T34_85BP_short": "Triumphant",
         "V-2-34M_BP": "V-2-34M B",
-        "Wright_Continental_R_975_C4_858": "Wright Continental\\nR-975-C4 (858)"
+        "Wright_Continental_R_975_C4_858": "Wright Continental\\nR-975-C4 (858)",
+        "A122_TS-5": "TS-5",
+        "A122_TS-5_Custom": "TS-5 Bison",
+        "A122_TS-5_Custom_short": "TS-5 Bison",
+        "A122_TS-5_short": "TS-5",
+        "AOI-1490A": "Continental AOI-1490-A",
+        "Continental_AOI-1194-1-2": "Continental AOI 1194-1-2",
+        "Continental_AOI-1195-1": "Continental AOI 1195-1",
+        "Continental_AOI-1195-1-2": "Continental AOI 1195-1-2",
+        "Continental_AOI-1195-2": "Continental AOI 1195-2",
+        "Continental_AOI_1490_1": "Continental AOI-1490-1",
+        "Continental_AOSI-1195-1": "Continental AOSI 1195-1",
+        "F116_Bat_Chat_Bourrasque": "Bat.-Châtillon Bourrasque",
+        "F116_Bat_Chat_Bourrasque_short": "B-C Bourrasque",
+        "G147_mPanzer_64_Custom": "Kunze Pz. Daredevil",
+        "G147_mPanzer_64_Custom_short": "Kunze Pz. Daredevil",
+        "GAZ_M1": "#ussr_vehicles:GAZ_M1",
+        "GM_X-11": "GM X-11",
+        "GM_X-12": "GM X-12",
+        "M-3-Y": "M-III-Yoh",
+        "M-3-Y_short": "M-III-Yoh",
+        "M-5-Y": "M-V-Yoh",
+        "M-5-Y_short": "M-V-Yoh",
+        "M-6-Y_Custom": "M-VI-Yoh Pride",
+        "M-6-Y_Custom_short": "M-VI-Yoh Pride",
+        "M-7-Y": "M-VII-Yoh",
+        "M-7-Y_short": "M-VII-Yoh",
+        "M18E2BP": "BLTZ9000",
+        "M18E2BP_short": "BLTZ9000",
+        "MS-1obr21": "#ussr_vehicles:MS-1obr21",
+        "MS-1obr21_short": "#ussr_vehicles:MS-1obr21_short",
+        "Mathis_300_exp": "Mathis 300-2",
+        "Maybach_HL_120_TRM_BT": "Maybach HL 120 TRM",
+        "PzIV_Ausf_1944": "Pz. IV Gargoyle",
+        "PzIV_Ausf_1944_short": "Pz. IV Gargoyle",
+        "Pz_IV_AusfBT": "Pz. IV Gargoyle",
+        "Pz_IV_AusfBT_short": "Pz. IV Gargoyle",
+        "R154_T-34E-43": "T-34 shielded",
+        "R154_T-34E-43_short": "T-34 shielded",
+        "V-2-34E": "V-2-34E",
+        "WC_R-975C1_BP": "Wright Continental R-975C1B"
     }
 }
