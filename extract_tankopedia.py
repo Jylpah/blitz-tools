@@ -79,8 +79,8 @@ async def main(argv):
         tankopedia = collections.OrderedDict()
         tankopedia['status'] = 'ok'
         tankopedia['meta'] = { "count":  len(tanks) }
-        tankopedia['data'] = tanks
-        tankopedia['userStr'] = userStrs
+        tankopedia['data'] = bu.sort_dict(tanks, number=True)
+        tankopedia['userStr'] = bu.sort_dict(userStrs)
         bu.verbose_std('New tankopedia \'' + args.tanks + '\' contains ' + str(len(tanks)) + ' tanks')
         bu.verbose_std('New tankopedia \'' + args.tanks + '\' contains ' + str(len(userStrs)) + ' tank strings')        
         await outfile.write(json.dumps(tankopedia, ensure_ascii=False, indent=4, sort_keys=False))
