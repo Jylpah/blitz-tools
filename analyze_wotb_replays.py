@@ -100,7 +100,7 @@ replay_summary_flds = [
 	'protagonist',
 	'player_name',
 	'title', 
-	'mastery_badge'
+	'mastery_badge'	
 ]
 
 replay_details_flds = [
@@ -184,6 +184,7 @@ class BattleCategorizationList():
 		'battle_type'			: [ 'Battle Type', 		'category', 	[ 'Encounter', 'Supremacy']],
 		'room_type'				: [ 'Battle Mode', 		'category', 	_BATTLE_MODES ],
 		'top_tier'				: [ 'Tier', 			'category', 	[ 'Bottom tier', 'Top tier']],
+		'in_platoon'			: [ 'Platoon', 			'category', 	[ 'Solo', 'Platoon']],
 		'tank_tier'				: [ 'Tank Tier', 		'number' ],
 		'is_premium'			: [ 'Tank Type', 		'category', 	[ 'Tech tree', 'Premium']],
 		'tank_type'				: [ 'Tank Class', 		'category', 	WG.TANK_TYPE_STR],
@@ -903,11 +904,11 @@ class BattleCategory():
 		'shots_made'		: [ 'Shots', 'Shots made',			 								5, '{:5.1f}' ],
 		'hits_received'		: [ 'Hits R.', 'Hits reveived',		 								7, '{:7.1f}' ],
 		'hits_bounced'		: [ 'Bounced R.', 'Hits & bounced reveived',						10, '{:10.1f}' ],
-		
+		'in_platoon'		: [ 'Plat%', 'Platoon rate',										6, '{:6.1%}' ],
 		'pen_rate'			: [ 'Pen rate', 'Shots pen / shots hit', 							8, '{:8.1%}' ],
-		'pen_rate_received'	: [ 'Penned%', 'Received hits pen / hits received',						7, '{:7.1%}' ],
+		'pen_rate_received'	: [ 'Penned%', 'Received hits pen / hits received',					7, '{:7.1%}' ],
 		'splash_rate'		: [ 'Splash%', 'HE splash shots / shots hit',						7, '{:7.1%}' ],
-		'splash_rate_received'	: [ 'Splashed%', 'HE splash shots received / hits hit',		9, '{:9.1%}' ],		
+		'splash_rate_received'	: [ 'Splashed%', 'HE splash shots received / hits hit',			9, '{:9.1%}' ],		
 		'survived'			: [ 'Surv%', 'Survival rate', 										6, '{:6.1%}' ],
 		'time_alive'		: [ 'T alive', 'Time being alive in a battle in secs', 				7, '{:7.0f}' ],
 		'alive'				: [ 'Share live', 'Percentage of time being alive in a battle', 	8, '{:8.0%}' ],
@@ -931,11 +932,11 @@ class BattleCategory():
 	_result_fields_modes = {
 		'default'		: [ 'battles',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 
 							'top_tier', 'DR', 'survived', 'allies_wins', 'enemies_wins'],
-		'team'			: [ 'battles',	'win','player_wins','allies_wins','enemies_wins'],
-		'team_extended'	: [ 'battles',	'battles%',	'win','player_wins','allies_wins','enemies_wins', 
+		'team'			: [ 'battles',	'win', 'in_platoon', 'player_wins', 'allies_wins','enemies_wins'],
+		'team_extended'	: [ 'battles',	'battles%',	'win', 'in_platoon', 'player_wins', 'allies_wins', 'enemies_wins', 
 							'player_damage_dealt', 'allies_damage_dealt', 'enemies_damage_dealt', 
 							'player_battles','allies_battles','enemies_battles' ],
-		'extended'		: [ 'battles',	'battles%',	'win','damage_made', 'enemies_destroyed', 'enemies_spotted', 
+		'extended'		: [ 'battles',	'battles%',	'win', 'in_platoon', 'damage_made', 'enemies_destroyed', 'enemies_spotted', 
 							'top_tier', 'DR', 'KDR', 'hit_rate', 'pen_rate', 'survived', 'alive', 
 							'player_wins', 'allies_wins', 'enemies_wins', MISSING_STATS ],
 		'dmg_received'	: [ 'battles',	'win','damage_made', 'damage_received', 'enemies_destroyed', 'top_tier', 'DR', 
@@ -952,14 +953,14 @@ class BattleCategory():
 	]
 
 	_result_ratios = {
-		'KDR'				: [ 'enemies_destroyed', 'destroyed' ],
-		'DR'				: [ 'damage_made', 'damage_received' ],
-		'hit_rate'			: [ 'shots_hit', 'shots_made' ],
-		'splash_rate'		: [ 'shots_splash', 'shots_hit' ],
+		'KDR'					: [ 'enemies_destroyed', 'destroyed' ],
+		'DR'					: [ 'damage_made', 'damage_received' ],
+		'hit_rate'				: [ 'shots_hit', 'shots_made' ],
+		'splash_rate'			: [ 'shots_splash', 'shots_hit' ],
 		'splash_rate_received'	: [ 'hits_splash', 'hits_received' ],
-		'pen_rate'			: [ 'shots_pen', 'shots_hit' ],
-		'pen_rate_received'	: [ 'hits_pen', 'hits_received' ],		
-		'dmg_block_rate' 	: [ 'damage_blocked', 'damage_received' ]
+		'pen_rate'				: [ 'shots_pen', 'shots_hit' ],
+		'pen_rate_received'		: [ 'hits_pen', 'hits_received' ],		
+		'dmg_block_rate' 		: [ 'damage_blocked', 'damage_received' ]
 	}
 
 	# _extended_stats = False
@@ -2520,20 +2521,20 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 			player_tank_tier = wg.get_tank_data(player['vehicle_descr'], 'tier')
 			btl_tier = max(btl_tier, player_tank_tier)
 
-			if (protagonist != None) and (player['dbid'] == protagonist):
-				protagonist_tank = player['vehicle_descr']
-
 			if player['dbid'] == account_id:
 				# player itself is not put in results['allies']
 				tmp = dict()
 				tmp['account_id'] 	= account_id
-				tmp['tank_id'] 		= player['vehicle_descr']
+				tank_id 			= player['vehicle_descr']
+				tmp['tank_id'] 		= tank_id
 				tmp['tank_tier'] 	= player_tank_tier
 				tmp['tank_name']	= wg.get_tank_name(tmp['tank_id'])
 				tmp['tank_type']	= wg.get_tank_type_id(tmp['tank_id'])
 				tmp['tank_nation']	= wg.get_tank_nation_id(tmp['tank_id'])
 				tmp['is_premium']	= int(wg.is_premium(tmp['tank_id']))
-				tmp['squad_index'] 	= player['squad_index']
+				platoon_ndx 		= player['squad_index']
+				tmp['squad_index'] 	= platoon_ndx
+				tmp['in_platoon']	= 0 if platoon_ndx == None else 1
 				for key in replay_details_flds:
 					tmp[key] = player[key]
 				if player['hitpoints_left'] == 0:
@@ -2566,7 +2567,7 @@ async def read_replay_JSON(replay_json: dict, args : argparse.Namespace) -> dict
 
 		result['battle_duration'] = btl_duration
 		## Rather use 'player' than incomprehensible 'protagonist'...		
-		result['player'] = get_stat_id(protagonist, protagonist_tank, result['battle_start_timestamp'])
+		result['player'] = get_stat_id(account_id, tank_id, result['battle_start_timestamp'])
 		bu.debug('Player stats_id: ' + result['player'])
 		# remove platoon buddy from stats 			
 		if result['squad_index'] != None:
