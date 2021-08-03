@@ -1638,6 +1638,22 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 	
 	BattleCategory.help()
 
+	print('\n-------------------------------------------------------------------')
+	print('| Filters                                                         |')
+	print('-------------------------------------------------------------------\n')
+	print("\t--filters '{ \"categorization\" : category }'")
+	print('\tThese filters let you filter only battles matching the filter. The filter has been proper JSON dict.')
+	print("\tExample: --filter '{ \"room_type\" :1 }'")
+	print('')
+	BattleCategorizationList.help()
+	print('\n-------------------------------------------------------------------')
+	print('| Rounding errors                                                 |')
+	print('-------------------------------------------------------------------\n')
+	print('Yes, the numbers are rounded UP because reasons.')
+	print('If interested why please read this: ')
+	print('\thttps://realpython.com/python-rounding/#pythons-built-in-round-function')
+	print('No, I am not planning to fix these for now.')	
+
 	# Filter usage
 	print('\n-------------------------------------------------------------------')
 	print('| DB Filter usage                                                 |')
@@ -1659,22 +1675,6 @@ async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, pa
 				print("\tdata.summary.details.[]." + d)
 		except Exception as err:
 			bu.error(exception=err)
-
-	print('\n-------------------------------------------------------------------')
-	print('| Filters                                                         |')
-	print('-------------------------------------------------------------------\n')
-	print("\t--filters '{ \"categorization\" : category }'")
-	print('\tThese filters let you filter only battles matching the filter. The filter has been proper JSON dict.')
-	print("\tExample: --filter '{ \"room_type\" :1 }'")
-	print('')
-	BattleCategorizationList.help()
-	print('\n-------------------------------------------------------------------')
-	print('| Rounding errors                                                 |')
-	print('-------------------------------------------------------------------\n')
-	print('Yes, the numbers are rounded UP because reasons.')
-	print('If interested why please read this: ')
-	print('\thttps://realpython.com/python-rounding/#pythons-built-in-round-function')
-	print('No, I am not planning to fix these for now.')	
 
 
 async def export_replays(replays: dict):
