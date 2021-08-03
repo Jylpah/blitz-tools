@@ -324,8 +324,7 @@ class BattleCategorizationList():
 
 	def __init__(self, cats: list):
 		self.urls 				= collections.OrderedDict()
-		self.url_title_max_len 	= 0
-		
+		self.url_title_max_len 	= 0		
 		
 		cats = list(set(cats))  	# remove duplicates
 		# ordering		
@@ -353,6 +352,11 @@ class BattleCategorizationList():
 				bu.error('BattleCategorizationList(): Key not found: Category: ' + cat, exception=err)			
 			except Exception as err:
 				bu.error('BattleCategorizationList()', exception=err) 
+
+
+	def __iter__(self):
+		"""Returns the Iterator object"""
+		return BattleCategorizationListIterator(self)
 
 
 	def get_categorization(self, cat: str):	
@@ -456,6 +460,20 @@ class BattleCategorizationList():
 		except Exception as err:
 			bu.error(exception=err)
 		return None
+
+
+class BattleCategorizationListIterator():
+	def __init__(self, btl_cats: BattleCategorizationList) -> None:
+		self._btl_cats = btl_cats
+		self._ndx = 0
+
+	def __next__(self):
+		if self._ndx < len(self._btl_cats.categorizations_list):
+			cat = self._btl_cats.categorizations_list[self._ndx]
+			res = self._btl_cats.categorizations[cat]
+			self._ndx += 1
+			return res
+		raise StopIteration
 
 
 class BattleCategorization():
@@ -1783,7 +1801,7 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 	try:
 		url 		= args.url
 		cats 		= BattleCategorizationList.get_categorizations(args)
-		
+		blt_cat_list= None
 		
 		if args.filters != None:
 			results = filter_results(results, args.filters)
@@ -1811,20 +1829,19 @@ def filter_results(results: list, filter_json : str) -> bool:
 	try:
 		filters = json.loads(filter_json)
 		bu.debug(str(filters))
-		for filter in filters:
-			if type(filters[filter]) != list:
-				filters[filter] = [ filters[filter]]
-
 		if type(filters) != dict:
-			bu.error('invalid --filter arguments: ' + str(filters))
+			bu.error('invalid --filter arguments: ' + str(filter))
 			sys.exit(1)
 		
 		filter_cats = BattleCategorizationList(filters.keys())
-		for cat in filters:
+		bu.verbose('Filters applied:')
+		for category in filter_cats:
+			cat = category.category_key
 			categorization = filter_cats.get_categorization(cat)
 			filters[cat] = categorization.get_filter_categories(filters[cat])
-			bu.verbose('Filter: ' + cat + ': ' + ','.join(filters[cat]))		
-		
+			bu.verbose('  ' + cat + ' = ' + ','.join(filters[cat]))		
+		bu.verbose('')
+
 		res = list()
 		for result in results:
 			try:
@@ -2384,7 +2401,6 @@ async def mk_replayQ(queue : asyncio.Queue, args : argparse.Namespace, db : moto
 								Nreplays += 1
 			except Exception as err:
 				bu.error(exception=err)					
-	bu.verbose('Finished scanning replays: ' + str(Nreplays)  + ' replays to process') 
 	return Nreplays
 
 
