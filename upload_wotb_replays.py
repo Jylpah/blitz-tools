@@ -286,14 +286,14 @@ def getTitle(replayfile: str, title: str = None, i : int = 0) -> str:
 					# bu.debug('Replay file\'s metadata: opened')
 					try:
 						metadata_json = json.load(meta)
-						#player = metadata_json['playerName']
-						tank = wg.tank_str2name(metadata_json['playerVehicleName'])
+						#player = metadata_json['playerName']						
+						tank_name = wg.get_tank_name(metadata_json['vehicleCompDescriptor'])
 						map_name = wg.get_map(metadata_json['mapName'])
-						bu.debug('Tank: ' + tank +  ' Map: ' + map_name)
+						bu.debug('Tank: ' + tank_name if tank_name != None else "NOT FOUND IN tanks.json" +  ' Map: ' + map_name)
 					except Exception as err:
 						bu.error(exception = err)
-			if (tank != None) and  (map_name != None):
-				title = tank + ' @ ' + map_name
+			if (tank_name != None) and  (map_name != None):
+				title = tank_name + ' @ ' + map_name
 			else:
 				title = re.sub('\\.wotbreplay$', '', filename)
 		except Exception as err:
