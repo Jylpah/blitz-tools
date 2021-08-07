@@ -939,9 +939,9 @@ class BattleCategory():
 		'player_battles'	: [ 'Player Btls', 'Average number battles of the player', 			11, '{:11.0f}' ],
 		'allies_battles'	: [ 'Allies Btls', 'Average number battles of the allies', 			11, '{:11.0f}' ],
 		'enemies_battles'	: [ 'Enemies Btls', 'Average number battles of the enemies', 		12, '{:12.0f}' ],
-		'player_damage_dealt'	: [ 'Player Avg Dmg', 'Player Average damage', 					14, '{:11.0f}' ],
-		'allies_damage_dealt'	: [ 'Allies Avg Dmg', 'Average damage of the allies', 			14, '{:11.0f}' ],
-		'enemies_damage_dealt'	: [ 'Enemies Avg Dmg', 'Average damage of the enemies', 		15, '{:12.0f}' ],
+		'player_damage_dealt'	: [ 'Player Avg Dmg', 'Player Average damage', 					14, '{:14.0f}' ],
+		'allies_damage_dealt'	: [ 'Allies Avg Dmg', 'Average damage of the allies', 			14, '{:14.0f}' ],
+		'enemies_damage_dealt'	: [ 'Enemies Avg Dmg', 'Average damage of the enemies', 		15, '{:14.0f}' ],
 		MISSING_STATS		: [ 'No stats', 'Players without stats avail', 						8, '{:8.1%}']		
 	}
 
