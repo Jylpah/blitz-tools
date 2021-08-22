@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 502
+        "count": 506
     },
     "data": {
         "1": {
@@ -766,7 +766,7 @@
         },
         "3329": {
             "is_premium": false,
-            "name": "MS-1",
+            "name": "MS-1 mod. 1",
             "nation": "ussr",
             "tank_id": 3329,
             "tier": 1,
@@ -3060,6 +3060,14 @@
             "tier": 7,
             "type": "mediumTank"
         },
+        "21073": {
+            "is_premium": true,
+            "name": "Dreadnought",
+            "nation": "uk",
+            "tank_id": 21073,
+            "tier": 6,
+            "type": "AT-SPG"
+        },
         "21249": {
             "is_premium": true,
             "name": "Thunder",
@@ -3276,6 +3284,14 @@
             "tier": 8,
             "type": "heavyTank"
         },
+        "23553": {
+            "is_premium": true,
+            "name": "MS-1",
+            "nation": "ussr",
+            "tank_id": 23553,
+            "tier": 2,
+            "type": "lightTank"
+        },
         "23569": {
             "is_premium": true,
             "name": "Pz. IV Gargoyle",
@@ -3291,6 +3307,14 @@
             "tank_id": 23585,
             "tier": 7,
             "type": "heavyTank"
+        },
+        "23825": {
+            "is_premium": true,
+            "name": "Krupp-Steyr Waffenträger",
+            "nation": "germany",
+            "tank_id": 23825,
+            "tier": 7,
+            "type": "AT-SPG"
         },
         "23841": {
             "is_premium": true,
@@ -3314,6 +3338,14 @@
             "nation": "usa",
             "tank_id": 24097,
             "tier": 6,
+            "type": "mediumTank"
+        },
+        "24337": {
+            "is_premium": true,
+            "name": "M48A2 Räumpanzer",
+            "nation": "germany",
+            "tank_id": 24337,
+            "tier": 8,
             "type": "mediumTank"
         },
         "51201": {
@@ -3942,7 +3974,7 @@
         },
         "65025": {
             "is_premium": false,
-            "name": "MS-1",
+            "name": "MS-1 mod. 1",
             "nation": "ussr",
             "tank_id": 65025,
             "tier": 1,
@@ -3974,7 +4006,7 @@
         },
         "65281": {
             "is_premium": false,
-            "name": "MS-1",
+            "name": "MS-1 mod. 1",
             "nation": "ussr",
             "tank_id": 65281,
             "tier": 1,
@@ -4344,6 +4376,7 @@
         "Continental_AV-1790-7C": "Continental AV-1790-7C",
         "Continental_AVDS-1790-2": "Continental AVDS-1790-2",
         "Continental_AVDS-1790-2_short": "Continental\\nAVDS-1790-2",
+        "Continental_AVI_1790_8": "Continental AVI-1790-8",
         "Continental_AV_1790_5C": "Continental AV-1790-5C",
         "Continental_AV_1790_5C_short": "Continental\\nAV-1790-5C",
         "Continental_R-670-5": "Continental R-670-5",
@@ -4442,6 +4475,8 @@
         "F113_PzV_FR": "Bretagne Panther",
         "F113_PzV_FR_short": "Bretagne Panther",
         "F116_Bat_Chat_Bourrasque": "Bat.-Châtillon Bourrasque",
+        "F116_Bat_Chat_Bourrasque_Custom": "Bourrasque Noir",
+        "F116_Bat_Chat_Bourrasque_Custom_short": "Bourrasque Noir",
         "F116_Bat_Chat_Bourrasque_short": "B-C Bourrasque",
         "F19_Lorraine40t": "Lorraine 40 t",
         "F19_Lorraine40t_Com": "Lorraine 40 t Fearless",
@@ -4517,6 +4552,8 @@
         "G103_RU_251_short": "Ru 251",
         "G106_PzKpfwPanther_AusfF": "Panther mit 8,8 cm L/71",
         "G106_PzKpfwPanther_AusfF_short": "Panther 8,8",
+        "G109_Steyr_WT": "Krupp-Steyr Waffenträger",
+        "G109_Steyr_WT_short": "Steyr WT",
         "G110_Mauschen": "Mäuschen",
         "G110_Mauschen_short": "Mäuschen",
         "G112_JagdPanzer_105": "Kanonenjagdpanzer 105",
@@ -4546,6 +4583,8 @@
         "G136_Tiger_131_short": "Tiger 131",
         "G138_VK16801P": "VK 168.01 (P)",
         "G138_VK16801P_short": "VK 168.01 (P)",
+        "G142_M48RPz": "M48A2 Räumpanzer",
+        "G142_M48RPz_short": "M48A2 Räumpanzer",
         "G144_Kpz_50t": "Kampfpanzer 50 t",
         "G144_Kpz_50t_Custom": "Kampfpanzer 50 t König",
         "G144_Kpz_50t_Custom_short": "Kpz 50 t König",
@@ -4563,6 +4602,7 @@
         "GAZ-74B": "SU-85A",
         "GAZ-74b": "SU-85B",
         "GAZ-M1": "GAZ-M1",
+        "GAZ_M1": "GAZ-M1",
         "GB01_Medium_Mark_I": "Vickers Medium Mk. I",
         "GB01_Medium_Mark_I_short": "Medium I",
         "GB03_Cruiser_Mk_I": "Cruiser Mk. I",
@@ -4611,6 +4651,10 @@
         "GB35_Sentinel_AC_IV_short": "AC IV Sentinel",
         "GB39_Universal_CarrierQF2": "Universal Carrier 2-pdr",
         "GB39_Universal_CarrierQF2_short": "UC 2-pdr",
+        "GB40_Gun_Carrier_BP": "Dreadnought",
+        "GB40_Gun_Carrier_BP_Custom": "Dreadnought Lancelot",
+        "GB40_Gun_Carrier_BP_Custom_short": "Dreadnought Lancelot",
+        "GB40_Gun_Carrier_BP_short": "Dreadnought",
         "GB40_Gun_Carrier_Churchill": "Churchill Gun Carrier",
         "GB40_Gun_Carrier_Churchill_short": "Churchill GC",
         "GB41_Challenger": "Challenger",
@@ -4687,6 +4731,8 @@
         "GB97_Chimera_Custom_short": "Chimera Phantom",
         "GB97_Chimera_short": "Chimera",
         "GB99_Turtle_Mk1": "Turtle Mk. I",
+        "GB99_Turtle_Mk1_Custom": "Turtle I Carapace",
+        "GB99_Turtle_Mk1_Custom_short": "Turtle I Carapace",
         "GB99_Turtle_Mk1_short": "Turtle Mk. I",
         "GB_Centurion_MkDF": "Defender Mk. 1",
         "GB_Centurion_MkDF_short": "Defender Mk. 1",
@@ -5057,7 +5103,11 @@
         "MB_837_Ea": "MB 837 Ea",
         "MB_837_F": "MB 837 F",
         "MB_837_K": "MB 837 K",
-        "MS-1": "MS-1",
+        "MS-1": "MS-1 mod. 1",
+        "MS-1obr21": "MS-1",
+        "MS-1obr21_Custom": "MS-1 1926",
+        "MS-1obr21_Custom_short": "MS-1 1926",
+        "MS-1obr21_short": "MS-1",
         "MT-5-1": "MT-5-1",
         "MT-50TM": "MT-50TM",
         "MT25": "MT-25",
@@ -5192,6 +5242,8 @@
         "OQF_77mm_AT_Gun_MkII": "OQF 77 mm AT Gun Mk. II",
         "OQF_77mm_Gun_MkII": "OQF 77 mm Gun Mk. II",
         "Object263": "Object 263",
+        "Object263_Custom": "Obj. 263 Graywolf",
+        "Object263_Custom_short": "Obj. 263 Graywolf",
         "Object263_short": "Obj. 263",
         "Object268": "Object 268",
         "Object268_Custom": "Object 268 Chaser",
@@ -5222,6 +5274,7 @@
         "Oe_mle._1932A": "HE Shell",
         "Ordnance_QF_2pdr_AT_Gun_Mk.X": "QF Mk. IX",
         "Ordnance_QF_2pdr_AT_Gun_Mk.X_short": "QF Mk. IX",
+        "Oth06_Sega_Lupus": "Lupus",
         "Oth08_WH_Vindicator": "Vindicator Ultramarines",
         "Oth08_WH_Vindicator_Dark_Angels_Custom": "Vindicator Dark Angels",
         "Oth08_WH_Vindicator_Dark_Angels_Custom_short": "Vindicator DA",
@@ -5677,7 +5730,6 @@
         "Sega_Edelweiss": "Edelweiss",
         "Sega_Edelweiss_short": "Edelweiss",
         "Sega_Lupus": "Lupus",
-        "Oth06_Sega_Lupus": "Lupus",
         "Sega_Lupus_short": "Lupus",
         "Sega_Nameless": "Nameless",
         "Sega_Nameless_short": "Nameless",
@@ -5975,6 +6027,7 @@
         "V-5F": "V-5F",
         "V-5U": "V-5U",
         "V-64": "V-64",
+        "V12_cylinder_Boxer_Motor": "12 cylinder Boxer-Motor",
         "VK1602": "VK 16.02 Leopard",
         "VK1602_short": "Leopard",
         "VK2001DB": "VK 20.01 (D)",
@@ -6067,6 +6120,7 @@
         "Van_Helsing_Custom_short": "Helsing Raven",
         "Van_Helsing_short": "Helsing",
         "Vauxhall_Bedford_Twin_Six": "Bedford Twin-Six",
+        "Vauxhall_Bedford_Twin_Six_B": "Bedford Twin-Six B",
         "Verbesserteturm": "L.K.A. 2",
         "Vickers-Armstrong": "Armstrong Siddeley V8",
         "Vickers-Armstrong_MkII": "Armstrong Siddeley V8 SC",
