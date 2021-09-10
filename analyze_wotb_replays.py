@@ -167,6 +167,7 @@ class BattleCategorizationList():
 		'Regular'				: 1,
 		'Training Room'			: 2,
 		'Tournament'			: 4,
+		'Quick Tournament'		: 5,  # maybe? 
 		'Rating'				: 7,
 		'Mad Games'				: 8,
 		'Realistic Battles'		: 22,
@@ -416,7 +417,7 @@ class BattleCategorizationList():
 
 	def get_filter_categories(self, cat: str, filters: list) -> dict:
 		try:
-			return self.categorizations[cat].get_filter_categories(filters)
+			return self.categorizations[str(cat)].get_filter_categories(filters)
 		except Exception as err:
 			bu.error(exception=err)
 		return None
@@ -1576,6 +1577,8 @@ async def main(argv):
 				results = filter_min_replays_by_player(results, args.min)
 				players = get_players(results)
 				replays = filter_replays(replays, results)
+
+				
 
 			(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
 			bu.debug('Number of player stats: ' + str(len(player_stats)))
