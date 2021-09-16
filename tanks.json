@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 506
+        "count": 508
     },
     "data": {
         "1": {
@@ -1868,6 +1868,14 @@
             "tier": 8,
             "type": "AT-SPG"
         },
+        "8561": {
+            "is_premium": true,
+            "name": "Titan T24 57",
+            "nation": "other",
+            "tank_id": 8561,
+            "tier": 6,
+            "type": "lightTank"
+        },
         "8737": {
             "is_premium": false,
             "name": "T95",
@@ -2779,6 +2787,14 @@
             "tank_id": 18721,
             "tier": 1,
             "type": "lightTank"
+        },
+        "18753": {
+            "is_premium": true,
+            "name": "AMX Canon d'assaut 105",
+            "nation": "france",
+            "tank_id": 18753,
+            "tier": 8,
+            "type": "AT-SPG"
         },
         "18769": {
             "is_premium": true,
@@ -4278,6 +4294,8 @@
         "Ch17_WZ131_1_WZ132": "WZ-132",
         "Ch18_WZ-120": "WZ-120",
         "Ch19_121": "WZ-121",
+        "Ch19_121_Custom": "WZ-121 Typhoon",
+        "Ch19_121_Custom_short": "WZ-121 Typhoon",
         "Ch20_Type58": "Type 58",
         "Ch21_T34": "Type T-34",
         "Ch22_113": "WZ-113",
@@ -4508,6 +4526,8 @@
         "F84_Somua_SM_Custom": "Somua Grenadier",
         "F84_Somua_SM_Custom_short": "Somua Grenadier",
         "F84_Somua_SM_short": "Somua SM",
+        "F89_Canon_dassaut_105": "AMX Canon d'assaut 105",
+        "F89_Canon_dassaut_105_short": "AMX CDA 105",
         "FCM50t_fwhite": "FCM 50 t Titi",
         "FCM50t_fwhite_short": "FCM 50 t Titi",
         "FCM50t_liliam": "FCM 50 t Zizou",
@@ -4682,6 +4702,8 @@
         "GB69_Cruiser_Mk_II": "Cruiser Mk. II",
         "GB69_Cruiser_Mk_II_short": "Cruiser II",
         "GB70_FV4202_105": "FV4202",
+        "GB70_FV4202_105_Custom": "FV4202 Safari",
+        "GB70_FV4202_105_Custom_short": "FV4202 Safari",
         "GB70_FV4202_105_short": "FV4202",
         "GB71_AT_15A": "AT 15A",
         "GB72_AT15": "AT 15",
@@ -4695,6 +4717,8 @@
         "GB81_FV4004": "FV4004 Conway",
         "GB81_FV4004_short": "Conway",
         "GB83_4005": "FV4005",
+        "GB83_4005_Custom": "FV4005 Overkill",
+        "GB83_4005_Custom_short": "FV4005 Overkill",
         "GB83_4005_short": "FV4005",
         "GB84_Chieftain_Mk6": "Chieftain Mk.6",
         "GB84_Chieftain_Mk6_Custom": "Chieftain Mk.6 Royal",
@@ -4731,8 +4755,8 @@
         "GB97_Chimera_Custom_short": "Chimera Phantom",
         "GB97_Chimera_short": "Chimera",
         "GB99_Turtle_Mk1": "Turtle Mk. I",
-        "GB99_Turtle_Mk1_Custom": "Turtle I Carapace",
-        "GB99_Turtle_Mk1_Custom_short": "Turtle I Carapace",
+        "GB99_Turtle_Mk1_Custom": "Turtle Carapace",
+        "GB99_Turtle_Mk1_Custom_short": "Turtle Carapace",
         "GB99_Turtle_Mk1_short": "Turtle Mk. I",
         "GB_Centurion_MkDF": "Defender Mk. 1",
         "GB_Centurion_MkDF_short": "Defender Mk. 1",
@@ -5319,6 +5343,10 @@
         "Oth25_HWT20_FalconFire_short": "Annihilator",
         "Oth26_StrvM42HW": "Spike",
         "Oth26_StrvM42HW_short": "Spike",
+        "Oth27_M24_AMX": "Titan T24 57",
+        "Oth27_M24_AMX_Custom": "Titan Flare",
+        "Oth27_M24_AMX_Custom_short": "Titan Flare",
+        "Oth27_M24_AMX_short": "Titan T24 57",
         "PLInz_RWA": "PLInz R.W.A.",
         "Paccar_120_325HT": "Gas Boiler",
         "Paccar_125-770HR": "Furnace",
@@ -5671,6 +5699,7 @@
         "SN-230TR": "SN-230TR",
         "SN-230TRM": "SN-230TRM",
         "SOFAM_12GSds_A": "SOFAM 12 GSds",
+        "SOFAM_12_58": "SOFAM 12 58",
         "SOFAM_8Gxb": "SOFAM 8 Gxb",
         "SOFAM_8Gxb_A": "SOFAM 8 Gxb",
         "SPA_242": "SPA 242",
@@ -6089,6 +6118,8 @@
         "VK4502P_Vetstaerktketten": "VK 45.02(P) Ausf. B verstärkteketten",
         "VK4502P_short": "VK 45.02 B",
         "VK7201": "VK 72.01 (K)",
+        "VK7201_Custom": "VK 72.01 (K) Rotkopf",
+        "VK7201_Custom_short": "VK 72.01 Rotkopf",
         "VK7201_short": "VK 72.01 K",
         "VVSST41": "VVSS T41",
         "VVSST48": "VVSS T48",
@@ -6128,6 +6159,7 @@
         "Volvo_A8B_HW": "Grindcore",
         "W-55": "W-55",
         "WC_R-975C1_BP": "Wright Continental R-975C1B",
+        "WC_R-975C2_BP": "Wright Continental R-975C2B",
         "WZ-135G_FT": "WZ 135G FT Blaze",
         "WZ-135G_FT_short": "WZ Blaze",
         "W_12_5": "W12-5",
