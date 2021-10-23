@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 508
+        "count": 517
     },
     "data": {
         "1": {
@@ -1645,7 +1645,7 @@
             "type": "heavyTank"
         },
         "7297": {
-            "is_premium": true,
+            "is_premium": false,
             "name": "60TP Lewandowskiego",
             "nation": "european",
             "tank_id": 7297,
@@ -1691,6 +1691,14 @@
             "tank_id": 7537,
             "tier": 5,
             "type": "AT-SPG"
+        },
+        "7553": {
+            "is_premium": false,
+            "name": "50TP Tyszkiewicza",
+            "nation": "european",
+            "tank_id": 7553,
+            "tier": 9,
+            "type": "heavyTank"
         },
         "7697": {
             "is_premium": false,
@@ -1738,6 +1746,14 @@
             "nation": "other",
             "tank_id": 7793,
             "tier": 7,
+            "type": "heavyTank"
+        },
+        "7809": {
+            "is_premium": false,
+            "name": "53TP Markowskiego",
+            "nation": "european",
+            "tank_id": 7809,
+            "tier": 8,
             "type": "heavyTank"
         },
         "7937": {
@@ -1788,6 +1804,14 @@
             "tier": 5,
             "type": "mediumTank"
         },
+        "8065": {
+            "is_premium": false,
+            "name": "40TP Habicha",
+            "nation": "european",
+            "tank_id": 8065,
+            "tier": 6,
+            "type": "heavyTank"
+        },
         "8193": {
             "is_premium": false,
             "name": "Object 704",
@@ -1836,6 +1860,22 @@
             "tier": 2,
             "type": "AT-SPG"
         },
+        "8305": {
+            "is_premium": true,
+            "name": "Titan H-N",
+            "nation": "other",
+            "tank_id": 8305,
+            "tier": 7,
+            "type": "heavyTank"
+        },
+        "8321": {
+            "is_premium": false,
+            "name": "45TP Habicha",
+            "nation": "european",
+            "tank_id": 8321,
+            "tier": 7,
+            "type": "heavyTank"
+        },
         "8465": {
             "is_premium": false,
             "name": "Panther II",
@@ -1876,6 +1916,14 @@
             "tier": 6,
             "type": "lightTank"
         },
+        "8577": {
+            "is_premium": true,
+            "name": "Lansen C",
+            "nation": "european",
+            "tank_id": 8577,
+            "tier": 8,
+            "type": "mediumTank"
+        },
         "8737": {
             "is_premium": false,
             "name": "T95",
@@ -1899,6 +1947,22 @@
             "tank_id": 8785,
             "tier": 5,
             "type": "AT-SPG"
+        },
+        "8817": {
+            "is_premium": true,
+            "name": "Titan Mk. I",
+            "nation": "other",
+            "tank_id": 8817,
+            "tier": 5,
+            "type": "lightTank"
+        },
+        "8833": {
+            "is_premium": true,
+            "name": "Blaze",
+            "nation": "european",
+            "tank_id": 8833,
+            "tier": 6,
+            "type": "mediumTank"
         },
         "8961": {
             "is_premium": true,
@@ -3364,6 +3428,14 @@
             "tier": 8,
             "type": "mediumTank"
         },
+        "24609": {
+            "is_premium": false,
+            "name": "Concept 1B",
+            "nation": "usa",
+            "tank_id": 24609,
+            "tier": 10,
+            "type": "heavyTank"
+        },
         "51201": {
             "is_premium": true,
             "name": "KV-220 Beta-Test",
@@ -4120,6 +4192,8 @@
         "A124_T54E2_short": "T54E2",
         "A125_AEP_1": "AE Phase I",
         "A125_AEP_1_short": "AE Phase I",
+        "A128_Concept_1b": "Concept 1B",
+        "A128_Concept_1b_short": "Concept 1B",
         "A130_Super_Hellcat": "Super Hellcat",
         "A130_Super_Hellcat_Custom": "Super Hellcat Delta",
         "A130_Super_Hellcat_Custom_short": "Super Hellcat Delta",
@@ -4129,6 +4203,8 @@
         "A77_T6M": "T6E1 Grizzly",
         "A77_T6M_short": "T6E1 Grizzly",
         "A95_T95E6": "T95E6",
+        "A95_T95E6_Custom": "T95E6 Piranha",
+        "A95_T95E6_Custom_short": "T95E6 Piranha",
         "A95_T95E6_short": "T95E6",
         "A99_T92E1": "T92E1",
         "A99_T92E1_short": "T92E1",
@@ -4435,6 +4511,10 @@
         "Cz07_TVP_46": "TVP VTU Koncept",
         "Cz07_TVP_46_short": "TVP VTU",
         "Cz08_T-25": "Škoda T 25",
+        "Cz08_T-25BP": "Blaze",
+        "Cz08_T-25BP_Custom": "Blaze Extreme",
+        "Cz08_T-25BP_Custom_short": "Blaze Extreme",
+        "Cz08_T-25BP_short": "Blaze",
         "Cz08_T-25_short": "Škoda T 25",
         "Cz13_T-27": "Škoda T 27",
         "Cz13_T-27_Custom": "Škoda T 27 Rampant",
@@ -4511,6 +4591,8 @@
         "F71_AMX_30_prototype": "AMX 30 1er prototype",
         "F71_AMX_30_prototype_short": "AMX 30 1er prot.",
         "F72_AMX_30": "AMX 30 B",
+        "F72_AMX_30_Custom": "AMX 30 B Corsica",
+        "F72_AMX_30_Custom_short": "AMX 30 B Corsica",
         "F72_AMX_30_short": "AMX 30 B",
         "F73_M4A1_Revalorise": "M4A1 Revalorisé",
         "F73_M4A1_Revalorise_short": "M4A1 Rev.",
@@ -4901,6 +4983,8 @@
         "It12_Prototipo_Standard_B": "Prototipo Standard B",
         "It12_Prototipo_Standard_B_short": "Standard B",
         "It13_Progetto_M35_mod_46": "Progetto M35 mod. 46",
+        "It13_Progetto_M35_mod_46_Custom": "Progetto 46 Reborn",
+        "It13_Progetto_M35_mod_46_Custom_short": "Progetto 46 Reborn",
         "It13_Progetto_M35_mod_46_short": "Progetto 46",
         "It14_P44_Pantera": "P.44 Pantera",
         "It14_P44_Pantera_Custom": "P.44 Pantera Furious",
@@ -5088,6 +5172,8 @@
         "M4A3E8_Sherman_Custom_short": "M4A3E8 Shrieking",
         "M4A3E8_Sherman_short": "M4A3E8",
         "M4_Sherman": "M4 Sherman",
+        "M4_Sherman_Custom": "M4 Sherman Unity",
+        "M4_Sherman_Custom_short": "M4 Sherman Unity",
         "M4_Sherman_short": "M4 Sherman",
         "M5_Stuart": "M5 Stuart",
         "M5_Stuart_short": "M5 Stuart",
@@ -5138,6 +5224,7 @@
         "MTLS-1G14": "MTLS-1G14",
         "MTLS_D1": "MTLS D1",
         "MTLS_T1": "MTLS T1",
+        "MT_50_T": "MT-50T",
         "M_40": "M-40",
         "MarderII": "Marder II",
         "MarderIIketten_ausf_B": "Marder II verstärkteketten",
@@ -5163,8 +5250,10 @@
         "Maybach_HL90": "Maybach HL 90",
         "Maybach_HL_108TR": "Maybach HL 108 TR",
         "Maybach_HL_108_TR_R": "Maybach HL 108 TR R",
+        "Maybach_HL_108x2": "Maybach HL 108x2",
         "Maybach_HL_116": "Maybach HL 116",
         "Maybach_HL_116_S": "Maybach HL 116 S",
+        "Maybach_HL_120": "Maybach HL 120",
         "Maybach_HL_120_TR": "Maybach HL 120 TR",
         "Maybach_HL_120_TRM": "Maybach HL 120 TRM",
         "Maybach_HL_120_TRMB": "Maybach HL 120 TRM Ausf. A",
@@ -5177,7 +5266,9 @@
         "Maybach_HL_120_TR_R": "Maybach HL 120 TR R",
         "Maybach_HL_120_WH": "Dark Soul",
         "Maybach_HL_150": "Maybach HL 150",
+        "Maybach_HL_157": "Maybach HL 157",
         "Maybach_HL_157P": "Maybach HL 157 P",
+        "Maybach_HL_157_P": "Maybach HL 157 P",
         "Maybach_HL_174": "Maybach HL 174",
         "Maybach_HL_174_05": "Maybach HL 87",
         "Maybach_HL_190": "Maybach HL 190",
@@ -5211,6 +5302,7 @@
         "Maybach_HL_230_TRM_P45_short": "Maybach HL 230\\nTRM P45",
         "Maybach_HL_234": "Maybach HL 234 TRM P45",
         "Maybach_HL_234P30_Ausf_A": "Maybach HL 234 P30 Ausf. A",
+        "Maybach_HL_234P30_Ausf_HW": "Maybach HL 234 P30 Ausf. H",
         "Maybach_HL_234P45": "Maybach HL 234 P45",
         "Maybach_HL_234P45A": "Maybach V-12 ACC",
         "Maybach_HL_234P45A_short": "Maybach V-12 ACC",
@@ -5254,6 +5346,7 @@
         "Nuffield_liberty_MKIV": "Nuffield Liberty Mk. III",
         "Nuffield_liberty_MKV": "Nuffield Liberty Mk. V",
         "Nuffield_liberty_MKV_BP": "Nuffield Liberty Mk. VB",
+        "Nuffield_liberty_MKV_HW": "Nuffield Liberty Mk. VH",
         "OQF_17pdr_Gun_Mk_IV_SH_SH": "OQF 17-pdr Gun Mk. IV SH-SH",
         "OQF_17pdr_Gun_Mk_VII": "OQF 17-pdr Gun Mk. VII",
         "OQF_17pdr_Gun_Mk_VIIG": "OQF 17-pdr Gun Mk. VII G",
@@ -5347,7 +5440,12 @@
         "Oth27_M24_AMX_Custom": "Titan Flare",
         "Oth27_M24_AMX_Custom_short": "Titan Flare",
         "Oth27_M24_AMX_short": "Titan T24 57",
+        "Oth28_Sturmfeur_HW": "Titan H-N",
+        "Oth28_Sturmfeur_HW_short": "Titan H-N",
+        "Oth29_A15HW": "Titan Mk. I",
+        "Oth29_A15HW_short": "Titan Mk. I",
         "PLInz_RWA": "PLInz R.W.A.",
+        "PLT_27": "PLT-27",
         "Paccar_120_325HT": "Gas Boiler",
         "Paccar_125-770HR": "Furnace",
         "Panther_II": "Panther II",
@@ -5364,12 +5462,20 @@
         "Pershingchassis2": "M26T81",
         "Pl03_PzV_Pudel": "Pudel",
         "Pl03_PzV_Pudel_short": "Pudel",
+        "Pl05_50TP_Tyszkiewicza": "50TP Tyszkiewicza",
+        "Pl05_50TP_Tyszkiewicza_short": "50TP Tyszkiewicza",
         "Pl06_10TP": "10TP",
         "Pl06_10TP_short": "10TP",
         "Pl07_14TP": "14TP",
         "Pl07_14TP_short": "14TP",
         "Pl08_50TP_prot": "50TP prototyp",
         "Pl08_50TP_prot_short": "50TP prototyp",
+        "Pl10_40TP_Habicha": "40TP Habicha",
+        "Pl10_40TP_Habicha_short": "40TP Habicha",
+        "Pl11_45TP_Habicha": "45TP Habicha",
+        "Pl11_45TP_Habicha_short": "45TP Habicha",
+        "Pl13_53TP_Markowskiego": "53TP Markowskiego",
+        "Pl13_53TP_Markowskiego_short": "53TP Markowskiego",
         "Pl15_60TP": "60TP Lewandowskiego",
         "Pl15_60TP_short": "60TP",
         "Porsche_16_Cyl_Y1": "Porsche 16 Cyl. Y",
@@ -5553,6 +5659,8 @@
         "QF_6_pounder_Mk_V": "QF 6-pdr Gun Mk. V",
         "QF_6_pounder_Mk_VA": "QF Mk. V A",
         "QF_6_pounder_Mk_V_AT": "QF 6-pdr AT Gun Mk. V",
+        "QF_6_pounder_Mk_V_HW": "QF 6-pdr AT Mk. VH",
+        "QF_6_pounder_Mk_V_HW_short": "QF 6-pdr AT Mk. VH",
         "Quad_MkII": "Quad Mk. II",
         "Quad_MkII_ATCR": "Quad Mk. II ATCR",
         "R105_BT_7A": "BT-7 artillery",
@@ -5658,6 +5766,7 @@
         "Rolls_Royse_Meteor_Mk_XI_supercharged": "Rolls-Royce Meteor Mk. XI SC",
         "Rolls_Royse_Phantom": "Rolls-Royce Phantom",
         "Rolls_Royse_Phantom_II": "2x Rolls-Royce Phantom II",
+        "Rytla_Wernera_x2": "2x PZInż. Rytla-Wernera",
         "S-35ketten": "Pz.Kpfw. S35 739 (f)",
         "S-51": "S-51",
         "S-51_01": "S-51",
@@ -5690,6 +5799,8 @@
         "S25_EMIL_51_Custom": "EMIL 1951 Viking",
         "S25_EMIL_51_Custom_short": "EMIL 1951 Viking",
         "S25_EMIL_51_short": "EMIL 1951",
+        "S26_Lancen_C": "Lansen C",
+        "S26_Lancen_C_short": "Lansen C",
         "S35_captured": "Pz.Kpfw. S35 739 (f)",
         "S35_captured_short": "Pz. S35",
         "SA35_4": "SA35 mle. 4",
@@ -5773,6 +5884,7 @@
         "Skoda_AHK": "Škoda AHK",
         "Skoda_T-11": "Škoda T-11",
         "Skoda_T-15": "Škoda T-15",
+        "Skoda_V12BP": "Škoda V12 B",
         "Skoda_V12_19_8_liter_450": "Škoda V12 mod. 1",
         "Skoda_V12_19_8_liter_500": "Škoda V12 mod. 2",
         "Skoda_V16_diesel_600": "Škoda 16 cylinder diesel (600)",
@@ -6045,6 +6157,7 @@
         "V-2SNx2": "2x V-2K-F",
         "V-4": "V-4",
         "V-44": "V-44",
+        "V-44A": "V-44A",
         "V-5": "V-5",
         "V-54": "V-54",
         "V-54-6": "V-54-6",
@@ -6157,12 +6270,15 @@
         "Vickers-Armstrong_MkII": "Armstrong Siddeley V8 SC",
         "Volvo_A8B": "Volvo A8B",
         "Volvo_A8B_HW": "Grindcore",
+        "Volvo_V8B": "Volvo V8B",
         "W-55": "W-55",
         "WC_R-975C1_BP": "Wright Continental R-975C1B",
         "WC_R-975C2_BP": "Wright Continental R-975C2B",
         "WZ-135G_FT": "WZ 135G FT Blaze",
         "WZ-135G_FT_short": "WZ Blaze",
         "W_12_5": "W12-5",
+        "W_12_5_B": "W12-5B",
+        "W_12_5_P": "W12-5P",
         "Waffentrager_IV": "Waffenträger auf Pz. IV",
         "Waffentrager_IV_short": "WT auf Pz. IV",
         "Waterspit_1": "Waterspit",
