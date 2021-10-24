@@ -2,9 +2,10 @@
 
 | Release | Date     | Notes       | Inaccurate? |
 |:-------:|:--------:|-------------|-----|
+| 8.4 | 2021-10-20 | Polish heavy tanks |  |
 | 8.3 | 2021-09-16 | FV4005, FV4022, VK 91.01 (P) and WZ-121 legendary camos, -5 deg gun depression to WZ-120 |  |
 | 8.2 | 2021-08-18 | Ghost Factory map, XP/credits nerf for inactive players, new store UI |  |
-| 8.1 | 2021-07-15 | Changes in armor highlighting,  |  |
+| 8.1 | 2021-07-15 | Armor highlighting updated |  |
 | 8.0 | 2021-06-08 | American experimental heavies (Yoh-line), PBR camos |  |
 | 7.9 | 2021-04-27 | Mines rework, new tutorial, colorblind mode, JgPz E100 legendary camo |  |
 | 7.8 | 2021-03-24 | Mid-tier balance changes, Grille line new consumables  |  |
