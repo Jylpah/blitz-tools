@@ -205,7 +205,11 @@ class BattleCategorizationList():
 		'battle_duration'		: [ 'Battle Duration', 	'bucket', [ x*60 for x in range(0,8) ], 'int' ],
 		'distance_travelled'	: [ 'Distance Driven',	'bucket', [ x*250 for x in range(0,20) ], 'int' ],
 		'allies_wins'			: [ 'Allies WR', 		'bucket', [ 0, .35, .45, .50, .55, .65], '%' ],
+		'allies_battles'		: [ 'Player Battles',	'bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3], 'int' ],
+		'allies_damage_dealt'	: [ 'Player Avg Dmg',	'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ],
 		'enemies_wins'			: [ 'Enemies WR', 		'bucket', [ 0, .35, .45, .50, .55, .65], '%' ],
+		'enemies_battles'		: [ 'Player Battles',	'bucket', [ 0, 500, 1000, 2500, 5e3, 10e3, 15e3, 25e3], 'int' ],
+		'enemies_damage_dealt'	: [ 'Player Avg Dmg',	'bucket', [ 0, 500, 1000, 1250, 1500, 1750, 2000, 2500], 'int' ],
 		'player_name'			: [ 'Player', 			'string', 25 ],
 		'protagonist'			: [ 'account_id', 		'number' ],
 		'tank_name'				: [ 'Tank', 			'string', 25],
@@ -1591,13 +1595,14 @@ async def main(argv):
 			if args.min != None:
 				results = filter_min_replays_by_player(results, args.min)
 				players = get_players(results)
-				replays = filter_replays(replays, results)
+				replays = filter_replays(replays, results)				
 
 			# Filter based on non-stats filters
 			results = filter_results(results, args.filters, stats_filters=False)	
 
-			(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
-			# Filter based on stats filters
+      (player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
+      
+      # Filter based on stats filters
 			results = filter_results(results, args.filters, stats_filters=True)
 
 			bu.debug('Number of player stats: ' + str(len(player_stats)))
@@ -1837,7 +1842,7 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 			blt_cat_list.calc_results()
 		else:
 			warning_txt = 'No replays to process '
-			if args.filter != None: 
+			if args.filters != None: 
 				warning_txt = warning_txt + 'after filtering'
 			bu.warning(warning_txt)
 
