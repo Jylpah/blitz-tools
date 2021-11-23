@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 517
+        "count": 520
     },
     "data": {
         "1": {
@@ -1958,7 +1958,7 @@
         },
         "8833": {
             "is_premium": true,
-            "name": "Blaze",
+            "name": "Spark",
             "nation": "european",
             "tank_id": 8833,
             "tier": 6,
@@ -2892,6 +2892,14 @@
             "tier": 10,
             "type": "heavyTank"
         },
+        "19009": {
+            "is_premium": true,
+            "name": "AMXmas",
+            "nation": "france",
+            "tank_id": 19009,
+            "tier": 6,
+            "type": "lightTank"
+        },
         "19025": {
             "is_premium": true,
             "name": "Defender Mk. 1",
@@ -3420,6 +3428,14 @@
             "tier": 6,
             "type": "mediumTank"
         },
+        "24321": {
+            "is_premium": true,
+            "name": "T-100 LT",
+            "nation": "ussr",
+            "tank_id": 24321,
+            "tier": 10,
+            "type": "lightTank"
+        },
         "24337": {
             "is_premium": true,
             "name": "M48A2 Räumpanzer",
@@ -3427,6 +3443,14 @@
             "tank_id": 24337,
             "tier": 8,
             "type": "mediumTank"
+        },
+        "24577": {
+            "is_premium": true,
+            "name": "Object 268 Version 4",
+            "nation": "ussr",
+            "tank_id": 24577,
+            "tier": 10,
+            "type": "AT-SPG"
         },
         "24609": {
             "is_premium": false,
@@ -4244,6 +4268,7 @@
         "AMX_AC_Mle1948": "AMX AC mle. 48",
         "AMX_AC_Mle1948_short": "AMX AC 48",
         "AMX_B_270": "AMX B 270",
+        "AMX_B_270BP": "AMXmas B 270",
         "AMX_M4_1945": "AMX M4 mle. 45",
         "AMX_M4_1945_short": "AMX M4 45",
         "AMX_dracula": "Dracula",
@@ -4511,10 +4536,10 @@
         "Cz07_TVP_46": "TVP VTU Koncept",
         "Cz07_TVP_46_short": "TVP VTU",
         "Cz08_T-25": "Škoda T 25",
-        "Cz08_T-25BP": "Blaze",
-        "Cz08_T-25BP_Custom": "Blaze Extreme",
-        "Cz08_T-25BP_Custom_short": "Blaze Extreme",
-        "Cz08_T-25BP_short": "Blaze",
+        "Cz08_T-25BP": "Spark",
+        "Cz08_T-25BP_Custom": "Spark Extreme",
+        "Cz08_T-25BP_Custom_short": "Spark Extreme",
+        "Cz08_T-25BP_short": "Spark",
         "Cz08_T-25_short": "Škoda T 25",
         "Cz13_T-27": "Škoda T 27",
         "Cz13_T-27_Custom": "Škoda T 27 Rampant",
@@ -4563,6 +4588,8 @@
         "E50_Ausf_M": "E 50 Ausf. M",
         "E50_Ausf_M_Custom": "E 50 M Roaring",
         "E50_Ausf_M_Custom_short": "E 50 M Roaring",
+        "E50_Ausf_M_Custom_short_v2": "E 50 M Monster",
+        "E50_Ausf_M_Custom_v2": "E 50 Ausf. M Monster",
         "E50_Ausf_M_short": "E 50 M",
         "ELC_AMX": "AMX ELC bis",
         "ELC_AMX_short": "AMX ELC bis",
@@ -4620,6 +4647,10 @@
         "FCM_50t_Custom": "FCM 50 t Twister",
         "FCM_50t_Custom_short": "FCM 50 t Twister",
         "FIAT_RA1050I_C_A": "FIAT RA1050I C.A.",
+        "F_AMX-12BP": "AMXmas",
+        "F_AMX-12BP_Custom": "AMXmas Avalanche",
+        "F_AMX-12BP_Custom_short": "AMXmas Avalanche",
+        "F_AMX-12BP_short": "AMXmas",
         "Ferdinand": "Ferdinand",
         "Ferdinandstandardketten": "Ferdinand",
         "Ferdinandturm": "Ferdinand",
@@ -5477,7 +5508,7 @@
         "Pl13_53TP_Markowskiego": "53TP Markowskiego",
         "Pl13_53TP_Markowskiego_short": "53TP Markowskiego",
         "Pl15_60TP": "60TP Lewandowskiego",
-        "Pl15_60TP_short": "60TP",
+        "Pl15_60TP_short": "60TP Lewandowskiego",
         "Porsche_16_Cyl_Y1": "Porsche 16 Cyl. Y",
         "Porsche_16_Cyl_Y2": "Porsche Typ 212 NL",
         "Porsche_Deutz_Typ180_2": "Porsche Deutz Typ 180/2",
@@ -5691,6 +5722,8 @@
         "R120_T22SR_short": "T-22 medium",
         "R127_T44_100_P": "T-44-100",
         "R127_T44_100_P_short": "T-44-100",
+        "R132_T100LT": "T-100 LT",
+        "R132_T100LT_short": "T-100 LT",
         "R134_Object_252U": "Object 252U",
         "R134_Object_252U_short": "Obj. 252U",
         "R140_M4A2_Loza": "Loza's M4-A2 Sherman",
@@ -5699,6 +5732,8 @@
         "R146_STG_Custom": "STG Guard",
         "R146_STG_Custom_short": "STG Guard",
         "R146_STG_short": "STG",
+        "R149_Object_268_4": "Object 268 Version 4",
+        "R149_Object_268_4_short": "Object 268/4",
         "R154_T-34E-43": "T-34 shielded",
         "R154_T-34E-43_short": "T-34 shielded",
         "R158_LT_432": "LT-432",
@@ -5719,6 +5754,8 @@
         "R98_T44_85": "T-44-85",
         "R98_T44_85_Custom": "T-44-85 Bravery",
         "R98_T44_85_Custom_short": "T-44-85 Bravery",
+        "R98_T44_85_Custom_short_v2": "T-44-85 Space",
+        "R98_T44_85_Custom_v2": "T-44-85 Space",
         "R98_T44_85_short": "T-44-85",
         "RX_20_1_chassis": "RX-20-1",
         "RX_20_1_turret": "RX-20-1",
@@ -6121,6 +6158,7 @@
         "Type_61": "Type 61",
         "Type_61_short": "Type 61",
         "UBR-240B": "AP Shell",
+        "UTD_20": "UTD-20",
         "V-11": "V-11",
         "V-11-IS-3": "Object Defender",
         "V-12": "V-12",
@@ -6250,6 +6288,7 @@
         "VVSS_T80": "VVSS T80",
         "VVSS_WE210": "VVSS WE210",
         "V_12CN": "V-12CN",
+        "V_12_5F": "B-12-5B",
         "V_23TG": "V 23 Smasher",
         "V_2_34": "V-2-34",
         "V_2_34M": "V-2-34M",
