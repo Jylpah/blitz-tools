@@ -29,6 +29,8 @@ STAT_TANK_BATTLE_MIN = 100
 BATTLE_TIME_BUCKET = 3600*24*14
 
 OPT_EXPORT_REPLAY_DIR = 'export_replays'
+OPT_EXPORT_CSV_FILE	 = 'export.csv'
+OPT_EXPORT_JSON_FILE = 'export.json'
 
 RE_SRC_IS_DB = re.compile(r'^DB:')
 
@@ -226,16 +228,41 @@ class BattleCategorizationList():
 		'top_tier'
 		]
 
+	## Player stats based categorizations
+	_categorizations_stats = [ group + '_' + measure for group in [ 'player', 'allies', 'enemies'] for measure in ['wins', 'battles', 'damage_dealt' ]]
 
-	_categorizations_stats = [
-		'player_wins',
-		'player_battles',
-		'player_battles'
-	]
+	
+	@classmethod
+	def get_categorizations_all(cls, cats: list = None) -> list:
+		try:
+			if cats == None:
+				return list(cls._categorizations.keys())
+			else:
+				return list(set(cls._categorizations.keys()) & set(cats)) 
+		except Exception as err:
+			bu.error(exception=err)
+		return None	
+
 
 	@classmethod
-	def get_categorizations_all(cls):
-		return cls._categorizations.keys()
+	def get_categorizations_stats(cls, cats=None, stats_cats=None):
+		try:
+			if cats == None:
+				return cls._categorizations_stats
+			else:
+				if stats_cats == None:
+					return cats
+				player_stat_filters = set(cls._categorizations_stats)
+				cats = set(cls.get_categorizations_all(cats))
+				if stats_cats:
+					cats = cats & player_stat_filters
+				else:
+					cats = cats - player_stat_filters
+				bu.debug(', '.join(list(cats)))
+				return list(cats)
+		except Exception as err:
+			bu.error(exception=err)
+		return None		
 
 
 	@classmethod
@@ -370,6 +397,10 @@ class BattleCategorizationList():
 		return BattleCategorizationListIterator(self)
 
 
+	def len(self):
+		return len(self.categorizations)
+
+
 	def get_categorization(self, cat: str):	
 		"""Return a BattleCategorization for a category"""
 		try:
@@ -378,6 +409,7 @@ class BattleCategorizationList():
 			bu.error(exception=err)
 		return None
 	
+
 	def record_result(self, result: dict):
 		try:
 			for cat in self.categorizations_list:
@@ -1388,7 +1420,7 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
 ## main() -------------------------------------------------------------
 
 async def main(argv):
-	global wg, wi, WG_APP_ID, OPT_MODE_DEFAULT 
+	global wg, wi, WG_APP_ID, OPT_MODE_DEFAULT, OPT_EXPORT_CSV_FILE, OPT_EXPORT_JSON_FILE 
 	# set the directory for the script
 	current_dir = os.getcwd()
 	os.chdir(os.path.dirname(sys.argv[0]))
@@ -1401,8 +1433,8 @@ async def main(argv):
 	OPT_HIST			= False
 	OPT_STAT_FUNC		= StatFunc.get_default()
 	OPT_WORKERS_N 		= 10
-	OPT_EXPORT_CSV_FILE	 = 'export.csv'
-	OPT_EXPORT_JSON_FILE = 'export.json'
+	# OPT_EXPORT_CSV_FILE	 = 'export.csv'
+	# OPT_EXPORT_JSON_FILE = 'export.json'
 
 	#WG_ACCOUNT 		= None 	# format: nick@server, where server is either 'eu', 'ru', 'na', 'asia' or 'china'. 
 	  					 	# China is not supported since WG API stats are not available there
@@ -1558,103 +1590,78 @@ async def main(argv):
 			args.account_id = await wg.get_account_id(args.account)
 			bu.debug('WG  account_id: ' + str(args.account_id))
 
-		try:
-			BattleCategory.set_fields(args.mode)
-			replayQ  = asyncio.Queue(maxsize=1000)			
-			reader_tasks = []
-			# Make replay Queue
+		# try:
+		BattleCategory.set_fields(args.mode)
+		replayQ  = asyncio.Queue(maxsize=1000)			
+		reader_tasks = []
+		# Make replay Queue
 
-			scanner_task = asyncio.create_task(mk_replayQ(replayQ, args, db))
-			bu.set_counter('Reading replays', 10)
-			# Start tasks to process the Queue
-			for i in range(OPT_WORKERS_N):
-				reader_tasks.append(asyncio.create_task(replay_reader(replayQ, i, args)))
-				bu.debug('ReplayReader ' + str(i) + ' started')
+		scanner_task = asyncio.create_task(mk_replayQ(replayQ, args, db))
+		bu.set_counter('Reading replays', 10)
+		# Start tasks to process the Queue
+		for i in range(OPT_WORKERS_N):
+			reader_tasks.append(asyncio.create_task(replay_reader(replayQ, i, args)))
+			bu.debug('ReplayReader ' + str(i) + ' started')
 
-			bu.debug('Waiting for the replay scanner to finish')
-			await asyncio.wait([scanner_task])
-			bu.finish_progress_bar()
-			# bu.debug('Scanner finished. Waiting for replay readers to finish the queue')
-			await replayQ.join()
-			await asyncio.sleep(0.1)
-			bu.debug('Replays read. Cancelling Readers and analyzing results')
-			for task in reader_tasks:
-				task.cancel()
-				await asyncio.sleep(0.1)	
-			results = []
-			players = set()
-			replays	= dict()
-			for res in await asyncio.gather(*reader_tasks):
-				results.extend(res[0])
-				players.update(res[1])
-				replays.update(res[2])
+		bu.debug('Waiting for the replay scanner to finish')
+		await asyncio.wait([scanner_task])
+		bu.finish_progress_bar()
+		# bu.debug('Scanner finished. Waiting for replay readers to finish the queue')
+		await replayQ.join()
+		await asyncio.sleep(0.1)
+		bu.debug('Replays read. Cancelling Readers and analyzing results')
+		for task in reader_tasks:
+			task.cancel()
+			await asyncio.sleep(0.1)	
+		results = []
+		players = set()
+		replays	= dict()
+		for res in await asyncio.gather(*reader_tasks):
+			results.extend(res[0])
+			players.update(res[1])
+			replays.update(res[2])
+		
+		if len(players) == 0:
+			raise Exception("No players found to fetch stats for. No replays found?")
+
+		if args.min != None:
+			results = filter_min_replays_by_player(results, args.min)
 			
-			if len(players) == 0:
-				raise Exception("No players found to fetch stats for. No replays found?")
+		# Filter based on non-stats filters
+		results = filter_results(results, args.filters, stats_filters=False)	
+		players = get_players(results)
+		
+		(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
+	
+		# Filter based on stats filters
+		results = filter_results(results, args.filters, stats_filters=True)
+		bu.debug(str(len(replays)) + ' replays to process')
+		replays = filter_replays(replays, results)				
+		
+		bu.debug('Number of player stats: ' + str(len(player_stats)))
+		teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
 
-			if args.min != None:
-				results = filter_min_replays_by_player(results, args.min)
-				players = get_players(results)
-				replays = filter_replays(replays, results)				
+		blt_cat_list = process_battle_results(teamresults, args)
+		bu.verbose_std('WR = ' + StatFunc.get_title())
+		blt_cat_list.print_results()
 
-			# Filter based on non-stats filters
-			results = filter_results(results, args.filters, stats_filters=False)	
+		histograms = None
+		if args.hist:
+			histograms = process_player_dist(results, player_stats, stat_id_map)
+			print_player_dist(histograms)			
+		
+		if args.json:
+			await export_json(args, blt_cat_list, histograms)
+		
+		if args.csv:
+			await export_csv(args, blt_cat_list, histograms)	
+		
+		if args.replays:
+			await export_replays(replays)
 
-      (player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
-      
-      # Filter based on stats filters
-			results = filter_results(results, args.filters, stats_filters=True)
-
-			bu.debug('Number of player stats: ' + str(len(player_stats)))
-			teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
-
-			blt_cat_list = process_battle_results(teamresults, args)
-			bu.verbose_std('WR = ' + StatFunc.get_title())
-			blt_cat_list.print_results()
-
-			histograms = None
-			if args.hist:
-				histograms = process_player_dist(results, player_stats, stat_id_map)
-				print_player_dist(histograms)			
-			
-			if args.json:
-				res = blt_cat_list.get_results_json()
-				if histograms != None:
-					res_hist = dict()
-					for histogram in histograms.keys():
-						res_hist[histogram] = histograms[histogram].get_results()
-					res['histograms'] = res_hist
-				if args.outfile == '-':
-					export_file = OPT_EXPORT_JSON_FILE
-				else:
-					export_file = args.outfile
-				await bu.save_JSON(export_file, res, pretty=False) ## Excel does not understand pretty JSON
-				bu.verbose_std('Results exported to: ' + export_file)
-			
-			if args.csv:
-				rows = blt_cat_list.get_results_list()
-				if args.hist:
-					rows.append('')
-					rows.append(['Player Histograms'])
-					for histogram in histograms.values():
-						rows.append('')
-						rows.extend(histogram.get_results_list())
-				if args.outfile == '-':
-					export_file = OPT_EXPORT_CSV_FILE
-				else:
-					export_file = args.outfile
-				with open(export_file, 'w') as csvfile:  
-					# creating a csv writer object  
-					csvwriter = csv.writer(csvfile)        					
-					csvwriter.writerows(rows)
-					bu.verbose_std('Results exported to: ' + export_file)			
-			
-			if args.replays:
-				await export_replays(replays)
-
-			bu.debug('Finished. Cleaning up..................')
-		except Exception as err:
-			bu.error(exception=err)
+		bu.debug('Finished. Cleaning up..................')
+		# except Exception as err:
+		# 	bu.error(exception=err)
 	except UserWarning as err:
 		bu.warning(str(err))
 	except asyncio.CancelledError:
@@ -1668,6 +1675,48 @@ async def main(argv):
 		if wi != None: 
 			await wi.close()		
 	return None
+
+
+async def export_csv(args : argparse.Namespace, blt_cat_list: BattleCategorizationList, histograms: dict = None):
+	"""Export results into a CSV file"""
+	try:
+		rows = blt_cat_list.get_results_list()
+		if args.hist:
+			rows.append('')
+			rows.append(['Player Histograms'])
+			for histogram in histograms.values():
+				rows.append('')
+				rows.extend(histogram.get_results_list())
+		if args.outfile == '-':
+			export_file = OPT_EXPORT_CSV_FILE
+		else:
+			export_file = args.outfile
+		with open(export_file, 'w') as csvfile:  
+			# creating a csv writer object  
+			csvwriter = csv.writer(csvfile)        					
+			csvwriter.writerows(rows)
+			bu.verbose_std('Results exported to: ' + export_file)		
+	except Exception as err:
+		bu.error(exception=err)
+
+
+async def export_json(args : argparse.Namespace, blt_cat_list: BattleCategorizationList, histograms: dict = None):
+	"""Export results into a JSON file"""
+	try:
+		res = blt_cat_list.get_results_json()
+		if histograms != None:
+			res_hist = dict()
+			for histogram in histograms.keys():
+				res_hist[histogram] = histograms[histogram].get_results()
+			res['histograms'] = res_hist
+		if args.outfile == '-':
+			export_file = OPT_EXPORT_JSON_FILE
+		else:
+			export_file = args.outfile
+		await bu.save_JSON(export_file, res, pretty=False) ## Excel does not understand pretty JSON
+		bu.verbose_std('Results exported to: ' + export_file)
+	except Exception as err:
+		bu.error(exception=err)
 
 
 async def help_extended(db : motor.motor_asyncio.AsyncIOMotorDatabase = None, parser: argparse.ArgumentParser = None):
@@ -1851,21 +1900,28 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 	return blt_cat_list
 
 
-def filter_results(results: list, filter_json : str, stats_filters=False) -> bool:
+def filter_results(results: list, filters_json : str, stats_filters=None) -> bool:
 	"""Filter replays based on battle category filters"""
 	try:
-		filters = json.loads(filter_json)
+		if filters_json == None: 
+			return results
+		filters = json.loads(filters_json)
 		bu.debug(str(filters))
 		if type(filters) != dict:
 			bu.error('invalid --filter arguments: ' + str(filter))
 			sys.exit(1)
 		
-		filter_cats = BattleCategorizationList(filters.keys())
+		filter_cats = BattleCategorizationList.get_categorizations_stats(filters.keys(), stats_filters)
+		filter_cats = BattleCategorizationList(filter_cats)
+		if filter_cats.len() == 0:
+			bu.debug('Nothing to filter')
+			return results
+
 		bu.verbose('Filters applied:')
 		for category in filter_cats:
 			cat = category.category_key
 			categorization = filter_cats.get_categorization(cat)
-			bu.debug('Category: ' + cat + ' filters type: ' + str(type(filters)) + ' filters: ' + str(filters))
+			bu.debug('Category: ' + cat +  ' filters: ' + str(filters))
 			filters[cat] = categorization.get_filter_categories(filters[cat])
 			bu.verbose('  ' + cat + ' = ' + ','.join(filters[cat]))		
 		bu.verbose('')
@@ -1885,8 +1941,12 @@ def filter_results(results: list, filter_json : str, stats_filters=False) -> boo
 					res.append(result)
 			except Exception as err:
 				bu.error(exception=err)
+		if len(res) == 0:
+			raise UserWarning('No replays left after filtering')
 		bu.verbose_std('Replays after filtering: ' + str(len(res)))	
 		return res
+	except UserWarning:
+		raise
 	except Exception as err:
 		bu.error(exception=err)
 	return None
@@ -2439,7 +2499,7 @@ async def mk_readerQ_item(replay_json, filename : str = None, _id: str = None) -
 	try:
 		if wi.chk_JSON_replay(replay_json): 
 			if not '_id' in replay_json:
-				if _id  != None:			
+				if _id  == None:			
 					_id = wi.read_replay_id(replay_json)
 				replay_json['_id'] = _id
 		else:
