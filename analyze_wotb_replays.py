@@ -1587,7 +1587,8 @@ async def main(argv):
 				players = get_players(results)
 				replays = filter_replays(replays, results)
 
-				
+			if args.filters != None:
+				results = filter_results(results, args.filters, stats_filters=False)	
 
 			(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
 			bu.debug('Number of player stats: ' + str(len(player_stats)))
@@ -1815,6 +1816,7 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 		cats 		= BattleCategorizationList.get_categorizations(args)
 		blt_cat_list= None
 		
+		## Move filtering to main()
 		if args.filters != None:
 			results = filter_results(results, args.filters)
 		if len(results) > 0:
@@ -1836,7 +1838,7 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 	return blt_cat_list
 
 
-def filter_results(results: list, filter_json : str) -> bool:
+def filter_results(results: list, filter_json : str, stats_filters=False) -> bool:
 	"""Filter replays based on battle category filters"""
 	try:
 		filters = json.loads(filter_json)
