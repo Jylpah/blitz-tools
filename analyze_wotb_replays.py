@@ -223,6 +223,12 @@ class BattleCategorizationList():
 		]
 
 
+	_categorizations_stats = [
+		'player_wins',
+		'player_battles',
+		'player_battles'
+	]
+
 	@classmethod
 	def get_categorizations_all(cls):
 		return cls._categorizations.keys()
@@ -1587,10 +1593,13 @@ async def main(argv):
 				players = get_players(results)
 				replays = filter_replays(replays, results)
 
-			if args.filters != None:
-				results = filter_results(results, args.filters, stats_filters=False)	
+			# Filter based on non-stats filters
+			results = filter_results(results, args.filters, stats_filters=False)	
 
 			(player_stats, stat_id_map) = await process_player_stats(players, OPT_WORKERS_N, args, db)
+			# Filter based on stats filters
+			results = filter_results(results, args.filters, stats_filters=True)
+
 			bu.debug('Number of player stats: ' + str(len(player_stats)))
 			teamresults = calc_team_stats(results, player_stats, stat_id_map, args)
 
@@ -1809,6 +1818,7 @@ def print_player_dist(histograms: dict):
 		print('')
 		hist.print()
 
+
 def process_battle_results(results: dict, args : argparse.Namespace):
 	"""Process replay battle results""" 
 	try:
@@ -1816,9 +1826,7 @@ def process_battle_results(results: dict, args : argparse.Namespace):
 		cats 		= BattleCategorizationList.get_categorizations(args)
 		blt_cat_list= None
 		
-		## Move filtering to main()
-		if args.filters != None:
-			results = filter_results(results, args.filters)
+		# remove if? 
 		if len(results) > 0:
 			blt_cat_list = BattleCategorizationList(cats)
 			for result in results:
