@@ -13,16 +13,15 @@ Python scripts to analyze WoT Blitz replays and stats. All the scripts require [
 * [blitzutils.py](blitzutils.py): A utils class for various Blitz related to functions. *Other scripts use this*, so you need to place it to the same folder with the other scripts
 
 ### Data
-* [tanks.json](tanks.json): Tankopedia in WG JSON format extracted from the Blitz app files with [extract_tankopedia.py]](extractTankopedia.py]). Contains only limited information required by the scripts. 
-* [maps.json](maps.json): Blitz map names extracted from the Blitz app files with [extract_tankopedia.py]](extract_tankopedia.py]). 
+* [tanks.json](tanks.json): Tankopedia in WG JSON format extracted from the Blitz app files with [extract_tankopedia.py](extractTankopedia.py). Contains only limited information required by the scripts. 
+* [maps.json](maps.json): Blitz map names extracted from the Blitz app files with [extract_tankopedia.py](extract_tankopedia.py). 
 
 ### Quick instructions
 
-1. Install [Python 3.8](https://www.python.org/downloads/) on to your computer/laptop
-2. Install the required Python modules: motor, aiohttp, aioconsole, aiofiles, aiosqlite, beautifulsoup4, lxml, xmltodict, progress
+1. Install [Python 3.8](https://www.python.org/downloads/) or later to your computer/laptop
+2. Install the required Python modules (see [requirements.txt](requirements.txt): motor, aiohttp, aioconsole, aiofiles, aiosqlite, beautifulsoup4, lxml, xmltodict, progress
 ```
-# Remember to run the command with a Python interpreter >= 3.7
-python -m pip install motor aiohttp aioconsole aiofiles aiosqlite beautifulsoup4 lxml xmltodict progress 
+python -m pip install -r requirements.txt
 ```
 3. Download all the files including the [maps.json](maps.json) and [tanks.json](tanks.json) files. **The recommened way** is to install the scipts via `git clone`: [GitHub Desktop](https://desktop.github.com/) is an excellent GUI for git. This makes it easy to receive the updates via `git pull`. 
 
