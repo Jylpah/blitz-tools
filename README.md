@@ -1,5 +1,5 @@
 # blitz-tools
-Python scripts to analyze WoT Blitz replays and stats. All the scripts require [Python 3.7](https://www.python.org/downloads/) or higher. I am using 3.8 myself so you may have to change the Python interpreter version in the scripts' first line. 
+Python scripts to analyze WoT Blitz replays and stats. All the scripts require [Python 3.7](https://www.python.org/downloads/) or later. 
 
 ### Replays
 * [upload_wotb_replays.py](upload_wotb_replays.py): An asynchronous replay uploader. 
@@ -23,35 +23,38 @@ Python scripts to analyze WoT Blitz replays and stats. All the scripts require [
 ```
 python -m pip install -r requirements.txt
 ```
-3. Download all the files including the [maps.json](maps.json) and [tanks.json](tanks.json) files. **The recommened way** is to install the scipts via `git clone`: [GitHub Desktop](https://desktop.github.com/) is an excellent GUI for git. This makes it easy to receive the updates via `git pull`. 
-
-4. Upload your replays. 
+3. Clone the repository. [GitHub Desktop](https://desktop.github.com/) is an excellent GUI for `git`. This makes it easy to receive the updates via `git pull`. 
 ```
-# Windows, run directly from Command Prompt or Powershell
-# Check the options
+git clone https://github.com/Jylpah/blitz-tools.git
+```
+4. Upload your replays with `upload_wotb_replays.py` 
+```
+## Check the options
+# Windows Command Prompt or Powershell
 python.exe .\upload_wotb_replays.py --help
 
-# Syntax
-python.exe .\upload_wotb_replays.py REPLAY_FILE.wotbreplay
+# Linux or Windows Subsystem for Linux (WSL)
+./upload_wotb_replays.py --help
+
+# Upload replays (Windows)
+python.exe .\upload_wotb_replays.py REPLAY_FILE.wotbreplay  DIR_WITH_REPLAYS
 
 # example
 python.exe .\upload_wotb_replays.py 20200223_0122__jylpah_T-54_grossberg.wotbreplay
-
-# Linux
-./upload_wotb_replays.py --help
 ```
-5. Analyze replays. 
+5. Analyze replays with `analyze_wotb_replays.py`
 ```
-# Windows, run directly from Command Prompt or Powershell
+## Check options
+# Windows Command Prompt or Powershell
 python.exe .\analyze_wotb_replays.py --help
 
-# Syntax
-python.exe .\analyze_wotb_replays.py REPLAY_FILE.wotbreplay.json
+# Syntax (Windows)
+python.exe .\analyze_wotb_replays.py REPLAY_FILE.wotbreplay.json [DIR_WITH_REPLAYS ...]
 
-# Example
+# Example (Windows)
 python.exe .\analyze_wotb_replays.py 20200223_0122__jylpah_T-54_grossberg.wotbreplay.json
 
-# Linux
+# Linux or Windows Subsystem for Linux (WSL)
 ./analyze_wotb_replays.py --help
 ```
 
