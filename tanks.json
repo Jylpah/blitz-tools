@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 520
+        "count": 524
     },
     "data": {
         "1": {
@@ -1996,6 +1996,14 @@
             "tier": 4,
             "type": "AT-SPG"
         },
+        "9089": {
+            "is_premium": true,
+            "name": "Škoda T 56",
+            "nation": "european",
+            "tank_id": 9089,
+            "tier": 8,
+            "type": "heavyTank"
+        },
         "9217": {
             "is_premium": true,
             "name": "IS-6",
@@ -2027,6 +2035,14 @@
             "tank_id": 9297,
             "tier": 10,
             "type": "AT-SPG"
+        },
+        "9345": {
+            "is_premium": true,
+            "name": "Svear",
+            "nation": "european",
+            "tank_id": 9345,
+            "tier": 7,
+            "type": "mediumTank"
         },
         "9489": {
             "is_premium": false,
@@ -3452,13 +3468,29 @@
             "tier": 10,
             "type": "AT-SPG"
         },
+        "24593": {
+            "is_premium": true,
+            "name": "E 75 RT",
+            "nation": "germany",
+            "tank_id": 24593,
+            "tier": 8,
+            "type": "heavyTank"
+        },
         "24609": {
-            "is_premium": false,
+            "is_premium": true,
             "name": "Concept 1B",
             "nation": "usa",
             "tank_id": 24609,
             "tier": 10,
             "type": "heavyTank"
+        },
+        "24849": {
+            "is_premium": true,
+            "name": "Kryos",
+            "nation": "germany",
+            "tank_id": 24849,
+            "tier": 6,
+            "type": "AT-SPG"
         },
         "51201": {
             "is_premium": true,
@@ -4217,6 +4249,8 @@
         "A125_AEP_1": "AE Phase I",
         "A125_AEP_1_short": "AE Phase I",
         "A128_Concept_1b": "Concept 1B",
+        "A128_Concept_1b_Custom": "Concept 1B Thunderbird",
+        "A128_Concept_1b_Custom_short": "Concept 1B Thunderbird",
         "A128_Concept_1b_short": "Concept 1B",
         "A130_Super_Hellcat": "Super Hellcat",
         "A130_Super_Hellcat_Custom": "Super Hellcat Delta",
@@ -4353,6 +4387,7 @@
         "CH38_WZ113G-FT_short": "WZ-113G FT",
         "CH38_WZ113G_FT_Custom": "WZ-113G FT Lucky",
         "CH38_WZ113G_FT_Custom_short": "WZ-113G FT Lucky",
+        "CKD_AXK": "ČKD AXK",
         "Cadillac_V8": "3xCadillacV8",
         "Cannone_da_105_51_M68": "Cannone da 105/51 M68",
         "Cannone_da_105_51_M68_short": "Cannone da 105/51 M68",
@@ -4545,6 +4580,8 @@
         "Cz13_T-27_Custom": "Škoda T 27 Rampant",
         "Cz13_T-27_Custom_short": "Škoda T 27 Rampant",
         "Cz13_T-27_short": "Škoda T 27",
+        "Cz14_Skoda_T-56": "Škoda T 56",
+        "Cz14_Skoda_T-56_short": "Škoda T 56",
         "D-744": "D-744",
         "D1": "D1",
         "D1_short": "D1",
@@ -4557,6 +4594,7 @@
         "D51072": "D51072",
         "D51080": "D51080",
         "DB_605": "DB 605",
+        "DB_605NY": "DB 605 A",
         "DMA-RD-620C2": "DMA RD-620C2",
         "DW_II": "Durchbruchswagen 2",
         "DW_II_short": "D.W. 2",
@@ -4636,6 +4674,8 @@
         "F84_Somua_SM_Custom_short": "Somua Grenadier",
         "F84_Somua_SM_short": "Somua SM",
         "F89_Canon_dassaut_105": "AMX Canon d'assaut 105",
+        "F89_Canon_dassaut_105_Custom": "CDA 105 Égalité",
+        "F89_Canon_dassaut_105_Custom_short": "CDA 105 Égalité",
         "F89_Canon_dassaut_105_short": "AMX CDA 105",
         "FCM50t_fwhite": "FCM 50 t Titi",
         "FCM50t_fwhite_short": "FCM 50 t Titi",
@@ -4686,6 +4726,8 @@
         "G106_PzKpfwPanther_AusfF": "Panther mit 8,8 cm L/71",
         "G106_PzKpfwPanther_AusfF_short": "Panther 8,8",
         "G109_Steyr_WT": "Krupp-Steyr Waffenträger",
+        "G109_Steyr_WT_Custom": "Steyr WT Snakebite",
+        "G109_Steyr_WT_Custom_short": "Steyr WT Snakebite",
         "G109_Steyr_WT_short": "Steyr WT",
         "G110_Mauschen": "Mäuschen",
         "G110_Mauschen_short": "Mäuschen",
@@ -4899,7 +4941,10 @@
         "GM_6-71_M": "GM 6062 6-71M",
         "GM_X-11": "GM X-11",
         "GM_X-12": "GM X-12",
+        "GT_101": "GT 101",
         "G_E": "G.W. E 100",
+        "G_E-75RT": "E 75 RT",
+        "G_E-75RT_short": "E 75 RT",
         "G_E-75TS": "E 75 TS",
         "G_E-75TS_short": "E 75 TS",
         "G_E_75TS_Custom": "E 75 TS Eagle",
@@ -5040,6 +5085,10 @@
         "JagdPanther_short": "JPanther",
         "JagdPzIV": "Jagdpanzer IV",
         "JagdPzIV_0": "Jagdpanzer IV",
+        "JagdPzIV_AusfBP": "Kryos",
+        "JagdPzIV_AusfBP_Custom": "Kryos Survivor",
+        "JagdPzIV_AusfBP_Custom_short": "Kryos Survivor",
+        "JagdPzIV_AusfBP_short": "Kryos",
         "JagdPzIV_Ausf_1940": "Jagdpanzer IV 0-Serie",
         "JagdPzIV_Ausf_1943": "Jagdpanzer IV",
         "JagdPzIV_short": "Jg.Pz. IV",
@@ -5285,6 +5334,7 @@
         "Maybach_HL_116": "Maybach HL 116",
         "Maybach_HL_116_S": "Maybach HL 116 S",
         "Maybach_HL_120": "Maybach HL 120",
+        "Maybach_HL_120BP": "Maybach HL 120",
         "Maybach_HL_120_TR": "Maybach HL 120 TR",
         "Maybach_HL_120_TRM": "Maybach HL 120 TRM",
         "Maybach_HL_120_TRMB": "Maybach HL 120 TRM Ausf. A",
@@ -5369,8 +5419,8 @@
         "NC27": "Renault Otsu",
         "NC27_short": "R. Otsu",
         "NORINCO_12150L7": "NORINCO 12150L",
-        "NVSS_T66": "NVSS T66",
-        "NVSS_T80": "NVSS T80",
+        "NVSS_T66": "HVSS T66",
+        "NVSS_T80": "HVSS T80",
         "Nashorn": "Nashorn",
         "Nashorn_short": "Nashorn",
         "Nuffield_liberty_MKII": "Nuffield Liberty Mk. II",
@@ -5508,6 +5558,8 @@
         "Pl13_53TP_Markowskiego": "53TP Markowskiego",
         "Pl13_53TP_Markowskiego_short": "53TP Markowskiego",
         "Pl15_60TP": "60TP Lewandowskiego",
+        "Pl15_60TP_Custom": "60TP Krzemień",
+        "Pl15_60TP_Custom_short": "60TP Krzemień",
         "Pl15_60TP_short": "60TP Lewandowskiego",
         "Porsche_16_Cyl_Y1": "Porsche 16 Cyl. Y",
         "Porsche_16_Cyl_Y2": "Porsche Typ 212 NL",
@@ -5754,8 +5806,8 @@
         "R98_T44_85": "T-44-85",
         "R98_T44_85_Custom": "T-44-85 Bravery",
         "R98_T44_85_Custom_short": "T-44-85 Bravery",
-        "R98_T44_85_Custom_short_v2": "T-44-85 Space",
-        "R98_T44_85_Custom_v2": "T-44-85 Space",
+        "R98_T44_85_Custom_short_v2": "T-44-85 Cosmic",
+        "R98_T44_85_Custom_v2": "T-44-85 Cosmic",
         "R98_T44_85_short": "T-44-85",
         "RX_20_1_chassis": "RX-20-1",
         "RX_20_1_turret": "RX-20-1",
@@ -5821,6 +5873,8 @@
         "S07_Strv_74": "Strv 74",
         "S07_Strv_74_short": "Strv 74",
         "S13_Leo": "Leo",
+        "S13_Leo_NY": "Svear",
+        "S13_Leo_NY_short": "Svear",
         "S13_Leo_short": "Leo",
         "S16_Kranvagn": "Kranvagn",
         "S16_Kranvagn_Custom": "Kranvagn Nidhögg",
@@ -5837,6 +5891,8 @@
         "S25_EMIL_51_Custom_short": "EMIL 1951 Viking",
         "S25_EMIL_51_short": "EMIL 1951",
         "S26_Lancen_C": "Lansen C",
+        "S26_Lancen_C_Custom": "Lansen Moose",
+        "S26_Lancen_C_Custom_short": "Lansen Moose",
         "S26_Lancen_C_short": "Lansen C",
         "S35_captured": "Pz.Kpfw. S35 739 (f)",
         "S35_captured_short": "Pz. S35",
