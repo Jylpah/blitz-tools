@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 524
+        "count": 530
     },
     "data": {
         "1": {
@@ -2036,6 +2036,14 @@
             "tier": 10,
             "type": "AT-SPG"
         },
+        "9329": {
+            "is_premium": true,
+            "name": "Titan-150",
+            "nation": "other",
+            "tank_id": 9329,
+            "tier": 6,
+            "type": "heavyTank"
+        },
         "9345": {
             "is_premium": true,
             "name": "Svear",
@@ -2059,6 +2067,14 @@
             "tank_id": 9505,
             "tier": 9,
             "type": "heavyTank"
+        },
+        "9521": {
+            "is_premium": true,
+            "name": "122 TM",
+            "nation": "china",
+            "tank_id": 9521,
+            "tier": 8,
+            "type": "mediumTank"
         },
         "9553": {
             "is_premium": false,
@@ -3412,6 +3428,14 @@
             "tier": 7,
             "type": "heavyTank"
         },
+        "23809": {
+            "is_premium": false,
+            "name": "Object 84",
+            "nation": "ussr",
+            "tank_id": 23809,
+            "tier": 9,
+            "type": "lightTank"
+        },
         "23825": {
             "is_premium": true,
             "name": "Krupp-Steyr Waffenträger",
@@ -3427,6 +3451,14 @@
             "tank_id": 23841,
             "tier": 7,
             "type": "AT-SPG"
+        },
+        "24065": {
+            "is_premium": false,
+            "name": "LTG",
+            "nation": "ussr",
+            "tank_id": 24065,
+            "tier": 7,
+            "type": "lightTank"
         },
         "24081": {
             "is_premium": true,
@@ -3445,7 +3477,7 @@
             "type": "mediumTank"
         },
         "24321": {
-            "is_premium": true,
+            "is_premium": false,
             "name": "T-100 LT",
             "nation": "ussr",
             "tank_id": 24321,
@@ -3491,6 +3523,22 @@
             "tank_id": 24849,
             "tier": 6,
             "type": "AT-SPG"
+        },
+        "25089": {
+            "is_premium": true,
+            "name": "Object 752",
+            "nation": "ussr",
+            "tank_id": 25089,
+            "tier": 9,
+            "type": "heavyTank"
+        },
+        "25345": {
+            "is_premium": true,
+            "name": "Object 274a",
+            "nation": "ussr",
+            "tank_id": 25345,
+            "tier": 8,
+            "type": "mediumTank"
         },
         "51201": {
             "is_premium": true,
@@ -4409,6 +4457,8 @@
         "Canon_de_105_mle_1930_Schneider_AC_short": "105 mm AC\\nmle. 1930 S",
         "Canon_de_90mm_Vo_930_m_s": "Canon de 90 mm Vo 930 m/s",
         "Ch01_Type59": "Type 59",
+        "Ch01_Type59_Custom": "Type 59 Qinglong",
+        "Ch01_Type59_Custom_short": "Type 59 Qinglong",
         "Ch02_Type62": "Type 62",
         "Ch02_Type62_Dragon": "Type 62 Dragon",
         "Ch03_WZ-111": "WZ-111",
@@ -4466,6 +4516,8 @@
         "Ch42_M41D_Custom": "M41D Jade",
         "Ch42_M41D_Custom_short": "M41D Jade",
         "Ch42_M41D_short": "M41D",
+        "Ch43_WZ-122_2": "122 TM",
+        "Ch43_WZ-122_2_short": "122 TM",
         "Ch_LT_vz38": "LT vz. 38",
         "Ch_LT_vz38_short": "LT vz. 38",
         "Ch_WZ-112v2": "WZ-112-2",
@@ -4595,6 +4647,7 @@
         "D51080": "D51080",
         "DB_605": "DB 605",
         "DB_605NY": "DB 605 A",
+        "DG": "DG",
         "DMA-RD-620C2": "DMA RD-620C2",
         "DW_II": "Durchbruchswagen 2",
         "DW_II_short": "D.W. 2",
@@ -4759,6 +4812,8 @@
         "G138_VK16801P": "VK 168.01 (P)",
         "G138_VK16801P_short": "VK 168.01 (P)",
         "G142_M48RPz": "M48A2 Räumpanzer",
+        "G142_M48RPz_Custom": "Räumpanzer Rhino",
+        "G142_M48RPz_Custom_short": "Räumpanzer Rhino",
         "G142_M48RPz_short": "M48A2 Räumpanzer",
         "G144_Kpz_50t": "Kampfpanzer 50 t",
         "G144_Kpz_50t_Custom": "Kampfpanzer 50 t König",
@@ -4778,6 +4833,8 @@
         "GAZ-74b": "SU-85B",
         "GAZ-M1": "GAZ-M1",
         "GAZ_M1": "GAZ-M1",
+        "GAZ_O": "GAZ-O",
+        "GAZ_OU": "GAZ-OU",
         "GB01_Medium_Mark_I": "Vickers Medium Mk. I",
         "GB01_Medium_Mark_I_short": "Medium I",
         "GB03_Cruiser_Mk_I": "Cruiser Mk. I",
@@ -5525,6 +5582,10 @@
         "Oth28_Sturmfeur_HW_short": "Titan H-N",
         "Oth29_A15HW": "Titan Mk. I",
         "Oth29_A15HW_short": "Titan Mk. I",
+        "Oth31_T150BP": "Titan-150",
+        "Oth31_T150BP_Custom": "Titan-150 Trailblazer",
+        "Oth31_T150BP_Custom_short": "Titan-150 Trailblazer",
+        "Oth31_T150BP_short": "Titan-150",
         "PLInz_RWA": "PLInz R.W.A.",
         "PLT_27": "PLT-27",
         "Paccar_120_325HT": "Gas Boiler",
@@ -5774,9 +5835,15 @@
         "R120_T22SR_short": "T-22 medium",
         "R127_T44_100_P": "T-44-100",
         "R127_T44_100_P_short": "T-44-100",
+        "R131_LTG": "LTG",
+        "R131_LTG_short": "LTG",
         "R132_T100LT": "T-100 LT",
+        "R132_T100LT_Custom": "T-100 LT Interceptor",
+        "R132_T100LT_Custom_short": "T-100 LT Interceptor",
         "R132_T100LT_short": "T-100 LT",
         "R134_Object_252U": "Object 252U",
+        "R134_Object_252U_Custom": "Object 252U Vigilant",
+        "R134_Object_252U_Custom_short": "Object 252U Vigilant",
         "R134_Object_252U_short": "Obj. 252U",
         "R140_M4A2_Loza": "Loza's M4-A2 Sherman",
         "R140_M4A2_Loza_short": "Loza's Sherman",
@@ -5796,6 +5863,10 @@
         "R159_SU_130PM_short": "SU-130PM",
         "R160_object_244": "Object 244",
         "R160_object_244_short": "Object 244",
+        "R172_Object_752": "Object 752",
+        "R172_Object_752_short": "Object 752",
+        "R180_Object_274A": "Object 274a",
+        "R180_Object_274A_short": "Object 274a",
         "R43_T-70_57": "T-70/57",
         "R43_T-70_57_short": "T-70/57",
         "R63_ST_IBD": "T-2020",
@@ -5811,6 +5882,8 @@
         "R98_T44_85_short": "T-44-85",
         "RX_20_1_chassis": "RX-20-1",
         "RX_20_1_turret": "RX-20-1",
+        "R_Object_84": "Object 84",
+        "R_Object_84_short": "Object 84",
         "Ram-II": "Ram II",
         "Ram_II_D1": "Ram II D1",
         "Redcell_Mk1": "Redcell Mk. 1",
@@ -6174,6 +6247,7 @@
         "T95E2_short": "T95E2",
         "T99E2": "T99E2",
         "TD-12": "TD-12",
+        "TD-12S": "TD-12S",
         "TD-30": "M-50D",
         "T_44_100_Custom": "T-44-100 Hellfire",
         "T_44_100_Custom_short": "T-44-100 Hellfire",
@@ -6223,6 +6297,7 @@
         "V-12-5U": "V-12-5U",
         "V-12-5_shortened": "V-12-5 shortened",
         "V-12-6": "V-12-6",
+        "V-12-6B": "V-12-6B",
         "V-12A": "V-12 A",
         "V-12P": "V-12P",
         "V-12PA": "V-12PA",
@@ -6234,6 +6309,7 @@
         "V-2-34E": "V-2-34E",
         "V-2-34M": "V-2-34M",
         "V-2-34M_BP": "V-2-34M B",
+        "V-2-34S": "V-2-34S",
         "V-2-44": "V-2-44",
         "V-2-54": "V-2-54",
         "V-2-54IS": "V-2-54IS",
@@ -6251,6 +6327,7 @@
         "V-2SNx2": "2x V-2K-F",
         "V-4": "V-4",
         "V-44": "V-44",
+        "V-44-2": "V-44-2",
         "V-44A": "V-44A",
         "V-5": "V-5",
         "V-54": "V-54",
@@ -6260,6 +6337,7 @@
         "V-54K_TU": "V-54K",
         "V-55": "V-55",
         "V-55U": "V-14",
+        "V-5BP": "V-5B",
         "V-5F": "V-5F",
         "V-5U": "V-5U",
         "V-64": "V-64",
@@ -6350,6 +6428,7 @@
         "V_2_34M": "V-2-34M",
         "V_2_34_modificato": "V-2-34 modificato",
         "V_2_54SCG": "V-2-54SCG",
+        "V_46_5": "V-46-5",
         "V_54": "V-54",
         "V_54_105": "V-54-105",
         "ValentineMK_I": "Valentine",
