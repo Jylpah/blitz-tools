@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 530
+        "count": 532
     },
     "data": {
         "1": {
@@ -1524,6 +1524,14 @@
             "tier": 5,
             "type": "heavyTank"
         },
+        "6753": {
+            "is_premium": true,
+            "name": "Type 71",
+            "nation": "japan",
+            "tank_id": 6753,
+            "tier": 10,
+            "type": "heavyTank"
+        },
         "6785": {
             "is_premium": true,
             "name": "Škoda T 27",
@@ -2070,7 +2078,7 @@
         },
         "9521": {
             "is_premium": true,
-            "name": "122 TM",
+            "name": "WZ-122 TM",
             "nation": "china",
             "tank_id": 9521,
             "tier": 8,
@@ -3502,7 +3510,7 @@
         },
         "24593": {
             "is_premium": true,
-            "name": "E 75 RT",
+            "name": "Keiler",
             "nation": "germany",
             "tank_id": 24593,
             "tier": 8,
@@ -3530,6 +3538,14 @@
             "nation": "ussr",
             "tank_id": 25089,
             "tier": 9,
+            "type": "heavyTank"
+        },
+        "25105": {
+            "is_premium": true,
+            "name": "Barkhan",
+            "nation": "germany",
+            "tank_id": 25105,
+            "tier": 6,
             "type": "heavyTank"
         },
         "25345": {
@@ -4516,8 +4532,8 @@
         "Ch42_M41D_Custom": "M41D Jade",
         "Ch42_M41D_Custom_short": "M41D Jade",
         "Ch42_M41D_short": "M41D",
-        "Ch43_WZ-122_2": "122 TM",
-        "Ch43_WZ-122_2_short": "122 TM",
+        "Ch43_WZ-122_2": "WZ-122 TM",
+        "Ch43_WZ-122_2_short": "WZ-122 TM",
         "Ch_LT_vz38": "LT vz. 38",
         "Ch_LT_vz38_short": "LT vz. 38",
         "Ch_WZ-112v2": "WZ-112-2",
@@ -5000,8 +5016,8 @@
         "GM_X-12": "GM X-12",
         "GT_101": "GT 101",
         "G_E": "G.W. E 100",
-        "G_E-75RT": "E 75 RT",
-        "G_E-75RT_short": "E 75 RT",
+        "G_E-75RT": "Keiler",
+        "G_E-75RT_short": "Keiler",
         "G_E-75TS": "E 75 TS",
         "G_E-75TS_short": "E 75 TS",
         "G_E_75TS_Custom": "E 75 TS Eagle",
@@ -5015,6 +5031,10 @@
         "G_Panther_short": "G.W. Panther",
         "G_Tiger": "G.W. Tiger",
         "G_Tiger_short": "G.W. Tiger",
+        "G_VK3502_BP": "Barkhan",
+        "G_VK3502_BP_Custom": "Barkhan Expedition",
+        "G_VK3502_BP_Custom_short": "Barkhan Expedition",
+        "G_VK3502_BP_short": "Barkhan",
         "G_VK9001P": "VK 90.01 (P)",
         "G_VK9001P_Custom": "VK 90.01 (P) Blade",
         "G_VK9001P_Custom_short": "VK 90.01 (P) Blade",
@@ -5135,6 +5155,10 @@
         "J22_Ho_Ri_type96_short": "Ho-Ri T.I",
         "J23_Chi_To_SPG": "Chi-To SPG",
         "J23_Chi_To_SPG_short": "Chi-To SPG",
+        "J25_Type71": "Type 71",
+        "J25_Type71_short": "Type 71",
+        "J26_Type_68": "#japan_vehicles:J26_Type_68",
+        "J26_Type_68_short": "#japan_vehicles:J26_Type_68_short",
         "J_V12_M": "American la France “J” V-12",
         "JagdPanther": "Jagdpanther",
         "JagdPantherII": "Jagdpanther II",
@@ -5404,6 +5428,7 @@
         "Maybach_HL_120_TR_R": "Maybach HL 120 TR R",
         "Maybach_HL_120_WH": "Dark Soul",
         "Maybach_HL_150": "Maybach HL 150",
+        "Maybach_HL_150BP": "Maybach HL 150 B",
         "Maybach_HL_157": "Maybach HL 157",
         "Maybach_HL_157P": "Maybach HL 157 P",
         "Maybach_HL_157_P": "Maybach HL 157 P",
@@ -5469,6 +5494,9 @@
         "Minkovsky_engine": "Minkovsky engine",
         "Mitsubishi": "Mitsubishi A475VD",
         "Mitsubishi_10ZF": "Mitsubishi 10ZF",
+        "Mitsubishi_12ZM": "#japan_vehicles:Mitsubishi_12ZM",
+        "Mitsubishi_12ZT": "#japan_vehicles:Mitsubishi_12ZT",
+        "Mitsubishi_MT11": "Mitsubishi MT11",
         "Mk.II_CS": "57mm Common Shell",
         "Mod_T-10": "IS-3",
         "Moteur_moderne_3M_27_1_01": "Moteur moderne 3M.27.1.01",
