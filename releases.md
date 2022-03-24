@@ -2,6 +2,10 @@
 
 | Release | Date     | Notes       | Inaccurate? |
 |:-------:|:--------:|-------------|-----|
+| 8.8 | 2022-02-16 | Molendijk map |  |
+| 8.7 | 2022-01-19 | Soviet Light Tanks |  |
+| 8.6 | 2021-12-15 | Joining Light and Medium Tank classes in MM |  |
+| 8.5 | 2021-11-17 | New national crew voices, economy update |  |
 | 8.4 | 2021-10-20 | Polish heavy tanks |  |
 | 8.3 | 2021-09-16 | FV4005, FV4022, VK 91.01 (P) and WZ-121 legendary camos, -5 deg gun depression to WZ-120 |  |
 | 8.2 | 2021-08-18 | Ghost Factory map, XP/credits nerf for inactive players, new store UI |  |
