@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 532
+        "count": 537
     },
     "data": {
         "1": {
@@ -1588,6 +1588,14 @@
             "tier": 1,
             "type": "lightTank"
         },
+        "7009": {
+            "is_premium": true,
+            "name": "Type 57",
+            "nation": "japan",
+            "tank_id": 7009,
+            "tier": 8,
+            "type": "heavyTank"
+        },
         "7025": {
             "is_premium": true,
             "name": "Vulcan",
@@ -1870,7 +1878,7 @@
         },
         "8305": {
             "is_premium": true,
-            "name": "Titan H-N",
+            "name": "Titan H-Nd",
             "nation": "other",
             "tank_id": 8305,
             "tier": 7,
@@ -2004,6 +2012,14 @@
             "tier": 4,
             "type": "AT-SPG"
         },
+        "9073": {
+            "is_premium": true,
+            "name": "Titan-54d",
+            "nation": "other",
+            "tank_id": 9073,
+            "tier": 8,
+            "type": "mediumTank"
+        },
         "9089": {
             "is_premium": true,
             "name": "Škoda T 56",
@@ -2091,6 +2107,14 @@
             "tank_id": 9553,
             "tier": 6,
             "type": "AT-SPG"
+        },
+        "9601": {
+            "is_premium": true,
+            "name": "CS-52 LIS",
+            "nation": "european",
+            "tank_id": 9601,
+            "tier": 7,
+            "type": "mediumTank"
         },
         "9745": {
             "is_premium": false,
@@ -3532,6 +3556,14 @@
             "tier": 6,
             "type": "AT-SPG"
         },
+        "24865": {
+            "is_premium": true,
+            "name": "Scepter",
+            "nation": "usa",
+            "tank_id": 24865,
+            "tier": 8,
+            "type": "heavyTank"
+        },
         "25089": {
             "is_premium": true,
             "name": "Object 752",
@@ -3555,6 +3587,14 @@
             "tank_id": 25345,
             "tier": 8,
             "type": "mediumTank"
+        },
+        "25377": {
+            "is_premium": true,
+            "name": "T77",
+            "nation": "usa",
+            "tank_id": 25377,
+            "tier": 8,
+            "type": "heavyTank"
         },
         "51201": {
             "is_premium": true,
@@ -4320,6 +4360,8 @@
         "A130_Super_Hellcat_Custom": "Super Hellcat Delta",
         "A130_Super_Hellcat_Custom_short": "Super Hellcat Delta",
         "A130_Super_Hellcat_short": "Super Hellcat",
+        "A132_T77": "T77",
+        "A132_T77_short": "T77",
         "A68_T28D": "T28 Defender",
         "A68_T28D_short": "T28 Defender",
         "A77_T6M": "T6E1 Grizzly",
@@ -4576,6 +4618,7 @@
         "Continental_AOS-895-3": "AN/GRC-8",
         "Continental_AOS-895-3_short": "AN/GRC-8",
         "Continental_AOSI-1195-1": "Continental AOSI 1195-1",
+        "Continental_AOSI-1195-1A": "Continental AOSI-1195-1A",
         "Continental_AOSI-1195-5": "Continental AOSI-1195-5",
         "Continental_AOSI-895-5": "Continental AOSI-895-5",
         "Continental_AOSI-895-5_short": "Continental\\nAOSI-895-5",
@@ -4599,6 +4642,7 @@
         "Continental_AVDS-1790-2": "Continental AVDS-1790-2",
         "Continental_AVDS-1790-2_short": "Continental\\nAVDS-1790-2",
         "Continental_AVI_1790_8": "Continental AVI-1790-8",
+        "Continental_AV_1790_5B": "Continental AV-1790-5B",
         "Continental_AV_1790_5C": "Continental AV-1790-5C",
         "Continental_AV_1790_5C_short": "Continental\\nAV-1790-5C",
         "Continental_R-670-5": "Continental R-670-5",
@@ -4649,6 +4693,8 @@
         "Cz13_T-27_Custom_short": "Škoda T 27 Rampant",
         "Cz13_T-27_short": "Škoda T 27",
         "Cz14_Skoda_T-56": "Škoda T 56",
+        "Cz14_Skoda_T-56_Custom": "Škoda T 56 Golem",
+        "Cz14_Skoda_T-56_Custom_short": "Škoda T 56 Golem",
         "Cz14_Skoda_T-56_short": "Škoda T 56",
         "D-744": "D-744",
         "D1": "D1",
@@ -5014,6 +5060,7 @@
         "GM_6-71_M": "GM 6062 6-71M",
         "GM_X-11": "GM X-11",
         "GM_X-12": "GM X-12",
+        "GTD": "GTD",
         "GT_101": "GT 101",
         "G_E": "G.W. E 100",
         "G_E-75RT": "Keiler",
@@ -5155,6 +5202,8 @@
         "J22_Ho_Ri_type96_short": "Ho-Ri T.I",
         "J23_Chi_To_SPG": "Chi-To SPG",
         "J23_Chi_To_SPG_short": "Chi-To SPG",
+        "J24_Type_57": "Type 57",
+        "J24_Type_57_short": "Type 57",
         "J25_Type71": "Type 71",
         "J25_Type71_short": "Type 71",
         "J26_Type_68": "#japan_vehicles:J26_Type_68",
@@ -5263,6 +5312,10 @@
         "M-17L": "M-17L",
         "M-17T": "M-17T",
         "M-3-Y": "M-III-Yoh",
+        "M-3-Y-Midas": "Scepter",
+        "M-3-Y-Midas_Custom": "Scepter Impeccable",
+        "M-3-Y-Midas_Custom_short": "Scepter Impeccable",
+        "M-3-Y-Midas_short": "Scepter",
         "M-3-Y_short": "M-III-Yoh",
         "M-5-400": "M-5-400",
         "M-5-400F": "M-5-400F",
@@ -5494,6 +5547,7 @@
         "Minkovsky_engine": "Minkovsky engine",
         "Mitsubishi": "Mitsubishi A475VD",
         "Mitsubishi_10ZF": "Mitsubishi 10ZF",
+        "Mitsubishi_12ZF": "Mitsubishi 12ZF",
         "Mitsubishi_12ZM": "#japan_vehicles:Mitsubishi_12ZM",
         "Mitsubishi_12ZT": "#japan_vehicles:Mitsubishi_12ZT",
         "Mitsubishi_MT11": "Mitsubishi MT11",
@@ -5606,10 +5660,12 @@
         "Oth27_M24_AMX_Custom": "Titan Flare",
         "Oth27_M24_AMX_Custom_short": "Titan Flare",
         "Oth27_M24_AMX_short": "Titan T24 57",
-        "Oth28_Sturmfeur_HW": "Titan H-N",
-        "Oth28_Sturmfeur_HW_short": "Titan H-N",
+        "Oth28_Sturmfeur_HW": "Titan H-Nd",
+        "Oth28_Sturmfeur_HW_short": "Titan H-Nd",
         "Oth29_A15HW": "Titan Mk. I",
         "Oth29_A15HW_short": "Titan Mk. I",
+        "Oth30_T54MS": "Titan-54d",
+        "Oth30_T54MS_short": "Titan-54d",
         "Oth31_T150BP": "Titan-150",
         "Oth31_T150BP_Custom": "Titan-150 Trailblazer",
         "Oth31_T150BP_Custom_short": "Titan-150 Trailblazer",
@@ -5639,9 +5695,13 @@
         "Pl07_14TP": "14TP",
         "Pl07_14TP_short": "14TP",
         "Pl08_50TP_prot": "50TP prototyp",
+        "Pl08_50TP_prot_Custom": "50TP prototyp Hussar",
+        "Pl08_50TP_prot_Custom_short": "50TP prot. Hussar",
         "Pl08_50TP_prot_short": "50TP prototyp",
         "Pl10_40TP_Habicha": "40TP Habicha",
         "Pl10_40TP_Habicha_short": "40TP Habicha",
+        "Pl119_CS_52_LIS": "CS-52 LIS",
+        "Pl119_CS_52_LIS_short": "CS-52 LIS",
         "Pl11_45TP_Habicha": "45TP Habicha",
         "Pl11_45TP_Habicha_short": "45TP Habicha",
         "Pl13_53TP_Markowskiego": "53TP Markowskiego",
@@ -5892,6 +5952,8 @@
         "R160_object_244": "Object 244",
         "R160_object_244_short": "Object 244",
         "R172_Object_752": "Object 752",
+        "R172_Object_752_Custom": "Object 752 Sputnik",
+        "R172_Object_752_Custom_short": "Obj. 752 Sputnik",
         "R172_Object_752_short": "Object 752",
         "R180_Object_274A": "Object 274a",
         "R180_Object_274A_short": "Object 274a",
@@ -6357,6 +6419,7 @@
         "V-44": "V-44",
         "V-44-2": "V-44-2",
         "V-44A": "V-44A",
+        "V-44AD": "V-44AD",
         "V-5": "V-5",
         "V-54": "V-54",
         "V-54-6": "V-54-6",
