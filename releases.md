@@ -2,6 +2,7 @@
 
 | Release | Date     | Notes       | Inaccurate? |
 |:-------:|:--------:|-------------|-----|
+| 8.9 | 2022-03-23 | "Free" camo resupply, VK 72.01 supplies |  |
 | 8.8 | 2022-02-16 | Molendijk map |  |
 | 8.7 | 2022-01-19 | Soviet Light Tanks |  |
 | 8.6 | 2021-12-15 | Joining Light and Medium Tank classes in MM |  |
