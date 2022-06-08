@@ -1,7 +1,7 @@
 {
     "status": "ok",
     "meta": {
-        "count": 540
+        "count": 550
     },
     "data": {
         "1": {
@@ -1252,6 +1252,14 @@
             "tier": 7,
             "type": "mediumTank"
         },
+        "5473": {
+            "is_premium": false,
+            "name": "Mitsu 108",
+            "nation": "japan",
+            "tank_id": 5473,
+            "tier": 5,
+            "type": "heavyTank"
+        },
         "5489": {
             "is_premium": true,
             "name": "Y5 T-34",
@@ -1291,6 +1299,14 @@
             "tank_id": 5713,
             "tier": 9,
             "type": "mediumTank"
+        },
+        "5729": {
+            "is_premium": false,
+            "name": "Ju-Nu",
+            "nation": "japan",
+            "tank_id": 5729,
+            "tier": 6,
+            "type": "heavyTank"
         },
         "5745": {
             "is_premium": true,
@@ -1347,6 +1363,14 @@
             "tank_id": 5969,
             "tier": 8,
             "type": "mediumTank"
+        },
+        "5985": {
+            "is_premium": false,
+            "name": "Ju-To",
+            "nation": "japan",
+            "tank_id": 5985,
+            "tier": 7,
+            "type": "heavyTank"
         },
         "6001": {
             "is_premium": true,
@@ -1410,6 +1434,14 @@
             "nation": "uk",
             "tank_id": 6225,
             "tier": 10,
+            "type": "heavyTank"
+        },
+        "6241": {
+            "is_premium": false,
+            "name": "Chi-Se",
+            "nation": "japan",
+            "tank_id": 6241,
+            "tier": 8,
             "type": "heavyTank"
         },
         "6257": {
@@ -1476,6 +1508,14 @@
             "tier": 4,
             "type": "lightTank"
         },
+        "6497": {
+            "is_premium": false,
+            "name": "Type 68",
+            "nation": "japan",
+            "tank_id": 6497,
+            "tier": 9,
+            "type": "heavyTank"
+        },
         "6529": {
             "is_premium": false,
             "name": "Škoda T 25",
@@ -1525,7 +1565,7 @@
             "type": "heavyTank"
         },
         "6753": {
-            "is_premium": true,
+            "is_premium": false,
             "name": "Type 71",
             "nation": "japan",
             "tank_id": 6753,
@@ -2196,6 +2236,14 @@
             "tier": 7,
             "type": "AT-SPG"
         },
+        "10113": {
+            "is_premium": true,
+            "name": "Carro da Combattimento 45t",
+            "nation": "european",
+            "tank_id": 10113,
+            "tier": 10,
+            "type": "mediumTank"
+        },
         "10241": {
             "is_premium": false,
             "name": "SU-100M1",
@@ -2622,7 +2670,7 @@
         },
         "15697": {
             "is_premium": true,
-            "name": "Chieftain Mk.6",
+            "name": "Chieftain Mk. 6",
             "nation": "uk",
             "tank_id": 15697,
             "tier": 10,
@@ -3292,6 +3340,14 @@
             "tier": 6,
             "type": "mediumTank"
         },
+        "21585": {
+            "is_premium": true,
+            "name": "Blasteroid",
+            "nation": "uk",
+            "tank_id": 21585,
+            "tier": 6,
+            "type": "heavyTank"
+        },
         "21761": {
             "is_premium": true,
             "name": "STG",
@@ -3315,6 +3371,14 @@
             "tank_id": 21793,
             "tier": 10,
             "type": "lightTank"
+        },
+        "21841": {
+            "is_premium": true,
+            "name": "Caliban",
+            "nation": "uk",
+            "tank_id": 21841,
+            "tier": 8,
+            "type": "heavyTank"
         },
         "22017": {
             "is_premium": true,
@@ -3619,6 +3683,22 @@
             "tank_id": 25377,
             "tier": 8,
             "type": "heavyTank"
+        },
+        "25889": {
+            "is_premium": true,
+            "name": "Ranger",
+            "nation": "usa",
+            "tank_id": 25889,
+            "tier": 6,
+            "type": "lightTank"
+        },
+        "26145": {
+            "is_premium": true,
+            "name": "High Score",
+            "nation": "usa",
+            "tank_id": 26145,
+            "tier": 5,
+            "type": "mediumTank"
         },
         "51201": {
             "is_premium": true,
@@ -4335,6 +4415,8 @@
         "A-20bis": "SP-3",
         "A-32": "A-32",
         "A-32_mod_1939": "A-32",
+        "A05_M4_105BD": "High Score",
+        "A05_M4_105BD_short": "High Score",
         "A100_T49": "T49",
         "A100_T49_Custom": "T49 Hornet",
         "A100_T49_Custom_short": "T49 Hornet",
@@ -4385,6 +4467,8 @@
         "A130_Super_Hellcat_Custom_short": "Super Hellcat Delta",
         "A130_Super_Hellcat_short": "Super Hellcat",
         "A132_T77": "T77",
+        "A132_T77_Custom": "T77 Cannonball",
+        "A132_T77_Custom_short": "T77 Cannonball",
         "A132_T77_short": "T77",
         "A68_T28D": "T28 Defender",
         "A68_T28D_short": "T28 Defender",
@@ -4862,6 +4946,7 @@
         "Ford_GAF_500": "Ford GAF (500)",
         "Ford_GAF_V8": "Ford GAF V8",
         "Ford_GAN": "Ford GAN",
+        "Ford_GAN_BP": "Ford GAN",
         "Ford_GAN_T": "Ford GAN No. 17",
         "Ford_GAN_T23": "None",
         "Ford_V8-221": "Ford V8-221",
@@ -4913,9 +4998,9 @@
         "G142_M48RPz_Custom_short": "Räumpanzer Rhino",
         "G142_M48RPz_short": "M48A2 Räumpanzer",
         "G144_Kpz_50t": "Kampfpanzer 50 t",
-        "G144_Kpz_50t_Custom": "KpfPz 50 t König",
-        "G144_Kpz_50t_Custom_short": "KpfPz 50 t König",
-        "G144_Kpz_50t_short": "KpfPz 50 t",
+        "G144_Kpz_50t_Custom": "Kpz 50 t König",
+        "G144_Kpz_50t_Custom_short": "Kpz 50 t König",
+        "G144_Kpz_50t_short": "Kpz 50 t",
         "G147_mPanzer_64": "Kunze Panzer",
         "G147_mPanzer_64_Custom": "Kunze Pz. Daredevil",
         "G147_mPanzer_64_Custom_short": "Kunze Pz. Daredevil",
@@ -4955,6 +5040,8 @@
         "GB109_GSOR_1008_short": "GSOR 1008",
         "GB10_Black_Prince": "Black Prince",
         "GB10_Black_Prince_short": "Black Prince",
+        "GB112_Caliban": "Caliban",
+        "GB112_Caliban_short": "Caliban",
         "GB11_Caernarvon": "Caernarvon",
         "GB11_Caernarvon_short": "Caernarvon",
         "GB12_Conqueror": "Conqueror",
@@ -5008,8 +5095,10 @@
         "GB60_Covenanter": "Covenanter",
         "GB60_Covenanter_short": "Covenanter",
         "GB63_TOG_II": "TOG II*",
-        "GB63_TOG_II_BP": "#uk_vehicles:GB63_TOG_II_BP",
-        "GB63_TOG_II_BP_short": "#uk_vehicles:GB63_TOG_II_BP_short",
+        "GB63_TOG_II_BP": "Blasteroid",
+        "GB63_TOG_II_BP_Custom": "Blasteroid Neo",
+        "GB63_TOG_II_BP_Custom_short": "Blasteroid Neo",
+        "GB63_TOG_II_BP_short": "Blasteroid",
         "GB68_Matilda_Black_Prince": "Matilda Black Prince",
         "GB68_Matilda_Black_Prince_short": "Matilda BP",
         "GB69_Cruiser_Mk_II": "Cruiser Mk. II",
@@ -5033,10 +5122,10 @@
         "GB83_4005_Custom": "FV4005 Overkill",
         "GB83_4005_Custom_short": "FV4005 Overkill",
         "GB83_4005_short": "FV4005",
-        "GB84_Chieftain_Mk6": "Chieftain Mk.6",
-        "GB84_Chieftain_Mk6_Custom": "Chieftain Mk.6 Royal",
-        "GB84_Chieftain_Mk6_Custom_short": "Chieftain Mk.6 Royal",
-        "GB84_Chieftain_Mk6_short": "Chieftain Mk.6",
+        "GB84_Chieftain_Mk6": "Chieftain Mk. 6",
+        "GB84_Chieftain_Mk6_Custom": "Chieftain Mk. 6 Royal",
+        "GB84_Chieftain_Mk6_Custom_short": "Chieftain Mk. 6 Royal",
+        "GB84_Chieftain_Mk6_short": "Chieftain Mk. 6",
         "GB85_Cromwell_Berlin": "Cromwell B",
         "GB85_Cromwell_Berlin_Custom": "Cromwell B Berlin",
         "GB85_Cromwell_Berlin_Custom_short": "Cromwell B Berlin",
@@ -5110,9 +5199,9 @@
         "G_E_75TS_Custom_short": "E 75 TS Eagle",
         "G_E_short": "G.W. E 100",
         "G_KpfPz_70": "Kampfpanzer 70",
-        "G_KpfPz_70_Custom": "KpfPz 70 Cavalry",
-        "G_KpfPz_70_Custom_short": "KpfPz 70 Cavalry",
-        "G_KpfPz_70_short": "KpfPz 70",
+        "G_KpfPz_70_Custom": "Kpz 70 Cavalry",
+        "G_KpfPz_70_Custom_short": "Kpz 70 Cavalry",
+        "G_KpfPz_70_short": "Kpz 70",
         "G_Panther": "G.W. Panther",
         "G_Panther_short": "G.W. Panther",
         "G_Tiger": "G.W. Tiger",
@@ -5229,6 +5318,8 @@
         "It14_P44_Pantera_Custom": "P.44 Pantera Furious",
         "It14_P44_Pantera_Custom_short": "P.44 Pantera Furious",
         "It14_P44_Pantera_short": "P.44 Pantera",
+        "It20_Car_Comb_45t": "Carro da Combattimento 45t",
+        "It20_Car_Comb_45t_short": "Carro 45t",
         "J12_Shinobi": "Shinobi",
         "J12_Shinobi_short": "Shinobi",
         "J20_Ho_Ri_type3": "Ho-Ri Type III",
@@ -5242,11 +5333,23 @@
         "J23_Chi_To_SPG": "Chi-To SPG",
         "J23_Chi_To_SPG_short": "Chi-To SPG",
         "J24_Type_57": "Type 57",
+        "J24_Type_57_Custom": "Type 57 Mechacamo",
+        "J24_Type_57_Custom_short": "Type 57 Mechacamo",
         "J24_Type_57_short": "Type 57",
         "J25_Type71": "Type 71",
+        "J25_Type71_Custom": "Type 71 Sankai",
+        "J25_Type71_Custom_short": "Type 71 Sankai",
         "J25_Type71_short": "Type 71",
-        "J26_Type_68": "#japan_vehicles:J26_Type_68",
-        "J26_Type_68_short": "#japan_vehicles:J26_Type_68_short",
+        "J26_Type_68": "Type 68",
+        "J26_Type_68_short": "Type 68",
+        "J27_Chi_Se": "Chi-Se",
+        "J27_Chi_Se_short": "Chi-Se",
+        "J28_Ju_To": "Ju-To",
+        "J28_Ju_To_short": "Ju-To",
+        "J29_Ju_Nu": "Ju-Nu",
+        "J29_Ju_Nu_short": "Ju-Nu",
+        "J30_Mitsu_108": "Mitsu 108",
+        "J30_Mitsu_108_short": "Mitsu 108",
         "J_V12_M": "American la France “J” V-12",
         "JagdPanther": "Jagdpanther",
         "JagdPantherII": "Jagdpanther II",
@@ -5310,6 +5413,11 @@
         "KV_1_Custom_short": "KV-1 Warrior",
         "KV_2": "KV-2",
         "KZ-V8": "KZ V8",
+        "Kawasaki_Ha60_IB": "Kawasaki Ha60 IB",
+        "Kawasaki_Ha60_Ic": "Kawasaki Ha60 Ic",
+        "Kawasaki_Ha8": "Kawasaki Ha8",
+        "Kawasaki_Ha9_IIC": "Kawasaki Ha9 IIC",
+        "Kawasaki_Ha9_IID": "Kawasaki Ha9 IID",
         "Ke_Ho": "Type 5 Ke-Ho",
         "Ke_Ho_short": "Ke-Ho",
         "Ke_Ni": "Type 98 Ke-Ni",
@@ -5464,6 +5572,7 @@
         "MB-838_CAM-500_short": "MB 838 CaM 500",
         "MB507": "DB 603 A2",
         "MB517": "MB 517",
+        "MB_822_Ka_500": "MB 822 Ka-500",
         "MB_837_Aa": "MB 837 Aa",
         "MB_837_Ea": "MB 837 Ea",
         "MB_837_F": "MB 837 F",
@@ -5585,12 +5694,13 @@
         "Meadows_HOP_OC": "Meadows H.O.P. O.C.",
         "Medous_MAT": "Meadows MAT",
         "Meteor_Mark_IV_Mod_271": "Meteor Mark IV Mod 271",
+        "Meteorite_Mk_202": "Meteorite Mk. 202",
         "Minkovsky_engine": "Minkovsky engine",
         "Mitsubishi": "Mitsubishi A475VD",
         "Mitsubishi_10ZF": "Mitsubishi 10ZF",
         "Mitsubishi_12ZF": "Mitsubishi 12ZF",
-        "Mitsubishi_12ZM": "#japan_vehicles:Mitsubishi_12ZM",
-        "Mitsubishi_12ZT": "#japan_vehicles:Mitsubishi_12ZT",
+        "Mitsubishi_12ZM": "Mitsubishi 12ZM",
+        "Mitsubishi_12ZT": "Mitsubishi 12ZT",
         "Mitsubishi_MT11": "Mitsubishi MT11",
         "Mk.II_CS": "57mm Common Shell",
         "Mod_T-10": "IS-3",
@@ -5614,8 +5724,8 @@
         "OQF_17pdr_Gun_Mk_VIIG_short": "OQF 17-pdr Gun Mk. VII G",
         "OQF_17pdr_Gun_Mk_VIII": "OQF 17-pdr Gun Mk. VIII",
         "OQF_17pdr_Gun_Mk_VIII_short": "OQF 17-pdr Gun Mk. VIII",
-        "OQF_17pdr_Gun_Mk_VII_BP": "#uk_vehicles:OQF_17pdr_Gun_Mk_VII_BP",
-        "OQF_17pdr_Gun_Mk_VII_BP_short": "#uk_vehicles:OQF_17pdr_Gun_Mk_VII_BP_short",
+        "OQF_17pdr_Gun_Mk_VII_BP": "OQF 17-pdr Gun Mk. VII",
+        "OQF_17pdr_Gun_Mk_VII_BP_short": "OQF 17-pdr Gun Mk. VII",
         "OQF_3pdr_Gun": "OQF 3-pdr Gun Mk. II",
         "OQF_55_pdr_AT_Gun": "OQF 55-pdr AT Gun",
         "OQF_55_pdr_AT_Gun_short": "OQF 55-pdr AT Gun",
@@ -5725,7 +5835,7 @@
         "PanzerJager_I": "Panzerjäger I",
         "PanzerJager_I_short": "Pz.Jäg. I",
         "Paxman_Ricardo": "Paxman 12TP",
-        "Paxman_Ricardo_BP": "#uk_vehicles:Paxman_Ricardo_BP",
+        "Paxman_Ricardo_BP": "Paxman 12TP",
         "Pershing": "M26 Pershing",
         "Pershing_short": "Pershing",
         "Pershingchassis1": "M26T80E1",
@@ -6301,6 +6411,10 @@
         "T20D1": "T20D1",
         "T20D2": "T20D2",
         "T21": "T21",
+        "T21_BP": "Ranger",
+        "T21_BP_Custom": "Ranger All-Terrain",
+        "T21_BP_Custom_short": "Ranger All-Terrain",
+        "T21_BP_short": "Ranger",
         "T23": "T23",
         "T23D51080": "T23D51080",
         "T23E3": "T23E3",
@@ -6608,6 +6722,7 @@
         "Wright_Continental_R-975C3": "Wright Continental R-975C3",
         "Wright_Continental_R-975C4": "Wright Continental R-975C4",
         "Wright_Continental_R-975C4B": "Wright Continental R-975C4B",
+        "Wright_Continental_R-975C4_BD": "Wright Continental R-975C4",
         "Wright_Continental_R-975C4_short": "Wright C. R-975C4",
         "Wright_Continental_R-975EC2": "Wright Continental R-975EC2",
         "Wright_Continental_R-975EC2_short": "Wright C. R-975EC2",
