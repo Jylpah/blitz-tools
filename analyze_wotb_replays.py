@@ -1446,8 +1446,8 @@ async def main(argv):
 	## VERY unlikely you have a DB set up
 	DB_SERVER 	= 'localhost'
 	DB_PORT 	= 27017
-	DB_SSL		= False
-	DB_CERT_REQ = ssl.CERT_NONE
+	DB_TLS		= False
+	DB_CERT_REQ = False
 	DB_AUTH 	= 'admin'
 	DB_NAME 	= 'BlitzStats'
 	DB_USER		= 'mongouser'
@@ -1499,14 +1499,14 @@ async def main(argv):
 					OPT_DB		= configDB.getboolean('opt_DB', OPT_DB)
 					DB_SERVER 	= configDB.get('db_server', DB_SERVER)
 					DB_PORT 	= configDB.getint('db_port', DB_PORT)
-					DB_SSL		= configDB.getboolean('db_ssl', DB_SSL)
-					DB_CERT_REQ = configDB.getint('db_ssl_req', DB_CERT_REQ)
+					DB_TLS		= configDB.getboolean('db_tls', DB_TLS)
+					DB_CERT_REQ = configDB.getboolean('db_tls_req', DB_CERT_REQ)
 					DB_AUTH 	= configDB.get('db_auth', DB_AUTH)
 					DB_NAME 	= configDB.get('db_name', DB_NAME)
 					DB_USER		= configDB.get('db_user', DB_USER)
 					DB_PASSWD 	= configDB.get('db_password', DB_PASSWD)
-					DB_CERT 	= configDB.get('db_ssl_cert_file', DB_CERT)
-					DB_CA 		= configDB.get('db_ssl_ca_file', DB_CA)
+					DB_CERT 	= configDB.get('db_tls_cert_file', DB_CERT)
+					DB_CA 		= configDB.get('db_tls_ca_file', DB_CA)
 			except (KeyError, configparser.NoSectionError)  as err:
 				bu.error(exception=err)
 
@@ -1552,7 +1552,7 @@ async def main(argv):
 		#### Connect to MongoDB. You are unlikely to have this set up... 
 		bu.debug('DB_SERVER: ' + DB_SERVER)
 		bu.debug('DB_PORT: ' + str(DB_PORT))
-		bu.debug('DB_SSL: ' + "True" if DB_SSL else "False")
+		bu.debug('DB_TLS: ' + "True" if DB_TLS else "False")
 		bu.debug('DB_AUTH: ' + DB_AUTH)
 		bu.debug('DB_NAME: ' + DB_NAME)
 		
@@ -1560,7 +1560,7 @@ async def main(argv):
 		db = None
 		if args.db:
 			try:
-				client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, ssl=DB_SSL, ssl_cert_reqs=DB_CERT_REQ, ssl_certfile=DB_CERT, tlsCAFile=DB_CA)
+				client = motor.motor_asyncio.AsyncIOMotorClient(DB_SERVER,DB_PORT, authSource=DB_AUTH, username=DB_USER, password=DB_PASSWD, tls=DB_TLS, tlsAllowInvalidCertificates=DB_CERT_REQ, tlsCertificateKeyFile=DB_CERT, tlsCAFile=DB_CA)
 				db = client[DB_NAME]
 				bu.debug('Database connection initiated')
 			except Exception as err: 
@@ -2021,9 +2021,9 @@ async def process_player_stats(players, N_workers: int, args : argparse.Namespac
 def remap_stat_id(stat_id_map: dict, stat_id_remap: dict):
 	bu.debug('Remapping stat_ids: stat_id_map: ' + str(len(stat_id_map)) + ' remap needed: ' + str(len(stat_id_remap)))
 	for stat_id in stat_id_map:
-	 	# bu.debug(stat_id)
-	 	if stat_id_map[stat_id] in stat_id_remap.keys():
-	 		stat_id_map[stat_id] = stat_id_remap[stat_id_map[stat_id]]
+		# bu.debug(stat_id)
+		if stat_id_map[stat_id] in stat_id_remap.keys():
+			stat_id_map[stat_id] = stat_id_remap[stat_id_map[stat_id]]
 	return stat_id_map
 
 
