@@ -1,0 +1,15 @@
+__pycache__/
+BlitzApp
+tmp/
+ssl/
+*.ini
+*.swp
+*.code-workspace
+*.sqlite3
+.vscode/
+*.sqlite3-journal
+.gitattributes
+export*
+*.csv
+!/stats/*.csv
+!*.py
