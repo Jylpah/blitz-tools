@@ -3,6 +3,7 @@
 
 # Extract tankopedia data in WG API JSON format from Blitz app files (Android APK unzipped)
 
+from os import path
 import sys, argparse, json, os, inspect, aiohttp, asyncio, aiofiles, re, logging, time, xmltodict, collections, configparser
 import blitzutils as bu
 from blitzutils import WG
@@ -11,9 +12,11 @@ logging.getLogger("asyncio").setLevel(logging.DEBUG)
 
 FILE_CONFIG 	= 'blitzstats.ini'
 
-BLITZAPP_STRINGS='/assets/Data/Strings/en.yaml'
-BLITZAPP_VEHICLES_DIR='/assets/Data/XML/item_defs/vehicles/'
-BLITZAPP_VEHICLE_FILE='/list.xml'
+# BLITZAPP_STRINGS='/assets/Data/Strings/en.yaml'
+# BLITZAPP_VEHICLES_DIR='/assets/Data/XML/item_defs/vehicles/'
+BLITZAPP_STRINGS='Data/Strings/en.yaml'
+BLITZAPP_VEHICLES_DIR='Data/XML/item_defs/vehicles/'
+BLITZAPP_VEHICLE_FILE='list.xml'
 
 wg = None
 
@@ -104,8 +107,11 @@ async def main(argv):
 async def extract_tanks(blitz_app_base : str, nation: str):
 
     tanks = []
-    list_xml_file = blitz_app_base + BLITZAPP_VEHICLES_DIR + nation + BLITZAPP_VEHICLE_FILE
-    if not os.path.isfile(list_xml_file): 
+    # WG has changed the location of Data directory - at least in steam client
+    if path.isdir(path.join(blitz_app_base, 'assets')):
+        blitz_app_base = path.join(blitz_app_base, 'assets')
+    list_xml_file = path.join(blitz_app_base, BLITZAPP_VEHICLES_DIR ,nation ,BLITZAPP_VEHICLE_FILE)
+    if not path.isfile(list_xml_file): 
         print('ERROR: cannot open ' + list_xml_file)
         return None
     bu.debug('Opening file: ' + list_xml_file + ' (Nation: ' + nation + ')')
@@ -132,7 +138,7 @@ async def read_user_strs(blitz_app_base : str) -> dict:
     """Read user strings to convert map and tank names"""
     tank_strs = {}
     map_strs = {}
-    filename = blitz_app_base + BLITZAPP_STRINGS
+    filename = path.join(blitz_app_base, BLITZAPP_STRINGS)
     bu.debug('Opening file: ' + filename + ' for reading UserStrings')
     try:
         async with aiofiles.open(filename, 'r', encoding="utf8") as f:
