@@ -1961,6 +1961,17 @@ class WoTinspector:
     
 
     @classmethod
+    def read_replay_id(cls, json_replay):
+        """Read replay_id from replay JSON file""" 
+        try:
+            url = json_replay['data']['view_url']
+            return cls.get_replay_id(url)
+        except Exception as err:
+            error(exception=err)
+        return None
+
+
+    @classmethod
     def get_replay_id(cls, url):
         return url.rsplit('/', 1)[-1]
 
