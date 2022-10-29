@@ -36,131 +36,162 @@ _progress_obj = None
 UMASK = os.umask(0)
 os.umask(UMASK)
 
-# -----------------------------------------------------------
-# Class ThrottledClientSession(aiohttp.ClientSession)
-# -----------------------------------------------------------
+## -----------------------------------------------------------
+#### Class ThrottledClientSession(aiohttp.ClientSession)
+#
+#  Rate-limited async http client session
+#
+#  Inherits aiohttp.ClientSession 
+## -----------------------------------------------------------
 
+from typing import Optional, Union
+import aiohttp
+import asyncio
+import time
+import logging
+import re
 
 class ThrottledClientSession(aiohttp.ClientSession):
-    """Rate-throttled client session class inherited from aiohttp.ClientSession)"""
-    # MIN_SLEEP = 0.1
+    """Rate-throttled client session class inherited from aiohttp.ClientSession)""" 
 
-    def __init__(self, rate_limit: float = None, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.rate_limit = None
-        self._fillerTask = None
-        self._queue = None
-        self._start_time = None
-        self._count = 0
-        self._start_time = time.time()
+    def __init__(self, rate_limit: float = 0, filters: list[str] = list() , 
+                limit_filtered: bool = False, re_filter: bool = False, *args,**kwargs) -> None: 
+        assert isinstance(rate_limit, (int, float)),   "rate_limit has to be float"
+        assert isinstance(filters, list),       "filters has to be list"
+        assert isinstance(limit_filtered, bool),"limit_filtered has to be bool"
+        assert isinstance(re_filter, bool),     "re_filter has to be bool"
 
-        if rate_limit != None:
-            if rate_limit <= 0:
-                raise ValueError('rate_limit must be positive')
-            self.rate_limit = rate_limit
-            self._queue = asyncio.Queue(min(2, int(rate_limit)+1))
-            self._fillerTask = asyncio.create_task(self._filler())
+        super().__init__(*args,**kwargs)
+        
+        self.rate_limit     : float
+        self._fillerTask    : Optional[asyncio.Task]    = None
+        self._queue         : Optional[asyncio.Queue]   = None
+        self._start_time    : float = time.time()
+        self._count         : int = 0
+        self._limit_filtered: bool = limit_filtered
+        self._re_filter     : bool = re_filter
+        self._filters       : list[Union[str, re.Pattern]] = list()
 
-    def _get_sleep(self) -> list:
-        if self.rate_limit == None:
-            return None
+        if re_filter:
+            for filter in filters:
+                self._filters.append(re.compile(filter))
         else:
+            for filter in filters:
+                self._filters.append(filter)
+        self.set_rate_limit(rate_limit)
+
+
+    def _get_sleep(self) -> float:        
+        if self.rate_limit > 0:
             return 1/self.rate_limit
+        return 0
+
 
     def get_rate(self) -> float:
         """Return rate of requests"""
         return self._count / (time.time() - self._start_time)
 
-    def get_stats(self):
+
+    def get_stats(self) -> dict[str, float]:
         """Get session statistics"""
-        res = {'rate': self.get_rate(), 'rate_limit': self.rate_limit,
-                                     'count': self._count}
+        res = {'rate' : self.get_rate(), 'rate_limit': self.rate_limit, 'count' : self._count }
         return res
+        
 
-    def get_stats_str(self):
+    def get_stats_str(self) -> str:
         """Print session statistics"""
-        return 'rate limit: ' + str(self.rate_limit if self.rate_limit != None else '-') + \
-                ' rate: ' + \
-                    "{0:.1f}".format(self.get_rate()) + \
-                                     ' requests: ' + str(self._count)
+        return f"rate limit: {str(self.rate_limit if self.rate_limit != None else '-')} \
+                rate:   {0:.1f}.format(self.get_rate()) requests: {str(self._count)}"
 
-    def reset_counters(self):
+
+    def reset_counters(self) -> dict[str, float]:
         """Reset rate counters and return current results"""
         res = self.get_stats()
         self._start_time = time.time()
         self._count = 0
         return res
 
-    def set_rate_limit(self, rate_limit: float = 1):
-        if rate_limit >= 0:
-            self.rate_limit = rate_limit
-            return self.rate_limit
-        return None
+
+    def set_rate_limit(self, rate_limit: float = 0) -> float:
+        assert rate_limit is not None, "rate_limit must not be None" 
+        assert isinstance(rate_limit, (int,float)) and rate_limit >= 0, "rate_limit has to be type of 'float' >= 0"
+        
+        self.rate_limit = rate_limit
+        if rate_limit > 0:
+            self._queue     = asyncio.Queue(int(rate_limit)+1) 
+            if self._fillerTask is not None: 
+                self._fillerTask.cancel()  
+            self._fillerTask = asyncio.create_task(self._filler())
+        return self.rate_limit
+        
 
     async def close(self) -> None:
         """Close rate-limiter's "bucket filler" task"""
-        # DEBUG
-        debug(self.get_stats_str())
+        # DEBUG 
+        logging.debug(self.get_stats_str())
         try:
-            if self._fillerTask != None:
+            if self._fillerTask is not None:
                 self._fillerTask.cancel()
-            await asyncio.wait_for(self._fillerTask, timeout=0.5)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
-            pass
+                await asyncio.wait_for(self._fillerTask, timeout=0.5)
+        except asyncio.TimeoutError as err:
+            logging.error(str(err))
         await super().close()
 
-    async def _filler_simple(self):
+    
+    async def _filler(self) -> None:
         """Filler task to fill the leaky bucket algo"""
         try:
-            if self._queue == None:
-                return
-            sleep = self._get_sleep()
-            while True:
-                self._queue.put(None)
-                await asyncio.sleep(sleep)
-        except asyncio.CancelledError:
-            debug('Cancelled')
-        except Exception as err:
-            error(exception=err)
-
-    async def _filler(self):
-        """Filler task to fill the leaky bucket algo"""
-        try:
-            if self._queue == None:
-                return
-            sleep = self._get_sleep()
-            # debug('SLEEP: ' + str(sleep))
+            if self._queue is None:
+                return None            
+            logging.debug('SLEEP: ' + str(self._get_sleep()))
             updated_at = time.monotonic()
-            fraction = 0
-            extra_increment = 0
+            extra_increment : float = 0
             for i in range(0, self._queue.maxsize):
-                self._queue.put_nowait(i)
+                await self._queue.put(i)
             while True:
                 if not self._queue.full():
                     now = time.monotonic()
                     increment = self.rate_limit * (now - updated_at)
-                    fraction += increment % 1
-                    extra_increment = fraction // 1
-                    items_2_add = int(
-                        min(self._queue.maxsize - self._queue.qsize(), int(increment) + extra_increment))
-                    fraction = fraction % 1
-                    for i in range(0, items_2_add):
+                    items_2_add = int(min(self._queue.maxsize - self._queue.qsize(), int(increment + extra_increment)))
+                    extra_increment = (increment + extra_increment) % 1
+                    for i in range(0,items_2_add):
                         self._queue.put_nowait(i)
                     updated_at = now
-                await asyncio.sleep(sleep)
+                await asyncio.sleep(self._get_sleep())
         except asyncio.CancelledError:
-            debug('Cancelled')
+            logging.debug('Cancelled')
         except Exception as err:
-            error(exception=err)
+            logging.error(str(err))
+        return None
 
-    async def _request(self, *args, **kwargs):
+
+    async def _request(self, *args,**kwargs) -> aiohttp.ClientResponse:
         """Throttled _request()"""
-        if self._queue != None:
+        if self._queue is not None and self.is_limited(*args):  
             await self._queue.get()
             self._queue.task_done()
         self._count += 1
-        return await super()._request(*args, **kwargs)
+        return await super()._request(*args,**kwargs)
 
+
+    def is_limited(self, *args: str) -> bool:
+        """Check wether the rate limit should be applied"""
+        try:
+            url: str = args[1]
+            for filter in self._filters:
+                if isinstance(filter, re.Pattern) and filter.match(url) is not None:
+                    return self._limit_filtered
+                elif isinstance(filter, str) and url.startswith(filter):
+                    return self._limit_filtered
+                    
+            return not self._limit_filtered
+        except Exception as err:
+            logging.error(str(err))
+        return True    
+
+# -----------------------------------------------------------
+# Class AsyncLogger()
+# -----------------------------------------------------------
 
 class AsyncLogger():
     """Async file logger"""
@@ -496,18 +527,17 @@ def get_date_str(timestamp:int = NOW(), date_format = '%Y%m%d_%H%M%S'):
     return None
 
 
-def rebase_file_args(current_dir, files):
-    """REbase file command line params after moving working dir to the script's dir""" 
-    if isinstance(files, list):    
-        if (files[0] == '-') or (files[0] == 'db:'):
-            return files
-        else:
-            return [ os.path.join(current_dir, fn) for fn in files ]
-    elif isinstance(files, str):
-        return os.path.join(current_dir, files)
+def rebase_file_args(current_dir : str, files: list[str]) -> list[str]:
+    """Rebase file command line params after moving working dir to the script's dir""" 
+    assert isinstance(files, list), "files has to be a list"
+
+    if (files[0] == '-') or (files[0] == 'db:'):
+        return [ files[0] ] 
+    else:
+        return [ os.path.join(current_dir, fn) for fn in files ]
 
 
-async def read_int_list(filename: str) -> list():
+async def read_int_list(filename: str) -> list[int]:
     """Read file to a list and return list of integers in the input file"""
     
     input_list = []
@@ -1596,6 +1626,8 @@ class WG:
 
     async def store_tank_stats(self, key: list , stats_data: list, update_time: int):
         """Save tank stats into cache"""
+        assert self.cache is not None, "cache must be initiated"
+        
         try:
             account_id  = key[0]
             tank_ids    = set(key[1])
@@ -1617,6 +1649,8 @@ class WG:
 
     async def store_player_stats(self, key: list , stats_data: list, update_time: int):
         """Save player stats into cache"""
+        assert self.cache is not None, "cache must be initiated"
+        
         try:
             account_id  = key[0]
             if stats_data != None:
@@ -1633,6 +1667,8 @@ class WG:
 
     async def store_player_achievements(self, key: list , stats_data: list, update_time: int):
         """Save player stats into cache"""
+        assert self.cache is not None, "cache must be initiated"
+        
         try:
             account_id  = key[0]
             if stats_data != None:
@@ -1648,6 +1684,8 @@ class WG:
 
 
     async def get_cached_tank_stats(self, account_id: int, tank_ids: list, fields: list ):
+        assert self.cache is not None, "cache must be initiated"
+
         try:
             # test for cacheDB existence
             debug('Trying cached stats first')
@@ -1761,17 +1799,27 @@ class WoTinspector:
     URL_REPLAY_VIEW = URL_WI +'/en/view/'
     URL_REPLAY_UL   = 'https://api.wotinspector.com/replay/upload?'
     URL_REPLAY_INFO = 'https://api.wotinspector.com/replay/upload?details=full&key='
-    
     URL_TANK_DB     = "https://wotinspector.com/static/armorinspector/tank_db_blitz.js"
 
     REPLAY_N = 1
+    DEFAULT_RATE_LIMIT : float = 10/60  # 10 requests / min
+    DEFAULT_TOKEN : str = 'a5428af49bf7495986577d59b0e5bcff'
 
-    def __init__(self, rate_limit: int = 30):
-        self.session = ThrottledClientSession(rate_limit=rate_limit)
+    def __init__(self, rate_limit: float = DEFAULT_RATE_LIMIT, auth_token: Optional[str] = None):
+
+        headers : Optional[dict[str, str]] = None
+
+        if auth_token is None:
+            auth_token = self.DEFAULT_TOKEN        
+        headers = dict()
+        headers['Authorization'] = 'Token ' + auth_token
+        self.session = ThrottledClientSession(rate_limit=rate_limit, 
+                                                filters=[self.URL_REPLAY_LIST, self.URL_REPLAY_INFO], 
+                                                re_filter=False, limit_filtered=True, headers = headers)
         
 
-    async def close(self):
-        if self.session != None:
+    async def close(self) -> None:
+        if self.session is not None:
             debug('Closing aiohttp session')
             await self.session.close()
         
@@ -1835,7 +1883,7 @@ class WoTinspector:
             hash.update(data)
             replay_id = hash.hexdigest()
 
-            # Testing if the replay has already been posted
+            ##  Testing if the replay has already been posted
             json_resp = await self.get_replay_JSON(replay_id)
             if json_resp != None:
                 debug('Already uploaded: ' + title, id=N)
@@ -1850,7 +1898,7 @@ class WoTinspector:
             } 
 
             url = self.URL_REPLAY_UL + urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
-            # debug('URL: ' + url)
+            #debug('URL: ' + url)
             headers ={'Content-type':  'application/x-www-form-urlencoded'}
             payload = { 'file' : (filename, base64.b64encode(data)) }
         except Exception as err:
@@ -1875,8 +1923,6 @@ class WoTinspector:
             except Exception as err:
                 debug(exception=err, id=N)
             await asyncio.sleep(SLEEP)
-            _id  = self.read_replay_id(json_resp)
-            json_resp['_id']  =  _id
             
         debug(' Could not post replay: ' + title, id=N)
         return json_resp
@@ -1920,23 +1966,11 @@ class WoTinspector:
 
 
     @classmethod
-    def read_replay_id(cls, json_replay):
-        """Read replay_id from replay JSON file""" 
-        try:
-            url = json_replay['data']['view_url']
-            return cls.get_replay_id(url)
-        except Exception as err:
-            error(exception=err)
-        return None
-
-    @classmethod
-    def chk_JSON_replay(cls, json_resp):
+    def chk_JSON_replay(cls, json_resp) -> bool:
         """"Check String for being a valid JSON file"""
         try:
-            # FIX The replay can have allies/enemies i.e. be useful for 
-            # team composition analysis, but does not have player contribution
             if ('status' in json_resp) and json_resp['status'] == 'ok' and \
-                (get_JSON_value(json_resp, key='data.summary.winner_team') != None) :
+                (get_JSON_value(json_resp, key='data.summary.exp_base') != None) :
                 debug("JSON check OK")
                 return True 
         except KeyError as err:
@@ -1945,6 +1979,9 @@ class WoTinspector:
             debug("Replay JSON check failed: " + str(json_resp))
         return False      
 
+# -----------------------------------------------------------
+# Class BlitzStars 
+# -----------------------------------------------------------
 
 class BlitzStars:
 
