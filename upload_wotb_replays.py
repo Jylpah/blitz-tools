@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 ## PYTHON VERSION MUST BE 3.7 OR HIGHER
 
-import json, argparse, inspect, sys, os, io, base64, aiohttp, urllib, asyncio, aiofiles, aioconsole
-import logging, re, concurrent.futures, configparser, motor.motor_asyncio, ssl, zipfile
+import json, argparse, sys, os, io, asyncio, aiofiles, aioconsole
+import logging, re, configparser, zipfile
 import blitzutils as bu
 from blitzutils import WG
 from blitzutils import WoTinspector
@@ -21,17 +21,17 @@ SKIPPED_N 	= 0
 ERROR_N 	= 0
 WIurl='https://wotinspector.com/api/replay/upload?'
 WG_appID  = '81381d3f45fa4aa75b78a7198eb216ad'
-wg = None
-wi = None
+wg : WG | None = None
+wi : WoTinspector | None = None
 
-async def main(argv):
+async def main(argv) -> int:
 	global wg, wi
 	current_dir = os.getcwd()
 	# set the directory for the script
 	os.chdir(os.path.dirname(sys.argv[0]))
 	
 	# options defaults
-	OPT_WORKERS_N  	= 5
+	OPT_WORKERS_N  	= 2
 	WG_ID 			= None
 	WG_ACCOUNT 		= None 	# format: nick@server, where server is either 'eu', 'ru', 'na', 'asia' or 'china'. 
 	  					# China is not supported since WG API stats are not available there
@@ -43,13 +43,7 @@ async def main(argv):
 			bu.debug('Reading config file: ' + FILE_CONFIG)
 			config = configparser.ConfigParser()
 			config.read(FILE_CONFIG)
-			try:
-				if 'UPLOADER' in config.sections():
-					configUploader 	= config['UPLOADER']
-					OPT_WORKERS_N = configUploader.getint('opt_workers', OPT_WORKERS_N)
-			except (KeyError, configparser.NoSectionError) as err:
-				bu.error(exception=err)
-				
+							
 			try:
 				if 'WG' in config.sections():
 					configWG 		= config['WG']
@@ -82,18 +76,19 @@ async def main(argv):
 	bu.set_log_level(args.silent, args.verbose, args.debug)
 
 	wg = WG(WG_appID, args.tankopedia, args.mapfile)
-	wi = WoTinspector(rate_limit=WG_RATE_LIMIT)
+	wi = WoTinspector()
 
-	if args.account != None:
+	if args.account is not None:
 		args.accountID = await wg.get_account_id(args.account)
 		bu.debug('WG  account_id: ' + str(args.accountID))
 
-	if args.accountID == None: 
+	if args.accountID is None: 
 		args.accountID = 0
 
 	try:
-		queue  = asyncio.Queue()	
+		queue : asyncio.Queue = asyncio.Queue()	
 		# rebase file arguments due to moving the working directory to the script location
+		bu.verbose_std("replays.wotinspector.com rate limits replays to 6 / minute")
 		args.files = bu.rebase_file_args(current_dir, args.files)
 
 		tasks = []
@@ -123,7 +118,7 @@ async def main(argv):
 		await wg.session.close()
 		await wi.close()
 
-	return None
+	return 0
 
 
 async def mkReplayQ(queue : asyncio.Queue, files : list, title : str):
@@ -137,13 +132,13 @@ async def mkReplayQ(queue : asyncio.Queue, files : list, title : str):
 			if not line: 
 				break
 			else:
-				if (p_replayfile.match(line) != None):
+				if (p_replayfile.match(line) is not None):
 					await queue.put(await mkQueueItem(line, title))
 	else:
 		for fn in files:
 			if fn.endswith('"'):
 				fn = fn[:-1]  
-			if os.path.isfile(fn) and (p_replayfile.match(fn) != None):
+			if os.path.isfile(fn) and (p_replayfile.match(fn) is not None):
 				await queue.put(await mkQueueItem(fn, title))
 				bu.debug('File added to queue: ' + fn)
 			elif os.path.isdir(fn):
@@ -151,7 +146,7 @@ async def mkReplayQ(queue : asyncio.Queue, files : list, title : str):
 					for entry in dirEntry:
 						try:
 							bu.debug('Found: ' + entry.name)
-							if entry.is_file() and (p_replayfile.match(entry.name) != None): 
+							if entry.is_file() and (p_replayfile.match(entry.name) is not None): 
 								bu.debug(entry.name)
 								await queue.put(await mkQueueItem(entry.path, title))
 								bu.debug('File added to queue: ' + entry.path)
@@ -175,6 +170,9 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 	"""Async Worker to process the replay queue"""
 	global SKIPPED_N
 	global ERROR_N
+	global wi
+
+	assert wi is not None, "wi cannot be None"
 
 	while True:
 		item = await queue.get()
@@ -210,7 +208,7 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 				filename = os.path.basename(filename)
 				bu.debug(msg_str + 'File:  ' + filename)
 				json_resp = await wi.post_replay(await fp.read(), filename, account_id, title, priv, N)
-				if json_resp != None:
+				if json_resp is not None:
 					if (await bu.save_JSON(replay_json_fn,json_resp)):
 						if wi.chk_JSON_replay(json_resp):
 							if not bu.debug(msg_str + 'Replay saved OK: ' + filename):
@@ -235,7 +233,7 @@ async def replayWorker(queue: asyncio.Queue, workerID: int, account_id: int, pri
 def getTitle_old(replayfile: str, title: str, i : int) -> str:
 	global wg
 
-	if title == None:
+	if title is None:
 		try:
 			filename = os.path.basename(replayfile)	
 			bu.debug(filename)
@@ -247,8 +245,8 @@ def getTitle_old(replayfile: str, title: str, i : int) -> str:
 			p = re.compile('\\d{8}_\\d{4}_.*?(' + '|'.join(tank_userStrs) + ')_(' + '|'.join(map_usrStrs) + ')(?:-\\d)?\\.wotbreplay$')
 			
 			m = p.match(filename)
-			if (m != None):
-				if wg.tanks != None:
+			if (m is not None):
+				if wg.tanks is not None:
 					tank = m.group(1)
 					if tank in wg.tanks['userStr']:
 						tank = wg.tanks['userStr'][tank]
@@ -273,7 +271,9 @@ def getTitle_old(replayfile: str, title: str, i : int) -> str:
 
 def getTitle(replayfile: str, title: str = None, i : int = 0) -> str:
 	global wg
-	if title == None:
+	assert wg is not None, "wg must not be None"
+
+	if title is None:
 		try:
 			filename = os.path.basename(replayfile)	
 			bu.debug(filename)
@@ -289,10 +289,10 @@ def getTitle(replayfile: str, title: str = None, i : int = 0) -> str:
 						#player = metadata_json['playerName']						
 						tank_name = wg.get_tank_name(metadata_json['vehicleCompDescriptor'])
 						map_name = wg.get_map(metadata_json['mapName'])
-						bu.debug('Tank: ' + tank_name if tank_name != None else "NOT FOUND IN tanks.json" +  ' Map: ' + map_name)
+						bu.debug('Tank: ' + tank_name if tank_name is not None else "NOT FOUND IN tanks.json" +  ' Map: ' + map_name)
 					except Exception as err:
 						bu.error(exception = err)
-			if (tank_name != None) and  (map_name != None):
+			if (tank_name is not None) and  (map_name is not None):
 				title = tank_name + ' @ ' + map_name
 			else:
 				title = re.sub('\\.wotbreplay$', '', filename)
