@@ -123,9 +123,9 @@ async def extract_tanks(blitz_app_base : str, nation: str):
                 tank = dict()
                 tank['is_premium'] = issubclass(type(tank_xml['price']), dict)
                 tank['nation']  = nation
-                tank['tank_id'] = await get_tank_id(nation, int(tank_xml['id']))
+                tank['tank_id'] = get_tank_id(nation, int(tank_xml['id']))
                 tank['tier']    = int(tank_xml['level'])
-                tank['type'] = await get_tank_type(tank_xml['tags'])
+                tank['type']    = get_tank_type(tank_xml['tags'])
                 tank['userStr'] = tank_xml['userString']
                 #bu.debug('Reading tank string: ' + tank['userStr'], force=True)
                 tanks.append(tank)
@@ -206,10 +206,12 @@ async def convert_tank_names(tanklist : list, tank_strs: dict) -> dict:
 
     return tankopedia_sorted, userStrs_sorted
 
-async def get_tank_id(nation: str, tank_id : int) -> int:
+
+def get_tank_id(nation: str, tank_id : int) -> int:
     return (tank_id << 8) + (wg.NATION_ID[nation] << 4) + 1 
 
-async def get_tank_type(tagstr : str):
+
+def get_tank_type(tagstr : str):
     tags = tagstr.split(' ')
     for t_type in wg.TANK_TYPE:
         if tags[0] == t_type:
