@@ -1,7 +1,9 @@
 # WoT Blitz releases 
 
-| Release | Date     | Notes       |
+| Release | Date     | Content updates       |
 |:-------:|:--------:|-------------|
+| 9.3 | 2022-10-04 | Nothing, except legandary camos and utterly incomprehensible shell icons |
+| 9.2 | 2022-08-17 | New shot sounds and shell hit marks, vehicle restoration from the game client |
 | 9.1 | 2022-07-14 | Releases updated via DLC, graphics updates for Object 140, Patton 46 |
 | 9.0 | 2022-06-08 | Japanies heavies, Castilla graphics update, new garage |
 | 8.10 | 2022-04-28 | New battle results screen, new "Operation" mechanics |
