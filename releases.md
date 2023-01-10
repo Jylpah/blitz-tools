@@ -2,6 +2,9 @@
 
 | Release | Date     | Content updates       |
 |:-------:|:--------:|-------------|
+| 9.6 | 2023-01-11 | Finally fixing game sounds for players with Genelec studio monitors, more gold camos |
+| 9.5 | 2022-12-14 | Camos and ?|
+| 9.4 | 2022-11-09 | Italian TD line |
 | 9.3 | 2022-10-04 | Nothing, except legandary camos and utterly incomprehensible shell icons |
 | 9.2 | 2022-08-17 | New shot sounds and shell hit marks, vehicle restoration from the game client |
 | 9.1 | 2022-07-14 | Releases updated via DLC, graphics updates for Object 140, Patton 46 |
