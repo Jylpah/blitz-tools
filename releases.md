@@ -2,6 +2,7 @@
 
 | Release | Date     | Content updates       |
 |:-------:|:--------:|-------------|
+| 9.7 | 2023-02-15 | Chinese light tanks |
 | 9.6 | 2023-01-11 | Finally fixing game sounds for players with Genelec studio monitors, more gold camos |
 | 9.5 | 2022-12-14 | Camos and ?|
 | 9.4 | 2022-11-09 | Italian TD line |
