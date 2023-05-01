@@ -54,7 +54,7 @@
 | 5.2 | 2018-08-22 | Faust map |
 | 5.1 | 2018-07-31 | New MM: vehicle class matching |
 | 5.0 | 2018-06-30 | Vineyeards map update, Spare Parts removed ! |
-| 4.10 | 2018-05-24 | Alpenstadt map | 
+| 4.10 | 2018-05-24 | Replays, Alpenstadt map | 
 | 4.9 | 2018-04-25 | Chinese heavy tanks |
 | 4.8 | 2018-03-28 | Choice of battle modes, crew skills accelerator |
 | 4.7 | 2018-02-28 | New minimap |
