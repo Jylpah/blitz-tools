@@ -3,7 +3,7 @@
 | Release | Date     | Content updates       |
 |:-------:|:--------:|-------------|
 | 10.1 | 2023-07-05 | PBR Camos and ? |
-| 10 | 2023-05-24 | Lagoon map, Czechoslovakian heavies, tanks start shells loaded  |
+| 10.0 | 2023-05-24 | Lagoon map, Czechoslovakian heavies, tanks start shells loaded  |
 | 9.8 | 2023-03-22 | F\*cked up The Quick Commands Wheel, camos |
 | 9.7 | 2023-02-15 | Chinese light tanks |
 | 9.6 | 2023-01-11 | Finally fixing game sounds for players with Genelec studio monitors, more gold camos |
