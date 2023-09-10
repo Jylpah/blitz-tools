@@ -10,7 +10,8 @@ from progress.counter import Counter
 from decimal import Decimal
 from datetime import datetime
 
-from blitzutils.wg_api import WGApiTankopedia, WGTank
+from pydantic import ValidationError
+from blitzutils import WGApiTankopedia, WGTank, Maps, Map
 
 MAX_RETRIES = 3
 SLEEP = 1.5
@@ -886,38 +887,357 @@ class WG:
 
     # Default data. Please use the latest maps.json
 
-    maps = {
-        "Random": "Random map",
-        "amigosville": "Falls Creek",
-        "asia": "Lost Temple",
-        "canal": "Canal",
-        "canyon": "Canyon",
-        "desert_train": "Desert Sands",
-        "erlenberg": "Middleburg",
-        "faust": "Faust",
-        "fort": "Macragge",
-        "grossberg": "Dynasty's Pearl",
-        "himmelsdorf": "Himmelsdorf",
-        "italy": "Vineyards",
-        "karelia": "Rockfield",
-        "karieri": "Copperfield",
-        "lake": "Mirage",
-        "lumber": "Alpenstadt",
-        "malinovka": "Winter Malinovka",
-        "medvedkovo": "Dead Rail",
-        "milbase": "Yamato Harbor",
-        "mountain": "Black Goldville",
-        "north": "North",
-        "ordeal": "Trial by Fire",
-        "pliego": "Castilla",
-        "port": "Port Bay",
-        "rock": "Mayan Ruins",
-        "rudniki": "Mines",
-        "savanna": "Oasis Palms",
-        "skit": "Naval Frontier",
-        "test": "World of Ducks",
-        "tutorial": "Proving Grounds",
-    }
+    MAPS_JSON: str = """
+        {
+        "Random": {
+            "key": "Random",
+            "name": "Random map",
+            "id": -1,
+            "mode": 1
+        },
+        "amigosville": {
+            "key": "amigosville",
+            "name": "Falls Creek",
+            "id": -1,
+            "mode": 1
+        },
+        "amigosville_02": {
+            "key": "amigosville_02",
+            "name": "Falls Creek - Bridge",
+            "id": -1,
+            "mode": 3
+        },
+        "amigosville_03": {
+            "key": "amigosville_03",
+            "name": "Falls Creek - Factory",
+            "id": -1,
+            "mode": 3
+        },
+        "asia": {
+            "key": "asia",
+            "name": "Lost Temple",
+            "id": -1,
+            "mode": 1
+        },
+        "canal": {
+            "key": "canal",
+            "name": "Canal",
+            "id": -1,
+            "mode": 1
+        },
+        "canal_01": {
+            "key": "canal_01",
+            "name": "Canal - Factory",
+            "id": -1,
+            "mode": 3
+        },
+        "canyon": {
+            "key": "canyon",
+            "name": "Canyon",
+            "id": -1,
+            "mode": 1
+        },
+        "desert_train": {
+            "key": "desert_train",
+            "name": "Desert Sands",
+            "id": -1,
+            "mode": 1
+        },
+        "desert_train_02": {
+            "key": "desert_train_02",
+            "name": "Desert Sands - Town",
+            "id": -1,
+            "mode": 3
+        },
+        "desert_train_03": {
+            "key": "desert_train_03",
+            "name": "Desert Sands - Dunes",
+            "id": -1,
+            "mode": 3
+        },
+        "erlenberg": {
+            "key": "erlenberg",
+            "name": "Middleburg",
+            "id": -1,
+            "mode": 1
+        },
+        "erlenberg_01": {
+            "key": "erlenberg_01",
+            "name": "Middleburg - Town",
+            "id": -1,
+            "mode": 3
+        },
+        "erlenberg_02": {
+            "key": "erlenberg_02",
+            "name": "Middleburg - Hill",
+            "id": -1,
+            "mode": 3
+        },
+        "faust": {
+            "key": "faust",
+            "name": "Faust",
+            "id": -1,
+            "mode": 1
+        },
+        "forgecity": {
+            "key": "forgecity",
+            "name": "New Bay",
+            "id": -1,
+            "mode": 1
+        },
+        "fort": {
+            "key": "fort",
+            "name": "Fort Despair",
+            "id": -1,
+            "mode": 1
+        },
+        "grossberg": {
+            "key": "grossberg",
+            "name": "Dynasty's Pearl",
+            "id": -1,
+            "mode": 1
+        },
+        "himmelsdorf": {
+            "key": "himmelsdorf",
+            "name": "Himmelsdorf",
+            "id": -1,
+            "mode": 1
+        },
+        "holland": {
+            "key": "holland",
+            "name": "Molendijk",
+            "id": -1,
+            "mode": 1
+        },
+        "holmeisk": {
+            "key": "holmeisk",
+            "name": "Wasteland",
+            "id": -1,
+            "mode": 1
+        },
+        "iceworld": {
+            "key": "iceworld",
+            "name": "Everfrost",
+            "id": -1,
+            "mode": 2
+        },
+        "idle": {
+            "key": "idle",
+            "name": "Yukon",
+            "id": -1,
+            "mode": 1
+        },
+        "italy": {
+            "key": "italy",
+            "name": "Vineyards",
+            "id": -1,
+            "mode": 1
+        },
+        "karelia": {
+            "key": "karelia",
+            "name": "Rockfield",
+            "id": -1,
+            "mode": 1
+        },
+        "karieri": {
+            "key": "karieri",
+            "name": "Copperfield",
+            "id": -1,
+            "mode": 1
+        },
+        "lake": {
+            "key": "lake",
+            "name": "Mirage",
+            "id": -1,
+            "mode": 1
+        },
+        "lumber": {
+            "key": "lumber",
+            "name": "Horrorstadt",
+            "id": -1,
+            "mode": 1
+        },
+        "lumber_01": {
+            "key": "lumber_01",
+            "name": "Alpenstadt - Town",
+            "id": -1,
+            "mode": 3
+        },
+        "malinovka": {
+            "key": "malinovka",
+            "name": "Winter Malinovka",
+            "id": -1,
+            "mode": 1
+        },
+        "medvedkovo": {
+            "key": "medvedkovo",
+            "name": "Dead Rail",
+            "id": -1,
+            "mode": 1
+        },
+        "medvedkovo_02": {
+            "key": "medvedkovo_02",
+            "name": "Dead Rail - Valley",
+            "id": -1,
+            "mode": 3
+        },
+        "medvedkovo_03": {
+            "key": "medvedkovo_03",
+            "name": "Dead Rail - Railroad",
+            "id": -1,
+            "mode": 3
+        },
+        "milbase": {
+            "key": "milbase",
+            "name": "Yamato Harbor",
+            "id": -1,
+            "mode": 1
+        },
+        "milbase_02": {
+            "key": "milbase_02",
+            "name": "Yamato Harbor - Battleship",
+            "id": -1,
+            "mode": 3
+        },
+        "milbase_03": {
+            "key": "milbase_03",
+            "name": "Yamato Harbor - Hills",
+            "id": -1,
+            "mode": 3
+        },
+        "milbase_04": {
+            "key": "milbase_04",
+            "name": "Yamato Harbor - Center",
+            "id": -1,
+            "mode": 3
+        },
+        "milbase_05": {
+            "key": "milbase_05",
+            "name": "Yamato Harbor - Dock",
+            "id": -1,
+            "mode": 3
+        },
+        "moon": {
+            "key": "moon",
+            "name": "Sea of Tranquility",
+            "id": -1,
+            "mode": 2
+        },
+        "mountain": {
+            "key": "mountain",
+            "name": "Black Goldville",
+            "id": -1,
+            "mode": 1
+        },
+        "neptune": {
+            "key": "neptune",
+            "name": "Normandy",
+            "id": -1,
+            "mode": 1
+        },
+        "neptune_01": {
+            "key": "neptune_01",
+            "name": "Normandy - Hills",
+            "id": -1,
+            "mode": 3
+        },
+        "neptune_02": {
+            "key": "neptune_02",
+            "name": "Normandy - Beach",
+            "id": -1,
+            "mode": 3
+        },
+        "north": {
+            "key": "north",
+            "name": "North",
+            "id": -1,
+            "mode": 1
+        },
+        "ordeal": {
+            "key": "ordeal",
+            "name": "Trial by Fire",
+            "id": -1,
+            "mode": 1
+        },
+        "plant": {
+            "key": "plant",
+            "name": "Ghost Factory",
+            "id": -1,
+            "mode": 1
+        },
+        "pliego": {
+            "key": "pliego",
+            "name": "Castilla",
+            "id": -1,
+            "mode": 1
+        },
+        "port": {
+            "key": "port",
+            "name": "Port Bay",
+            "id": -1,
+            "mode": 1
+        },
+        "rift": {
+            "key": "rift",
+            "name": "Hellas",
+            "id": -1,
+            "mode": 1
+        },
+        "rock": {
+            "key": "rock",
+            "name": "Mayan Ruins",
+            "id": -1,
+            "mode": 1
+        },
+        "rudniki": {
+            "key": "rudniki",
+            "name": "Mines",
+            "id": -1,
+            "mode": 1
+        },
+        "rudniki_01": {
+            "key": "rudniki_01",
+            "name": "Mines - Hill",
+            "id": -1,
+            "mode": 3
+        },
+        "rudniki_02": {
+            "key": "rudniki_02",
+            "name": "Mines - Village",
+            "id": -1,
+            "mode": 3
+        },
+        "rudniki_03": {
+            "key": "rudniki_03",
+            "name": "Mines - Center",
+            "id": -1,
+            "mode": 3
+        },
+        "savanna": {
+            "key": "savanna",
+            "name": "Oasis Palms",
+            "id": -1,
+            "mode": 1
+        },
+        "skit": {
+            "key": "skit",
+            "name": "Naval Frontier",
+            "id": -1,
+            "mode": 1
+        },
+        "test": {
+            "key": "test",
+            "name": "World of Ducks",
+            "id": -1,
+            "mode": 2
+        },
+        "tutorial": {
+            "key": "tutorial",
+            "name": "Proving Grounds",
+            "id": -1,
+            "mode": 0
+        }
+    }"""
 
     tanks: WGApiTankopedia
     tanks_by_tier = None
@@ -979,33 +1299,44 @@ class WG:
 
     def __init__(
         self,
-        tankopedia_fn: str,
+        tankopedia_fn: str = "tanks.json",
         WG_app_id: str = _DEFAULT_WG_APP_ID,
-        maps_fn: str | None = None,
+        maps_fn: str = "maps.json",
         stats_cache: bool = False,
         rate_limit: int = 10,
         global_rate_limit=True,
     ):
-        with open(tankopedia_fn, mode="r") as file:
+        self.WG_app_id: str = WG_app_id
+        self.tanks: WGApiTankopedia
+        self.maps: Maps
+        self.global_rate_limit = global_rate_limit
+
+        # read tankopedia
+        with open(tankopedia_fn, mode="rt") as file:
             try:
                 self.tanks: WGApiTankopedia = WGApiTankopedia.parse_raw(file.read())
             except Exception as err:
                 error(f"could not parse Tankopedia: {tankopedia_fn}")
 
-        self.WG_app_id = WG_app_id
-        # self.load_tanks(tankopedia_fn)
-        WG.tanks = self.tanks
-        self.global_rate_limit = global_rate_limit
+        WG.tanks = self.tanks  # WHY?
 
-        if maps_fn is not None:
-            if os.path.exists(maps_fn) and os.path.isfile(maps_fn):
-                try:
-                    with open(maps_fn, "rt", encoding="utf8") as f:
-                        WG.maps = json.loads(f.read())
-                except Exception as err:
-                    error("Could not read maps file: " + maps_fn + "\n" + str(err))
-            else:
-                verbose("Could not find maps file: " + maps_fn)
+        # read maps
+        if (maps := Maps.parse_str(self.MAPS_JSON)) is not None:
+            self.maps = maps
+        else:
+            error("could not parse default map data")
+            sys.exit(1)
+
+        if os.path.isfile(maps_fn):
+            try:
+                with open(maps_fn, "rt", encoding="utf8") as file:
+                    self.maps = Maps.parse_raw(file.read())
+            except ValidationError as err:
+                error(f"invalid maps file format: {maps_fn}")
+            except IOError as err:
+                error(f"Could not read maps file: {maps_fn}")
+                error(err)
+
         if self.WG_app_id is not None:
             headers = {"Accept-Encoding": "gzip, deflate"}
             if self.global_rate_limit:
@@ -1082,20 +1413,20 @@ class WG:
             return "eu"
         return None
 
-    @classmethod
-    def update_maps(cls, map_data: dict):
-        """Update maps data"""
-        cls.maps = map_data
-        return None
+    # @classmethod
+    # def update_maps(cls, map_data: dict):
+    #     """Update maps data"""
+    #     cls.maps = map_data
+    #     return None
 
     @classmethod
     def get_map(self, map_str: str) -> str:
         """Return map name from short map string in replays"""
         try:
-            return self.maps[map_str]
+            return self.maps[map_str].name
         except:
             error("Map " + map_str + " not found")
-        return None
+        return "UNKNOWN MAP"
 
     # @classmethod
     # def get_tank_user_strs(self) -> str:
@@ -1256,25 +1587,25 @@ class WG:
     #         error("Could not read tankopedia: " + tankopedia_fn, err)
     #     return False
 
-    def get_replay_filename(self, replay: dict):
-        try:
-            summary = replay["data"]["summary"]
-            timestamp = int(summary["battle_start_timestamp"])
-            timestamp = get_date_str(timestamp, date_format="%Y%m%d_%H%M")
-            player = summary["player_name"]
-            arena_id = int(summary["arena_unique_id"])
-            vehicle = self.name2tank_str(summary["vehicle"])
-            vehicle.replace(" ", "_")
+    # def get_replay_filename(self, replay: dict):
+    #     try:
+    #         summary = replay["data"]["summary"]
+    #         timestamp = int(summary["battle_start_timestamp"])
+    #         timestamp = get_date_str(timestamp, date_format="%Y%m%d_%H%M")
+    #         player = summary["player_name"]
+    #         arena_id = int(summary["arena_unique_id"])
+    #         vehicle = self.name2tank_str(summary["vehicle"])
+    #         vehicle.replace(" ", "_")
 
-            return "{:s}_{:s}_{:s}_{:d}.wotbreplay.json".format(
-                timestamp, player, vehicle, arena_id
-            )
-        except Exception as err:
-            error("Unexpected Exception", err)
-            return None
+    #         return "{:s}_{:s}_{:s}_{:d}.wotbreplay.json".format(
+    #             timestamp, player, vehicle, arena_id
+    #         )
+    #     except Exception as err:
+    #         error("Unexpected Exception", err)
+    #         return None
 
-    def get_map_user_strs(self) -> str:
-        return self.maps.keys()
+    # def get_map_user_strs(self) -> str:
+    #     return self.maps.keys()
 
     # def tank_str2name(self, tank_str: str) -> str:
     #     """Return tank name from short tank string in replays"""
