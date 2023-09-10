@@ -684,7 +684,7 @@ def sort_dict(d: dict, number: bool = False) -> dict:
 	if number:
 		return dict(sorted(d.items(), key=lambda item: int(item[0])))
 	else:
-		return dict(sorted(d.items(), key=lambda item: item[0]))
+		return dict(sorted(d.items(), key=lambda item: str(item[0])))
 
 
 # -----------------------------------------------------------
