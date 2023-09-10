@@ -8,3 +8,4 @@ lxml
 xmltodict 
 progress
 pytest-asyncio
+blitz-utils @ git+https://github.com/Jylpah/blitz-utils
