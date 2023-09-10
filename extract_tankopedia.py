@@ -25,7 +25,7 @@ BLITZAPP_VEHICLE_FILE='list.xml'
 wg : WG | None = None
 
 ## main() -------------------------------------------------------------
-async def main(argv: list[str]) -> None:
+async def main() -> None:
 	global wg
 	# set the directory for the script
 	os.chdir(os.path.dirname(sys.argv[0]))
@@ -245,5 +245,4 @@ if __name__ == "__main__":
 		else:
 			if not isinstance(get_event_loop_policy(), WindowsSelectorEventLoopPolicy):
 				set_event_loop_policy(WindowsSelectorEventLoopPolicy())
-	#asyncio.run(main(sys.argv[1:]), debug=True)
-	run(main(sys.argv[1:]))
+	run(main())
