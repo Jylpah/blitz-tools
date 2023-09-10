@@ -5,11 +5,16 @@
 
 import sys, argparse, json, os, concurrent, inspect, aiohttp, asyncio, aiofiles, aioconsole
 import configparser, ssl, re, logging, time, xmltodict, collections, csv
+from asyncio import Queue, Task, create_task
 from datetime import datetime, timedelta, date
-from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorClient
+from motor.motor_asyncio import (
+    AsyncIOMotorDatabase,
+    AsyncIOMotorClient,
+)
 import blitzutils1 as bu
 from blitzutils1 import WG
 from blitzutils1 import WoTinspector
+from pyutils import FileQueue
 
 logging.getLogger("asyncio").setLevel(logging.DEBUG)
 
@@ -2006,7 +2011,7 @@ async def main(argv):
 
         # try:
         BattleCategory.set_fields(args.mode)
-        replayQ = asyncio.Queue(maxsize=1000)
+        replayQ = Queue(maxsize=1000)
         reader_tasks = []
         # Make replay Queue
 
@@ -2072,8 +2077,8 @@ async def main(argv):
         if args.csv:
             await export_csv(args, blt_cat_list, histograms)
 
-        if args.replays:
-            await export_replays(replays)
+        # if args.replays:
+        #     await export_replays(replays)
 
         bu.debug("Finished. Cleaning up..................")
         # except Exception as err:
@@ -2146,8 +2151,8 @@ async def export_json(
 
 
 async def help_extended(
-    db: AsyncIOMotorDatabase = None,
-    parser: argparse.ArgumentParser = None,
+    db: AsyncIOMotorDatabase | None = None,
+    parser: argparse.ArgumentParser | None = None,
 ):
     """Help for --filters"""
     if parser is not None:
@@ -2208,26 +2213,26 @@ async def help_extended(
             bu.error(exception=err)
 
 
-async def export_replays(replays: dict):
-    """Export replays"""
-    global wg
-    try:
-        replay_dir = OPT_EXPORT_REPLAY_DIR + "_" + bu.get_date_str()
-        bu.verbose_std("Exporting replays to " + replay_dir)
-        if not os.path.isdir(replay_dir):
-            os.mkdir(replay_dir)
+# async def export_replays(replays: dict):
+#     """Export replays"""
+#     global wg
+#     try:
+#         replay_dir = OPT_EXPORT_REPLAY_DIR + "_" + bu.get_date_str()
+#         bu.verbose_std("Exporting replays to " + replay_dir)
+#         if not os.path.isdir(replay_dir):
+#             os.mkdir(replay_dir)
 
-        i = 0
-        for replay in replays.values():
-            filename = wg.get_replay_filename(replay)
-            async with aiofiles.open(
-                os.path.join(replay_dir, filename), "w", encoding="utf8"
-            ) as f:
-                await f.write(json.dumps(replay, indent=4))
-            i += 1
-        bu.verbose_std(str(i) + " replays exported")
-    except Exception as err:
-        bu.error(exception=err)
+#         i = 0
+#         for replay in replays.values():
+#             filename = wg.get_replay_filename(replay)
+#             async with aiofiles.open(
+#                 os.path.join(replay_dir, filename), "w", encoding="utf8"
+#             ) as f:
+#                 await f.write(json.dumps(replay, indent=4))
+#             i += 1
+#         bu.verbose_std(str(i) + " replays exported")
+#     except Exception as err:
+#         bu.error(exception=err)
 
 
 ## move the class PlayerHistogram?
@@ -2426,7 +2431,7 @@ async def process_player_stats(
     """Start stat_workers to retrieve and store players' stats"""
     ## Create queue of player-tank pairs to find stats for
     try:
-        statsQ = asyncio.Queue()
+        statsQ = Queue()
         bu.debug("Create player stats queue: " + str(len(players)) + " players")
         stat_id_map = dict()
         stat_ids = set()
@@ -2569,7 +2574,7 @@ def calc_team_stats(
 
 
 async def stat_worker(
-    queue: asyncio.Queue,
+    queue: Queue,
     workerID: int,
     args: argparse.Namespace,
     db: AsyncIOMotorDatabase,
@@ -2968,14 +2973,15 @@ async def player_stats_helper(player_stats: dict):
 
 
 async def mk_replayQ(
-    queue: asyncio.Queue,
+    replayQ: Queue,
     args: argparse.Namespace,
-    db: AsyncIOMotorDatabase = None,
+    db: AsyncIOMotorDatabase | None = None,
 ):
     """Create queue of replays to post"""
     p_replayfile = re.compile(".*\\.wotbreplay\\.json$")
-    files = args.files
+    files: list[str] = args.files
     Nreplays = 0
+
     if files[0] == "db:":
         if db is None:
             bu.error("No database connection opened")
@@ -2995,7 +3001,7 @@ async def mk_replayQ(
             async for replay_json in cursor:
                 _id = replay_json["_id"]
                 # del(replay_json['_id'])
-                await queue.put(await mk_readerQ_item(replay_json, _id=_id))
+                await replayQ.put(await mk_readerQ_item(replay_json, _id=_id))
                 Nreplays += 1
             bu.debug("All the matching replays have been read from the DB")
         except Exception as err:
@@ -3004,53 +3010,33 @@ async def mk_replayQ(
     elif files[0] == "-":
         bu.debug("reading replay file list from STDIN")
         stdin, _ = await aioconsole.get_standard_streams()
-        while True:
+        while (line := (await stdin.readline()).decode("utf-8").rstrip()) is not None:
             try:
-                line = (await stdin.readline()).decode("utf-8").rstrip()
-                if not line:
-                    break
-
                 if p_replayfile.match(line) is not None:
                     replay_json = await bu.open_JSON(line, wi.chk_JSON_replay)
-                    await queue.put(await mk_readerQ_item(replay_json, filename=line))
+                    await replayQ.put(await mk_readerQ_item(replay_json, filename=line))
             except Exception as err:
                 bu.error(exception=err)
     else:
-        for fn in files:
+        jsonQ = FileQueue(maxsize=500, filter="*.wotbreplay.json")
+        scanner: Task = create_task(jsonQ.mk_queue(files=files))
+        async for fn in jsonQ:
             try:
-                # bu.debug('Filename: ' + fn)
-                if fn.endswith('"'):
-                    fn = fn[:-1]
-                if os.path.isfile(fn) and (p_replayfile.match(fn) is not None):
-                    replay_json = await bu.open_JSON(fn, wi.chk_JSON_replay)
-                    await queue.put(await mk_readerQ_item(replay_json, filename=fn))
-                    bu.debug("File added to queue: " + fn)
-                    Nreplays += 1
-                elif os.path.isdir(fn):
-                    with os.scandir(fn) as dirEntry:
-                        for entry in dirEntry:
-                            if entry.is_file() and (
-                                p_replayfile.match(entry.name) is not None
-                            ):
-                                bu.debug(entry.name)
-                                replay_json = await bu.open_JSON(
-                                    entry.path, wi.chk_JSON_replay
-                                )
-                                await queue.put(
-                                    await mk_readerQ_item(
-                                        replay_json, filename=entry.name
-                                    )
-                                )
-                                bu.debug("File added to queue: " + entry.path)
-                                Nreplays += 1
+                replay_json = await bu.open_JSON(fn, wi.chk_JSON_replay)
+                await replayQ.put(await mk_readerQ_item(replay_json, filename=fn))
+                bu.debug("File added to queue: " + fn)
+                Nreplays += 1
             except Exception as err:
                 bu.error(exception=err)
+        await asyncio.wait([scanner])
     return Nreplays
 
 
-async def mk_readerQ_item(replay_json, filename: str = None, _id: str = None) -> list:
+async def mk_readerQ_item(
+    replay_json, filename: str | None = None, _id: str | None = None
+) -> list | None:
     """Make an item to replay queue"""
-    global REPLAY_N
+    global REPLAY_N, wi
     REPLAY_N += 1
     try:
         if wi.chk_JSON_replay(replay_json):
@@ -3071,7 +3057,7 @@ async def mk_readerQ_item(replay_json, filename: str = None, _id: str = None) ->
         return None
 
 
-async def replay_reader(queue: asyncio.Queue, readerID: int, args: argparse.Namespace):
+async def replay_reader(queue: Queue, readerID: int, args: argparse.Namespace):
     """Async Worker to process the replay queue"""
     # global SKIPPED_N
     global wi
@@ -3187,7 +3173,7 @@ async def read_replay_JSON(replay_json: dict, args: argparse.Namespace) -> dict:
         btl_tier = 0
         protagonist_tank = None
         for player in replay_summary["details"]:
-            tank_id : int = player["vehicle_descr"]
+            tank_id: int = player["vehicle_descr"]
             btl_duration = max(btl_duration, player["time_alive"])
             player_tank_tier = wg.get_tank_tier(tank_id)
             btl_tier = max(btl_tier, player_tank_tier)
@@ -3195,7 +3181,7 @@ async def read_replay_JSON(replay_json: dict, args: argparse.Namespace) -> dict:
             if player["dbid"] == account_id:
                 # player itself is not put in results['allies']
                 tmp = dict()
-                tmp["account_id"] = account_id                
+                tmp["account_id"] = account_id
                 tmp["tank_id"] = tank_id
                 tmp["tank_tier"] = player_tank_tier
                 tmp["tank_name"] = wg.get_tank_name(tank_id)
