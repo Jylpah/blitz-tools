@@ -13,3 +13,4 @@ export*
 *.csv
 !/stats/*.csv
 !*.py
+/.venv
