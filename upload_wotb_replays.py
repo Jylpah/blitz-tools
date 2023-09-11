@@ -309,60 +309,60 @@ async def replayWorker(
     return None
 
 
-def getTitle_old(replayfile: str, title: str, i: int) -> str:
-    global wg
+# def getTitle_old(replayfile: str, title: str, i: int) -> str:
+#     global wg
 
-    if title is None:
-        try:
-            filename = os.path.basename(replayfile)
-            bu.debug(filename)
-            map_usrStrs = wg.get_map_user_strs()
-            tank_userStrs = wg.get_tank_user_strs()
+#     if title is None:
+#         try:
+#             filename = os.path.basename(replayfile)
+#             bu.debug(filename)
+#             map_usrStrs = wg.get_map_user_strs()
+#             tank_userStrs = wg.get_tank_user_strs()
 
-            # p = re.compile('\\d{8}_\\d{4}_(.+)_(' + '|'.join(map_usrStrs) + ')(?:-\\d)?\\.wotbreplay$')
-            # update 6.2 changed the file name format. Bug fixed 2019-09-09 Jylpah
-            p = re.compile(
-                "\\d{8}_\\d{4}_.*?("
-                + "|".join(tank_userStrs)
-                + ")_("
-                + "|".join(map_usrStrs)
-                + ")(?:-\\d)?\\.wotbreplay$"
-            )
+#             # p = re.compile('\\d{8}_\\d{4}_(.+)_(' + '|'.join(map_usrStrs) + ')(?:-\\d)?\\.wotbreplay$')
+#             # update 6.2 changed the file name format. Bug fixed 2019-09-09 Jylpah
+#             p = re.compile(
+#                 "\\d{8}_\\d{4}_.*?("
+#                 + "|".join(tank_userStrs)
+#                 + ")_("
+#                 + "|".join(map_usrStrs)
+#                 + ")(?:-\\d)?\\.wotbreplay$"
+#             )
 
-            m = p.match(filename)
-            if m is not None:
-                if wg.tanks is not None:
-                    tank = m.group(1)
-                    if tank in wg.tanks["userStr"]:
-                        tank = wg.tanks["userStr"][tank]
-                    else:
-                        bu.error(
-                            'Tank code: "'
-                            + tank
-                            + '" not found from Tankopedia (tanks.json)'
-                        )
-                else:
-                    tank = m.group(1)
-                blitz_map = m.group(2)
-                if blitz_map in wg.maps:
-                    blitz_map = wg.maps[blitz_map]
-                else:
-                    bu.error(
-                        'Mapcode: "'
-                        + blitz_map
-                        + '" not found from map database (maps.json)'
-                    )
-                title = tank + " @ " + blitz_map
-            else:
-                title = re.sub("\\.wotbreplay$", "", filename)
-        except Exception as err:
-            bu.error(err)
-    else:
-        title.replace("NN", str(i))
-    return title
+#             m = p.match(filename)
+#             if m is not None:
+#                 if wg.tanks is not None:
+#                     tank = m.group(1)
+#                     if tank in wg.tanks["userStr"]:
+#                         tank = wg.tanks["userStr"][tank]
+#                     else:
+#                         bu.error(
+#                             'Tank code: "'
+#                             + tank
+#                             + '" not found from Tankopedia (tanks.json)'
+#                         )
+#                 else:
+#                     tank = m.group(1)
+#                 blitz_map = m.group(2)
+#                 if blitz_map in wg.maps:
+#                     blitz_map = wg.maps[blitz_map]
+#                 else:
+#                     bu.error(
+#                         'Mapcode: "'
+#                         + blitz_map
+#                         + '" not found from map database (maps.json)'
+#                     )
+#                 title = tank + " @ " + blitz_map
+#             else:
+#                 title = re.sub("\\.wotbreplay$", "", filename)
+#         except Exception as err:
+#             bu.error(err)
+#     else:
+#         title.replace("NN", str(i))
+#     return title
 
 
-def getTitle(replayfile: str, title: str = None, i: int = 0) -> str:
+def getTitle(replayfile: str, title: str | None = None, i: int = 0) -> str:
     global wg
     assert wg is not None, "wg must not be None"
 

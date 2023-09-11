@@ -5,6 +5,7 @@
 
 import sys, argparse, json, os, concurrent, inspect, aiohttp, asyncio, aiofiles, aioconsole
 import configparser, ssl, re, logging, time, xmltodict, collections, csv
+from pathlib import Path
 from asyncio import Queue, Task, create_task
 from datetime import datetime, timedelta, date
 from motor.motor_asyncio import (
@@ -1690,11 +1691,11 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
 ## main() -------------------------------------------------------------
 
 
-async def main(argv):
-    global wg, wi, WG_APP_ID, OPT_MODE_DEFAULT, OPT_EXPORT_CSV_FILE, OPT_EXPORT_JSON_FILE
+async def main(argv: list[str]):
+    global wg, wi, WG_APP_ID, OPT_EXPORT_CSV_FILE, OPT_EXPORT_JSON_FILE
     # set the directory for the script
     current_dir = os.getcwd()
-    os.chdir(os.path.dirname(sys.argv[0]))
+    # os.chdir(os.path.dirname(sys.argv[0]))
 
     ## Default options:
     OPT_MODE_DEFAULT = "default"
@@ -1728,16 +1729,30 @@ async def main(argv):
 
     try:
         ## Read config
-        if os.path.isfile(FILE_CONFIG):
+
+        CONFIG: str = "blitzstats.ini"
+        CONFIG_FILES: list[Path] = [
+            Path(".") / CONFIG,
+            Path(__file__).parent / CONFIG,
+            Path.home() / f".{CONFIG}",
+            Path.home() / ".config" / CONFIG,
+            Path.home() / ".config/blitzstats/config",
+        ]
+
+        config_file: Path | None = None
+        for config_file in CONFIG_FILES:
+            if config_file.is_file():
+                break
+        if config_file is None:
+            print("no config file found")
+        else:
             config = configparser.ConfigParser()
-            config.read(FILE_CONFIG)
+            config.read(config_file)
 
             try:
                 if "ANALYZER" in config.sections():
                     configAnalyzer = config["ANALYZER"]
-                    OPT_MODE_DEFAULT = configAnalyzer.getboolean(
-                        "mode", OPT_MODE_DEFAULT
-                    )
+                    OPT_MODE_DEFAULT = configAnalyzer.get("mode", OPT_MODE_DEFAULT)
                     OPT_HIST = configAnalyzer.getboolean("histograms", OPT_HIST)
                     OPT_STAT_FUNC = configAnalyzer.get(
                         "stat_func", fallback=OPT_STAT_FUNC
@@ -3022,9 +3037,9 @@ async def mk_replayQ(
         scanner: Task = create_task(jsonQ.mk_queue(files=files))
         async for fn in jsonQ:
             try:
-                replay_json = await bu.open_JSON(fn, wi.chk_JSON_replay)
+                replay_json = await bu.open_JSON(str(fn), wi.chk_JSON_replay)
                 await replayQ.put(await mk_readerQ_item(replay_json, filename=fn))
-                bu.debug("File added to queue: " + fn)
+                bu.debug("File added to queue: " + str(fn))
                 Nreplays += 1
             except Exception as err:
                 bu.error(exception=err)
@@ -3351,4 +3366,4 @@ if __name__ == "__main__":
                 asyncio.get_event_loop_policy(), WindowsSelectorEventLoopPolicy
             ):
                 asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
-    asyncio.run(main(sys.argv[1:]), debug=False)
+    asyncio.run(main(sys.argv), debug=False)
