@@ -2,6 +2,9 @@
 
 | Release | Date     | Content updates       |
 |:-------:|:--------:|-------------|
+| 10.4 | 2023-11-15 | Threesome-platoons for fun modes, camos |
+| 10.3 | 2023-09-27 | Polish Medium Tanks, Tier X rebalance, map updates: Ghost Factory, Desert Sands, Super-cool legenday camos|
+| 10.2 | 2023-08-16 | PBR Camos and bug fixes ... |
 | 10.1 | 2023-07-05 | PBR Camos and ? |
 | 10.0 | 2023-05-24 | Lagoon map, Czechoslovakian heavies, tanks start shells loaded  |
 | 9.8 | 2023-03-22 | F\*cked up The Quick Commands Wheel, camos |
