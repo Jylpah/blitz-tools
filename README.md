@@ -1,3 +1,7 @@
+## Unmaintained
+
+Please use [blitz-replays](https://github.com/Jylpah/blitz-replays) instead. It is faster and more feature-rich. 
+
 # blitz-tools
 Python scripts to analyze WoT Blitz replays and stats. All the scripts require [Python 3.7](https://www.python.org/downloads/) or later. 
 
